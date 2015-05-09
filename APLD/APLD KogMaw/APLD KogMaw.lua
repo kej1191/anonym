@@ -1,16 +1,33 @@
 if not VIP_USER or myHero.charName ~= "KogMaw" then return end
 
+
+--[[
+
+ ADC Play Like DoubleLift by KaoKaoNi
+
+ v 1.0
+ Open
+ 
+ v 1.1
+ 1. HPred Skill Registration API Change
+ 2. Fix Skill Shot
+ 
+ v 1.2
+ 1. Fix W, R Range Logic
+
+]]
+
 function ScriptMsg(msg)
   print("<font color=\"#daa520\"><b>APLD KogMaw:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
 end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.1"
+local Version = "1.2"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.1,
+	["Version"] = 1.2,
 	["Author"] = {
 		["Your"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -356,6 +373,9 @@ function OnTick()
 		KogMawRStack.Stack = 1;
 		KogMawRStack.LastCastTime = 0;
 	end
+	
+	W.Range = DefultAARange+(110+20*player:GetSpellData(_W).level);
+	R.Range = 900+(300*player:GetSpellData(_R).level);
 end
 
 function OnDraw()
