@@ -6,11 +6,11 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.0"
+local Version = "1.1"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.0,
+	["Version"] = 1.1,
 	["Author"] = {
 		["Your"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -19,8 +19,8 @@ local SCRIPT_UPDATER = {
 	["Activate"] = true,
 	["Script"] = SCRIPT_PATH..GetCurrentEnv().FILE_NAME,
 	["URL_HOST"] = "raw.github.com",
-	["URL_PATH"] = "/kej1191/bol/master/APLD/APLD KogMaw/APLD KogMaw.lua",
-	["URL_VERSION"] = "/kej1191/bol/master/APLD/APLD KogMaw/version/APLD KogMaw.version"
+	["URL_PATH"] = "/kej1191/anonym/master/APLD/APLD KogMaw/APLD KogMaw.lua",
+	["URL_VERSION"] = "/kej1191/anonym/master/APLD/APLD KogMaw/version/APLD KogMaw.version"
 }
 local SCRIPT_LIBS = {
 	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
@@ -58,9 +58,9 @@ local DefultRRange = 0;
 local MyminBBox = GetDistance(myHero.minBBox)/2;
 local DefultAARange = myHero.range+MyminBBox;
 
-local Q = {Range = 975, Width = 70, Delay = 0.5, Speed = 1200, IsReady = function() return player:CanUseSpell(_Q) == READY end,};
+local Q = {Range = 975, Width = 70, Delay = 0.25, Speed = 1200, IsReady = function() return player:CanUseSpell(_Q) == READY end,};
 local W = {Range = DefultAARange+(110+20*player:GetSpellData(_W).level), IsReady = function() return player:CanUseSpell(_W) == READY end,};
-local E = {Range = 1200, Width = 120, Delay = 0.5, Speed = 1200, IsReady = function() return player:CanUseSpell(_E) == READY end,};
+local E = {Range = 1200, Width = 120, Delay = 0.25, Speed = 1200, IsReady = function() return player:CanUseSpell(_E) == READY end,};
 local R = {Range = 900+(300*player:GetSpellData(_R).level), Delay = 1.1, Width = 225, Speed = math.huge, IsReady = function() return player:CanUseSpell(_R) == READY end, };
 
 local KogMawRStack = {Stack = 1, LastCastTime = 0};
@@ -223,6 +223,10 @@ function OnLoad()
 	
 	OnMenuLoad();
 	
+	HPred:AddSpell("Q", 'KogMaw', {type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width, speed = Q.Speed})
+	HPred:AddSpell("E", 'KogMaw', {type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width, speed = E.Speed})
+	HPred:AddSpell("R", 'KogMaw', {type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width})
+	--[[
 		-- Q
 	Spell_Q.delay['KogMaw'] = Q.Delay;
 	Spell_Q.width['KogMaw'] = Q.Width*2;
@@ -244,7 +248,7 @@ function OnLoad()
 	Spell_R.radius['KogMaw'] = R.Width;
 	Spell_R.range['KogMaw'] = R.Range;
 	Spell_R.type['KogMaw'] = "PromptCircle"
-	
+	]]
 	if GetGame().map.shortName == "twistedTreeline" then
 		TwistedTreeline = true
 	else
@@ -291,8 +295,8 @@ function OnMenuLoad()
 		
 	Config:addSubMenu("Prediction", "pred")
 		Config.pred:addSubMenu("HPSetting", "HPSetting")
-			Config.pred.HPSetting:addParam("QHitChance", "QHitChance", SCRIPT_PARAM_SLICE, 0.4, 0, 3.0, 0);
-			Config.pred.HPSetting:addParam("EHitChance", "EHitChance", SCRIPT_PARAM_SLICE, 0.4, 0, 3.0, 0);
+			Config.pred.HPSetting:addParam("QHitChance", "QHitChance", SCRIPT_PARAM_SLICE, 1, 0, 3.0, 0);
+			Config.pred.HPSetting:addParam("EHitChance", "EHitChance", SCRIPT_PARAM_SLICE, 1, 0, 3.0, 0);
 			Config.pred.HPSetting:addParam("RHitChance", "RHitChance", SCRIPT_PARAM_SLICE, 1.4, 0, 3.0, 0);
 
 	Config:addSubMenu("ETC", "ETC")
