@@ -26,11 +26,11 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.3"
+local Version = "1.4"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.3,
+	["Version"] = 1.4,
 	["Author"] = {
 		["Your"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -243,9 +243,9 @@ function OnLoad()
 	
 	OnMenuLoad();
 	
-	HPred:AddSpell("Q", 'KogMaw', {type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width, speed = Q.Speed})
-	HPred:AddSpell("E", 'KogMaw', {type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width, speed = E.Speed})
-	HPred:AddSpell("R", 'KogMaw', {type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width})
+	HPred:AddSpell("Q", 'KogMaw', {type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width*2, speed = Q.Speed})
+	HPred:AddSpell("E", 'KogMaw', {type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width*2, speed = E.Speed})
+	HPred:AddSpell("R", 'KogMaw', {type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width, IsVeryLowAccuracy = true})
 	--[[
 		-- Q
 	Spell_Q.delay['KogMaw'] = Q.Delay;
