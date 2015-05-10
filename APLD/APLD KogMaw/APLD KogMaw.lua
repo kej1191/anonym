@@ -14,6 +14,9 @@ if not VIP_USER or myHero.charName ~= "KogMaw" then return end
  
  v 1.2
  1. Fix W, R Range Logic
+ 
+ v 1.3
+ 1. Add W Casting in AA Range in menu
 
 ]]
 
@@ -23,11 +26,11 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.2"
+local Version = "1.3"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.2,
+	["Version"] = 1.3,
 	["Author"] = {
 		["Your"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -333,7 +336,7 @@ function OnMenuLoad()
 		
 			
 	Config:addSubMenu("WSetting", "WSetting")
-		Config.WSetting:addParam("WAdvance","Use W in advance",SCRIPT_PARAM_ONOFF, false);
+		Config.WSetting:addParam("WAdvance","Use W in AARange",SCRIPT_PARAM_ONOFF, false);
 		
 	
 	Config:addSubMenu("RSetting", "RSetting")
@@ -496,7 +499,7 @@ end
 function CastW( target )
 	if W.IsReady() then
 		if Config.WSetting.WAdvance then
-			if GetDistance(player, target) <= W.Range+100 then
+			if GetDistance(player, target) <= DefultAARange then
 				CastSpell(_W)
 			end
 		else
