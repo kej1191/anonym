@@ -159,7 +159,7 @@ function checkOrbwalker()
     if _G.MMA_Loaded ~= nil and _G.MMA_Loaded then
         IsMMALoaded = true
         print('MMA detected')
-    elseif _G.AutoCarry then
+    elseif _G.Reborn_Loaded then
         IsSACLoaded = true
         print('SAC detected')
     elseif FileExist(LIB_PATH .."SOW.lua") then
@@ -179,7 +179,7 @@ function Init()
 	ts.name = "Ranged Main"
 	Config:addTS(ts)
 	EnemyMinions = minionManager(MINION_ENEMY, 1100, myHero, MINION_SORT_MAXHEALTH_DEC)
-    print('Dienofail Jinx ' .. tostring(version) .. ' loaded!')
+    print('Dienofail Jinx ' .. tostring(version) .. ' Fix by KaoKaoNi loaded!')
     initDone = true
 end
 
@@ -401,9 +401,9 @@ function CastW(Target)
 	local CastPosition, HitChance, Pos = CombinedPredict(Target, SpellW.Delay, SpellW.Width, SpellW.Range, SpellW.Speed, myHero, true)
 	
 	if CastPosition ~= nil and HitChance ~= nil then
-		if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 2 and GetDistance(Target) > Config.Extras.WRange then
+		if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
 			CastSpell(_W, CastPosition.x, CastPosition.z)
-		elseif GetDistance(Target) > 600 and HitChance >= 2 and GetDistance(Target) > Config.Extras.WRange then
+		elseif GetDistance(Target) > 600 and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
 			CastSpell(_W, CastPosition.x, CastPosition.z)
 		end
 	end
