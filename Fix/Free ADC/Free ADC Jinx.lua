@@ -179,7 +179,7 @@ function Init()
 	ts.name = "Ranged Main"
 	Config:addTS(ts)
 	EnemyMinions = minionManager(MINION_ENEMY, 1100, myHero, MINION_SORT_MAXHEALTH_DEC)
-    print('Dienofail Jinx ' .. tostring(version) .. ' Fix by KaoKaoNi loaded!')
+    print('Dienofail Jinx ' .. tostring(version) .. ' Fixed by KaoKaoNi loaded!')
     initDone = true
 end
 
