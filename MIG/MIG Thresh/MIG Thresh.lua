@@ -224,7 +224,7 @@ function OnDraw()
 end
 
 function OnLoadMenu()
-	Config = MenuWrapper("[MIG] " .. player.charName, "unique" .. player.charName:gsub("%s+", ""))
+	Config = MenuWrapper("[Your] " .. player.charName, "unique" .. player.charName:gsub("%s+", ""))
 
 		Config:SetTargetSelector(STS)
 		if SxOLoad then
