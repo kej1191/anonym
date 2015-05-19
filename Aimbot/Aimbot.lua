@@ -1,5 +1,5 @@
 local Author = "KaoKaoNi"
-local Version = "1.0"
+local Version = "0.01"
 
 function ScriptMsg(msg)
   print("<font color=\"#daa520\"><b>Aimbot:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
@@ -7,7 +7,7 @@ end
 
 local SCRIPT_INFO = {
 	["Name"] = "AimBot",
-	["Version"] = 1.0,
+	["Version"] = 0.01,
 	["Author"] = {
 		["Your"] = "http://forum.botoflegends.com/user/145247-"
 	},
