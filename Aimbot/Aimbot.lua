@@ -9,7 +9,7 @@ local SCRIPT_INFO = {
 	["Name"] = "AimBot",
 	["Version"] = 0.01,
 	["Author"] = {
-		["Your"] = "http://forum.botoflegends.com/user/145247-"
+		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
 }
 local SCRIPT_UPDATER = {
