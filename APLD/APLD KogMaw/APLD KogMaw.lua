@@ -279,6 +279,18 @@ function OnLoad()
 	enemyMinions = minionManager(MINION_ENEMY, R.Range+R.Width, player, MINION_SORT_MAXHEALTH_DEC)
 
 end
+-- Language
+
+local _Combo = {"Combo", "콤보", "组合", "Комбо"}
+local _Harass = {"Harass", "괴롭히기", "骚扰", "изводить"}
+local _LineClear = {"LineClear", "라인클리어", "线清晰", "линия Ясно"}
+
+local UseQ = {"Use Q", "Q 사용", "用 Q", "Использование Q"}
+local UseW = {"Use W", "W 사용", "用 W", "Использование W"}
+local UseE = {"Use E", "E 사용", "用 E", "Использование E"}
+local UseR = {"Use R", "R 사용", "用 R", "Использование R"}
+
+-- End Language
 
 function OnMenuLoad()
 	Config = scriptConfig("APLD KogMaw", "APLD KogMaw");
@@ -286,32 +298,37 @@ function OnMenuLoad()
 	Config:addSubMenu("TargetSelector", "TargetSelector")
 	STS:AddToMenu(Config.TargetSelector)
 	
-	Config:addSubMenu("HotKey", "HotKey");
-		Config.HotKey:addParam("Combo","Combo",SCRIPT_PARAM_ONKEYDOWN, false, 32);
-		Config.HotKey:addParam("Harass","Harass",SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"));
-		Config.HotKey:addParam("LineClear","LineClear",SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"));
-		
-	Config:addSubMenu("Combo", "Combo");
-		Config.Combo:addParam("UseQ","Use Q",SCRIPT_PARAM_ONOFF, true);
-		Config.Combo:addParam("UseW","Use W",SCRIPT_PARAM_ONOFF, true);
-		Config.Combo:addParam("UseE","Use E",SCRIPT_PARAM_ONOFF, true);
-		Config.Combo:addParam("UseR","Use R",SCRIPT_PARAM_ONOFF, true);
+	Config:addSubMenu("Language", "Language")
+		Config.Language:addParam("Language", "Language", SCRIPT_PARAM_LIST, 1, {"English", "한국어", "中國語", "русский"})
 	
-	Config:addSubMenu("Harass", "Harass")
-		Config.Harass:addParam("UseQ", "Use Q", SCRIPT_PARAM_ONOFF, true);
-		Config.Harass:addParam("UseW", "Use W", SCRIPT_PARAM_ONOFF, true);
-		Config.Harass:addParam("UseE", "Use E", SCRIPT_PARAM_ONOFF, true);
-		Config.Harass:addParam("UseR", "Use R", SCRIPT_PARAM_ONOFF, true);
+	local _Lg = Config.Language.Language
+	
+	Config:addSubMenu("HotKey", "HotKey");
+		Config.HotKey:addParam("Combo",_Combo[_Lg] ,SCRIPT_PARAM_ONKEYDOWN, false, 32);
+		Config.HotKey:addParam("Harass",_Harass[_Lg], SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"));
+		Config.HotKey:addParam("LineClear",_LineClear[_Lg] ,SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"));
 		
-	Config:addSubMenu("Clear", "Clear")
-		Config.Clear:addParam("UseQ", "Use Q", SCRIPT_PARAM_ONOFF, true);
-		Config.Clear:addParam("UseW", "Use W", SCRIPT_PARAM_ONOFF, true);
-		Config.Clear:addParam("UseE", "Use E", SCRIPT_PARAM_ONOFF, true);
-		Config.Clear:addParam("UseR", "Use R", SCRIPT_PARAM_ONOFF, true);
+	Config:addSubMenu(_Combo[_Lg], "Combo");
+		Config.Combo:addParam("UseQ",UseQ[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Combo:addParam("UseW",UseW[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Combo:addParam("UseE",UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Combo:addParam("UseR",UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
+	
+	Config:addSubMenu(_Harass[_Lg], "Harass")
+		Config.Harass:addParam("UseQ", UseQ[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Harass:addParam("UseW",UseW[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Harass:addParam("UseE", UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Harass:addParam("UseR", UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
+		
+	Config:addSubMenu(_LineClear[_Lg], "Clear")
+		Config.Clear:addParam("UseQ",UseQ[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Clear:addParam("UseW", UseW[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Clear:addParam("UseE", UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.Clear:addParam("UseR",UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
 		
 	Config:addSubMenu("KillSteal", "KillSteal")
-		Config.KillSteal:addParam("UseE", "Use E", SCRIPT_PARAM_ONOFF, true);
-		Config.KillSteal:addParam("UseR", "Use R", SCRIPT_PARAM_ONOFF, true);
+		Config.KillSteal:addParam("UseE", UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.KillSteal:addParam("UseR", UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
 		
 	Config:addSubMenu("Prediction", "pred")
 		Config.pred:addSubMenu("HPSetting", "HPSetting")
