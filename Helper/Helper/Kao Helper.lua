@@ -4,7 +4,7 @@ function ScriptMsg(msg)
 end
 
 local Author =  "KaoKaoNi"
-local Version = "Beta_1.3"
+local Version = "Beta_1.2"
 local ClientVersion = "5.9"
 
 local Statu = {}
