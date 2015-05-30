@@ -4,8 +4,7 @@ function ScriptMsg(msg)
 end
 
 local Author =  "KaoKaoNi"
-local Version = "Beta_1.2"
-local ClientVersion = "5.9"
+local Version = "Beta_1.3"
 
 local Statu = {}
 
@@ -32,8 +31,20 @@ local tHealth = {1000, 1200, 1300, 1500, 2000, 2300, 2500}
 local player = myHero
 
 local PATH = BOL_PATH.."Sprites\\"
-local SQUARE_PATH = GAME_PATH:gsub('\\solutions\\lol_game_client_sln\\releases\\0.0.0.163\\deploy', '\\projects\\lol_air_client\\releases\\0.0.0.174\\deploy\\assets\\images\\champions')
+local Code = {
+	['5.9'] = {solution = "0.0.0.163", projects = "0.0.0.174"},
+	['5.10'] = {solution = "0.0.1.91", projects = "0.0.1.146"},
+}
+local LolClientVersion = {"5.10", "5.9"}
+
+local SQUARE_PATH
+local Spell_Img_PATH
 local enemyTable
+
+local J_enemyTabls = {}
+local J_allyTabls = {}
+
+local wards = {}
 
 if VIP_USER then
  	AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
@@ -60,12 +71,20 @@ end
 
 function OnLoad()
 	OnLoadMenu()
+	SQUARE_PATH = GAME_PATH:gsub('\\solutions\\lol_game_client_sln\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].solution..'\\deploy', '\\projects\\lol_air_client\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].projects..'\\deploy\\assets\\images\\champions')
+	Spell_Img_PATH = GAME_PATH:gsub('\\solutions\\lol_game_client_sln\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].solution..'\\deploy', '\\projects\\lol_air_client\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].projects..'\\deploy\\assets\\images\\abilities')
 	enemyTable = {}
 	for i, enemy in ipairs(GetEnemyHeroes()) do
         missing_since[i] = -1
 		enemyTable[enemy.charName] = {unit = enemy, dead = false, sprite = nil, transparency = 0xBF} 
 		enemyTable[enemy.charName].sprite = FindSprite(SQUARE_PATH .. enemy.charName .. '_Square_0.png')
+		J_enemyTabls[enemy.charName] = {unit = enemy, attack = false, attacked = false, casting = nil, statu = ""}
     end
+	
+	for i, ally in ipairs(GetAllyHeroes()) do
+		J_allyTabls[enemy.charName] = {unit = enemy, attack = false, attacked = false, casting = nil, statu = ""}
+	end
+	
 	for i = 1, objManager.iCount, 1 do
         local tow = objManager:getObject(i)
         if tow ~= nil then
@@ -96,6 +115,8 @@ function OnDraw()
 	if Config._3DRader.On then _3DRader() end
 	if Config.MissingTimer.On then MissingTimerDraw() end
 	if Config.Misc.DrawTawerRange then TowerRange() end
+	--if Config.Jarvis.On and Config.Jarvis.DrawInfo then Jarvis_Draw() end
+	if Config.WardTracker.On then WardTracker_Draw() end
 end
 
 function OnUnload()
@@ -105,7 +126,7 @@ function OnUnload()
 end
 
 function OnLoadMenu()
-	Config = scriptConfig("Free Awarencess", "Free Awarencess")
+	Config = scriptConfig("Kao Hepler", "Kao Hepler")
 		
 		Config:addSubMenu("CoolDownChecker", "CoolDownChecker")
 			Config.CoolDownChecker:addParam("On", "On", SCRIPT_PARAM_ONOFF, true)
@@ -121,7 +142,7 @@ function OnLoadMenu()
 			Config._3DRader:addParam("Info1", "", SCRIPT_PARAM_INFO, "")
 			Config._3DRader:addParam("Info", "Draw Line Info", SCRIPT_PARAM_ONOFF, true)
 			Config._3DRader:addParam("Name", "Draw Name", SCRIPT_PARAM_ONOFF, true)
-			Config._3DRader:addParam("NameType", "Name Type", SCRIPT_PARAM_LIST, 1, {"Name", "Sprite"})
+			Config._3DRader:addParam("NameType", "Name Type", SCRIPT_PARAM_LIST, 1, {"Name", "Image"})
 			Config._3DRader:addParam("Range", "Draw Distance", SCRIPT_PARAM_ONOFF, true)
 			Config._3DRader:addParam("MinRange", "MinRange", SCRIPT_PARAM_SLICE, 1500, 1000, 3000, 0)
 			Config._3DRader:addParam("length", "Line Length",SCRIPT_PARAM_SLICE, 120, 10, 200, 1)
@@ -134,6 +155,18 @@ function OnLoadMenu()
 			Config.MissingTimer:addParam("DrawCircle", "Show circle on minimap" , SCRIPT_PARAM_ONOFF, true)
 			Config.MissingTimer:addParam("MinRadius", "Alert after range", SCRIPT_PARAM_SLICE, 2000, 1500, 3000, 0)
 			Config.MissingTimer:addParam("MaxRadius", "Max circle radius", SCRIPT_PARAM_SLICE, 5000, 3000, 9000, 0)
+			
+		Config:addSubMenu("WardTracker","WardTracker")
+			Config.WardTracker:addParam("On", "On", SCRIPT_PARAM_ONOFF, true)
+			
+		--[[
+		Config:addSubMenu("Jarvis", "Jarvis")
+			Config.Jarvis:addParam("Info1", "this is beta not perfect", SCRIPT_PARAM_INFO, "")
+			Config.Jarvis:addParam("On", "On", SCRIPT_PARAM_ONOFF, false)
+			Config.Jarvis:addParam("DrawInfo", "Draw Info", SCRIPT_PARAM_ONOFF, true)
+			Config.Jarvis:addParam("X", "Draw X vector", SCRIPT_PARAM_SLICE, 100, 0, WINDOW_W, 0)
+			Config.Jarvis:addParam("Y", "Draw Y vector", SCRIPT_PARAM_SLICE, 100, 0, WINDOW_H, 0)
+		]]
 		
 		Config:addSubMenu("Misc", "Misc")
 			Config.Misc:addParam("DrawTawerRange", "Draw Tower Range", SCRIPT_PARAM_ONOFF, true)
@@ -141,7 +174,7 @@ function OnLoadMenu()
 		Config:addParam("INFO", "", SCRIPT_PARAM_INFO, "")
 		Config:addParam("Author", "Author", SCRIPT_PARAM_INFO, Author)
 		Config:addParam("Version", "Version", SCRIPT_PARAM_INFO, Version)
-		Config:addParam("LolVersion", "can play without bug version", SCRIPT_PARAM_INFO, ClientVersion)
+		Config:addParam("ClientVersion", "Your Client Version", SCRIPT_PARAM_LIST, 1, LolClientVersion)
 			
 end
 
@@ -157,10 +190,15 @@ function CoolDownChecker_Text()
 			for i, Spell in ipairs(SpellId) do
 				local startPos = GetHPBarPos(Enemy)
 				if not Enemy.dead and ValidTarget(Enemy) then
-					if Enemy:GetSpellData(SpellId[i]).currentCd == 0 then
-						DrawText("[".._SpellId[i].."]",18, startPos.x+18*i, startPos.y, 0xFFFFFF00)
+					if Enemy:GetSpellData(SpellId[i]).level ~= 0 then
+						DrawRectangleAL(startPos.x-1, startPos.y-1, 22 , 9, ARGB(255, 128, 128, 128))
+						if Enemy:GetSpellData(SpellId[i]).currentCd == 0 then
+							DrawText("[".._SpellId[i].."]",12, startPos.x+20*(i-1), startPos.y, 0xFFFFFF00)
+						else
+							DrawText("["..math.ceil(Enemy:GetSpellData(SpellId[i]).currentCd).."]",12, startPos.x+20*(i-1), startPos.y, 0xFFFF0000)
+						end
 					else
-						DrawText("["..math.ceil(Enemy:GetSpellData(SpellId[i]).currentCd).."]",18, startPos.x+18*i, startPos.y, 0xFFFF0000)
+						DrawText("[".._SpellId[i].."]",12, startPos.x+20*(i-1), startPos.y, 0xBBFFFFFF)
 					end
 				end
 			end
@@ -171,10 +209,15 @@ function CoolDownChecker_Text()
 			for i, Spell in ipairs(SpellId) do
 				local startPos = GetHPBarPos(Ally)
 				if not Ally.dead then
-					if Ally:GetSpellData(SpellId[i]).currentCd == 0 then
-						DrawText("[".._SpellId[i].."]",18, startPos.x, startPos.y+18*i, 0xFFFFFF00)
+					if Ally:GetSpellData(SpellId[i]).level ~= 0 then
+						DrawRectangleAL(startPos.x-1, startPos.y-1, 22 , 9, ARGB(255, 128, 128, 128))
+						if Ally:GetSpellData(SpellId[i]).currentCd == 0 then
+							DrawText("[".._SpellId[i].."]",12, startPos.x, startPos.y+20*(i-1), 0xFFFFFF00)
+						else
+							DrawText("["..math.ceil(Ally:GetSpellData(SpellId[i]).currentCd).."]",12, startPos.x, startPos.y+20*(i-1), 0xFFFF0000)
+						end
 					else
-						DrawText("["..math.ceil(Ally:GetSpellData(SpellId[i]).currentCd).."]",18, startPos.x, startPos.y+18*i, 0xFFFF0000)
+						DrawText("[".._SpellId[i].."]",12, startPos.x+20*(i-1), startPos.y, 0xBBFFFFFF)
 					end
 				end
 			end
@@ -252,10 +295,14 @@ function CoolDownChecker_Line()
 						end
 						DrawRectangleAL(pos.x-1, pos.y-1, width + sep , height+4, Backgroundcolor)
 					
-						if (currentcd ~= 0) then
-							DrawRectangleAL(pos.x, pos.y, width - math.floor(width * currentcd) / maxcd, height, CDcolor)
+						if level == 0 then
+							DrawRectangleAL(pos.x, pos.y, width, height, 0xBBFFFFFF)
 						else
-							DrawRectangleAL(pos.x, pos.y, width, height, Readycolor)
+							if (currentcd ~= 0) then
+								DrawRectangleAL(pos.x, pos.y, width - math.floor(width * currentcd) / maxcd, height, CDcolor)
+							else
+								DrawRectangleAL(pos.x, pos.y, width, height, Readycolor)
+							end
 						end
 					
 						if (currentcd ~= 0) and (currentcd < 100) then
@@ -365,7 +412,11 @@ function LineType(unit)
 		return 8
 	else
 		local Distance = GetDistance(unit, player)
-		return (16000/Distance)
+		if (16000/Distance) > 0 then
+			return math.abs(16000/Distance)
+		else
+			return 1
+		end
 	end
 end
 
@@ -423,7 +474,7 @@ function MissingTimerDraw()
 					
 					if Config.MissingTimer.ShowImage then
 						enemyTable[enemy.charName].sprite:SetScale(0.25, 0.25)
-						enemyTable[enemy.charName].sprite:Draw(GetMinimapX(enemy.x)-6*GetMinimapRatio()-0.25, GetMinimapY(enemy.z)-6*GetMinimapRatio()-0.25, 0x99)
+						enemyTable[enemy.charName].sprite:Draw(GetMinimapX(enemy.x)-6*GetMinimapRatio(), GetMinimapY(enemy.z)-6*GetMinimapRatio(), 0x99)
 					end
                 
                 else
@@ -438,7 +489,7 @@ function MissingTimerDraw()
 					
 					if Config.MissingTimer.ShowImage then
 						enemyTable[enemy.charName].sprite:SetScale(0.25, 0.25)
-						enemyTable[enemy.charName].sprite:Draw(GetMinimapX(enemy.x)-6*GetMinimapRatio()-0.25, GetMinimapY(enemy.z)-6*GetMinimapRatio()-0.25, 0x99)
+						enemyTable[enemy.charName].sprite:Draw(GetMinimapX(enemy.x)-6*GetMinimapRatio(), GetMinimapY(enemy.z)-6*GetMinimapRatio(), 0x99)
 					end
 					
                 end
@@ -455,13 +506,113 @@ function TowerRange()
 	end
 end
 
+---------------------------------
+---------Gold&Power--------------
+---------------------------------
+
+
+
+
+
 
 ---------------------------------
----------unit statu--------------
+---------WardTracker-------------
+---------------------------------
+
+function OnCreatWard(obj)
+	if obj.name:lower():find("sight")  or (obj.name:lower():find("vision") and obj.maxMana > 0) then
+		local ward = {x = obj.x, y = obj.y, z = obj.z, mana = obj.mana, time = GetGameTimer()}
+		table.insert(wards, ward);
+	end
+end
+
+function OnDeleteWard(obj)
+	for index, ward in pairs(wards) do
+		if (obj.x == ward.x) and (obj.x == ward.x) and (obj.x == ward.x) then
+			table.remove(wards, index)
+		end
+	end
+end
+
+function WardTracker_Draw()
+	for index, ward in pairs(wards) do
+		currentMana = math.floor(ward.mana - (GetGameTimer() - ward.time))
+		if (currentMana <= 0) then
+			table.remove(wards, index)
+		else
+			LagFreeDrawCircle(ward.x, ward.y, ward.z, 100, RGBA(127, 255, 0, 255))
+			DrawText3D(tostring(currentMana), ward.x, ward.y, ward.z, 20, RGBA(127, 255, 0, 255), true)
+		end
+	end
+end
+
+---------------------------------
+---------Jarvis------------------
+---------------------------------
+
+function Jarvis(unit, spell)
+	if unit and spell then
+		if unit.type == player.type then
+			if unit.team == player.team then
+				if spell.name:lower():find("attack") then
+					if spell.target.type:lower():find("hero") then
+						J_allyTabls[unit.charName].statu = "fighting"
+					elseif spell.target.type:lower():find("minion") then
+						J_allyTabls[unit.charName].statu = "farming"
+					end
+				end
+			else			
+				if spell.name:lower():find("attack") then
+					if spell.target.type:lower():find("hero") then
+						J_enemyTabls[unit.charName].statu = "fighting"
+					elseif spell.target.type:lower():find("minion") then
+						J_enemyTabls[unit.charName].statu = "farming"
+					end
+				end
+			end
+		end
+	end
+end
+
+function Jarvis_Draw()
+	--DrawRectangleAL(pos.x, pos.y, width, height, 0xBBFFFFFF)
+	local PosX = Config.Jarvis.X
+	local PosY = Config.Jarvis.Y
+	local Font_Size = 12
+	local J_enemy = GetEnemyHeroes()
+	--local Length = table.maxn(J_enemy)
+	DrawRectangleAL(PosX-1, PosY-1, 1000, 100, 0xBBFFFFFF)
+	for index, enemy in ipairs(GetEnemyHeroes()) do
+		DrawText(enemy.charName, Font_Size, PosX+20*(index-1), PosY, 0xffff0000)
+		DrawText(J_enemyTabls[enemy.charName].statu, Font_Size, PosX+20*(index-1), PosY+50, 0x0000ffff)
+	end
+end
+
+---------------------------------
+---------checker-----------------
 ---------------------------------
 
 function OnProcessSpell(unit, spell)
-	if unit and spell then
+	--if Config.Jarvis.On then Jarvis(unit, spell) end
+end
+
+function OnCreateObj(obj)
+	if obj ~= nil then
+		if Config.WardTracker.On then
+			if obj.team ~= myHero.team and obj.name:lower():find("ward") and not obj.name:lower():find("idle") then
+				OnCreatWard(obj)
+			end
+		end
+	end
+end
+
+function OnDeleteObj(obj)
+	if obj ~= nil then
+		if Config.WardTracker.On then
+			if obj.team ~= myHero.team and obj.name:lower():find("ward") and not obj.name:lower():find("idle") then
+				OnDeleteWard(obj)
+			end
+		end
 	end
 end
 
@@ -504,20 +655,42 @@ function GetHPBarPos(enemy)
 end
 
 function TARGB(colorTable)
-    assert(colorTable and type(colorTable) == "table" and #colorTable == 4, "TARGB: colorTable is invalid!")
+    assert(colorTable and type(colorTable) == "table" and #colorTable == 4, "0x0001 : colorTable is invalid")
     return ARGB(colorTable[1], colorTable[2], colorTable[3], colorTable[4])
 end
 
-function test(target)
-	return player + Vector(target.x-player.x,target.y,target.z-player.z):normalized()*(GetDistance(target,player)-200)
-end
-
 function FindSprite(file) -- Thanks to Trees
-    assert(type(file) == "string", "GetSprite: wrong argument types (<string> expected for file)")
+    assert(type(file) == "string", "0x0002 : wrong argument types (<string> expected for file)")
     if FileExist(file) == true then
         return createSprite(file)
     else
-        PrintChat(file .. " not found (sprites installed ?)")
+        PrintChat("0x0003 : Check your client version and change version in script maenu and reload script")
         return createSprite("empty.dds")
     end
+end
+
+function LagFreeDrawCircle(x, y, z, radius, color)
+    local vPos1 = Vector(x, y, z)
+    local vPos2 = Vector(cameraPos.x, cameraPos.y, cameraPos.z)
+    local tPos = vPos1 - (vPos1 - vPos2):normalized() * radius
+    local sPos = WorldToScreen(D3DXVECTOR3(tPos.x, tPos.y, tPos.z))
+    if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y }) then
+        DrawCircleNextLvl(x, y, z, radius, 1, color, 100) 
+    end
+end
+
+function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
+	radius = radius or 300
+	quality = math.max(8,round(180/math.deg((math.asin((chordlength/(2*radius)))))))
+	quality = 2 * math.pi / quality
+	radius = radius*.92
+	local points = {}
+	for theta = 0, 2 * math.pi + quality, quality do
+		local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+		points[#points + 1] = D3DXVECTOR2(c.x, c.y)
+	end
+	DrawLines2(points, width or 1, color or 4294967295)
+end
+function round(num) 
+	if num >= 0 then return math.floor(num+.5) else return math.ceil(num-.5) end
 end
