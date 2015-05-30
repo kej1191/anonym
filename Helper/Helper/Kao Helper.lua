@@ -1,10 +1,32 @@
+local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Kao : Helper:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-function ScriptMsg(msg)
-  print("<font color=\"#66CCFF\"><b>Kao Helper:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
+local version = 1.01
+local AUTO_UPDATE = true
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kej1191/anonym/master/helper/helper/Kao Helper.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH.."Kao Helper.lua"
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+
+if AUTO_UPDATE then
+	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/helper/helper/version/Your Karthus.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available"..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
 end
 
 local Author =  "KaoKaoNi"
-local Version = "Beta_1.3"
+local Version = "1.01"
 
 local Statu = {}
 
@@ -190,8 +212,8 @@ function CoolDownChecker_Text()
 			for i, Spell in ipairs(SpellId) do
 				local startPos = GetHPBarPos(Enemy)
 				if not Enemy.dead and ValidTarget(Enemy) then
+					--DrawRectangleAL(startPos.x-1, startPos.y+5, 75 , 13, 0xBB202020)
 					if Enemy:GetSpellData(SpellId[i]).level ~= 0 then
-						DrawRectangleAL(startPos.x-1, startPos.y-1, 22 , 9, ARGB(255, 128, 128, 128))
 						if Enemy:GetSpellData(SpellId[i]).currentCd == 0 then
 							DrawText("[".._SpellId[i].."]",12, startPos.x+20*(i-1), startPos.y, 0xFFFFFF00)
 						else
@@ -210,7 +232,6 @@ function CoolDownChecker_Text()
 				local startPos = GetHPBarPos(Ally)
 				if not Ally.dead then
 					if Ally:GetSpellData(SpellId[i]).level ~= 0 then
-						DrawRectangleAL(startPos.x-1, startPos.y-1, 22 , 9, ARGB(255, 128, 128, 128))
 						if Ally:GetSpellData(SpellId[i]).currentCd == 0 then
 							DrawText("[".._SpellId[i].."]",12, startPos.x, startPos.y+20*(i-1), 0xFFFFFF00)
 						else
@@ -219,6 +240,7 @@ function CoolDownChecker_Text()
 					else
 						DrawText("[".._SpellId[i].."]",12, startPos.x+20*(i-1), startPos.y, 0xBBFFFFFF)
 					end
+					--DrawRectangleAL(startPos.x-1, startPos.y-1, 22 , 22, ARGB(255, 128, 128, 128))
 				end
 			end
 		end
@@ -316,7 +338,7 @@ function CoolDownChecker_Line()
 							DrawText(tostring(level),13, pos.x+7, pos.y+5, Textcolor)
 						]]
 						end
-							pos.x = pos.x + width + sep
+						pos.x = pos.x + width + sep
 						if j == 4 then break end
 					end
 					pos.x = barpos.x + 25*5+3 + 2*4
