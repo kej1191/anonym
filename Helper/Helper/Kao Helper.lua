@@ -1,6 +1,6 @@
 
 function ScriptMsg(msg)
-  print("<font color=\"#daa520\"><b>APLD KogMaw:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
+  print("<font color=\"#daa520\"><b>Kao Helper:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
 end
 
 
