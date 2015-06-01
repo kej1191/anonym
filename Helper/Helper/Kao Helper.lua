@@ -1,29 +1,47 @@
-local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Kao : Helper:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.01
-local AUTO_UPDATE = true
-local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/kej1191/anonym/master/helper/helper/Kao Helper.lua".."?rand="..math.random(1,10000)
-local UPDATE_FILE_PATH = SCRIPT_PATH.."Kao Helper.lua"
-local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+function ScriptMsg(msg)
+  print("<font color=\"#daa520\"><b>APLD KogMaw:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
+end
 
-if AUTO_UPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/helper/helper/version/Your Karthus.version")
-	if ServerData then
-		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
-		if ServerVersion then
-			if tonumber(version) < ServerVersion then
-				AutoupdaterMsg("New version available"..ServerVersion)
-				AutoupdaterMsg("Updating, please don't press F9")
-				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
-			else
-				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
-			end
+
+local Author = "KaoKaoNi"
+local Version = "1.01"
+
+local SCRIPT_INFO = {
+	["Name"] = "Kao Helper",
+	["Version"] = 1.01,
+	["Author"] = {
+		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
+	},
+}
+local SCRIPT_UPDATER = {
+	["Activate"] = true,
+	["Script"] = SCRIPT_PATH..GetCurrentEnv().FILE_NAME,
+	["URL_HOST"] = "raw.github.com",
+	["URL_PATH"] = "/kej1191/anonym/master/Helper/Helper/Kao Helper.lua",
+	["URL_VERSION"] = "/kej1191/anonym/master/Helper/Helper/version/Kao Helper.version"
+}
+local SCRIPT_LIBS = {
+	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
+}
+
+--{ Initiate Script (Checks for updates)
+function Initiate()
+	for LIBRARY, LIBRARY_URL in pairs(SCRIPT_LIBS) do
+		if FileExist(LIB_PATH..LIBRARY..".lua") then
+			require(LIBRARY)
+		else
+			DOWNLOADING_LIBS = true
+			ScriptMsg("Missing Library! Downloading "..LIBRARY..". If the library doesn't download, please download it manually.")
+			DownloadFile(LIBRARY_URL,LIB_PATH..LIBRARY..".lua",function() ScriptMsg("Successfully downloaded ("..LIBRARY") Thanks Use TEAM Y Teemo") end)
 		end
-	else
-		AutoupdaterMsg("Error downloading version info")
+	end
+	if DOWNLOADING_LIBS then return true end
+	if SCRIPT_UPDATER["Activate"] then
+		SourceUpdater("<font color=\"#00A300\">"..SCRIPT_INFO["Name"].."</font>", SCRIPT_INFO["Version"], SCRIPT_UPDATER["URL_HOST"], SCRIPT_UPDATER["URL_PATH"], SCRIPT_UPDATER["Script"], SCRIPT_UPDATER["URL_VERSION"]):CheckUpdate()
 	end
 end
+if Initiate() then return end
 
 local Author =  "KaoKaoNi"
 local Version = "1.01"
@@ -38,6 +56,23 @@ local _SpellId = {"Q", "W", "E", "R"}
 
 
 local TrackSpells = {_Q, _W, _E, _R}
+local SSpells = {
+		{CName="Flash", Name="summonerflash", Color={255, 255, 255, 0} },
+		{CName="Ghost", Name="summonerhaste", Color={255, 0, 0, 255} },
+		{CName="Ignite", Name="summonerdot", Color={255, 255, 0, 0 }},
+		{CName="Barrier", Name="summonerbarrier", Color={255, 209, 143, 0}},
+		{CName="Smite", Name="summonersmite", Color={255, 209, 143, 0}},
+		{CName="Exhaust", Name="summonerexhaust", Color={255, 209, 143, 0}},
+		{CName="Heal", Name="summonerheal", Color={255, 0, 255, 0}},
+		{CName="Teleport", Name="summonerteleport", Color={255, 192, 0, 209}},
+		{CName="Cleanse", Name="summonerboost", Color={255, 255, 138, 181}},
+		{CName="Clarity", Name="summonermana", Color={255, 0, 110, 255}},
+		{CName="Clairvoyance", Name="summonerclairvoyance", Color={255, 0, 110, 255}},
+		{CName="Revive", Name="summonerrevive", Color={255, 0, 255, 0}},
+		{CName="Garrison", Name="summonerodingarrison", Color={255, 0, 110, 255}},
+		{CName="The Rest", Name="TheRest", Color={255, 255, 255, 255}},
+}
+
 local SpellsData = {}
 local TickLimit = 0
 local FirstTick = false
@@ -52,6 +87,8 @@ local tHealth = {1000, 1200, 1300, 1500, 2000, 2300, 2500}
 
 local player = myHero
 
+local ExpRangeDraw = false
+
 local PATH = BOL_PATH.."Sprites\\"
 local Code = {
 	['5.9'] = {solution = "0.0.0.163", projects = "0.0.0.174"},
@@ -65,8 +102,12 @@ local enemyTable
 
 local J_enemyTabls = {}
 local J_allyTabls = {}
+local J_chat = {}
+
 
 local wards = {}
+
+enemyMinions = minionManager(MINION_ENEMY, 1400, myHero, MINION_SORT_MAXHEALTH_DEC)
 
 if VIP_USER then
  	AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
@@ -93,18 +134,27 @@ end
 
 function OnLoad()
 	OnLoadMenu()
+	--LoadItem()
 	SQUARE_PATH = GAME_PATH:gsub('\\solutions\\lol_game_client_sln\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].solution..'\\deploy', '\\projects\\lol_air_client\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].projects..'\\deploy\\assets\\images\\champions')
 	Spell_Img_PATH = GAME_PATH:gsub('\\solutions\\lol_game_client_sln\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].solution..'\\deploy', '\\projects\\lol_air_client\\releases\\'..Code[LolClientVersion[Config.ClientVersion]].projects..'\\deploy\\assets\\images\\abilities')
 	enemyTable = {}
 	for i, enemy in ipairs(GetEnemyHeroes()) do
         missing_since[i] = -1
-		enemyTable[enemy.charName] = {unit = enemy, dead = false, sprite = nil, transparency = 0xBF} 
+		enemyTable[enemy.charName] = {unit = enemy, dead = false, sprite = nil, transparency = 0xBF, q = nil, w = nil, e = nil, r = nil} 
 		enemyTable[enemy.charName].sprite = FindSprite(SQUARE_PATH .. enemy.charName .. '_Square_0.png')
+		--[[
+		local Qname, Wname, Ename, Rname = enemy:GetSpellData(_Q).name, enemy:GetSpellData(_W).name, enemy:GetSpellData(_E).name, enemy:GetSpellData(_R).name
+		print (Qname.." "..Wname.." "..Ename.." "..Rname)
+		enemyTable[enemy.charName].q = FindSprite(Spell_Img_PATH .. enemy.charName .. "_" .. Qname .. '.png')
+		enemyTable[enemy.charName].w = FindSprite(Spell_Img_PATH .. enemy.charName .. "_" .. Wname .. '.png')
+		enemyTable[enemy.charName].e = FindSprite(Spell_Img_PATH .. enemy.charName .. "_" .. Ename .. '.png')
+		enemyTable[enemy.charName].r = FindSprite(Spell_Img_PATH .. enemy.charName .. "_" .. Rname .. '.png')
+		]]
 		J_enemyTabls[enemy.charName] = {unit = enemy, attack = false, attacked = false, casting = nil, statu = ""}
     end
 	
 	for i, ally in ipairs(GetAllyHeroes()) do
-		J_allyTabls[enemy.charName] = {unit = enemy, attack = false, attacked = false, casting = nil, statu = ""}
+		J_allyTabls[ally.charName] = {unit = enemy, attack = false, attacked = false, casting = nil, statu = ""}
 	end
 	
 	for i = 1, objManager.iCount, 1 do
@@ -139,11 +189,14 @@ function OnDraw()
 	if Config.Misc.DrawTawerRange then TowerRange() end
 	--if Config.Jarvis.On and Config.Jarvis.DrawInfo then Jarvis_Draw() end
 	if Config.WardTracker.On then WardTracker_Draw() end
+	if Config.Misc.DrawExpRange then ExpRange_Draw() end
 end
 
 function OnUnload()
     for index, enemy in pairs(enemyTable) do
-        enemy.sprite:Release()
+		if enemy.sprite ~= nil then
+			enemy.sprite:Release()
+		end
     end    
 end
 
@@ -192,6 +245,7 @@ function OnLoadMenu()
 		
 		Config:addSubMenu("Misc", "Misc")
 			Config.Misc:addParam("DrawTawerRange", "Draw Tower Range", SCRIPT_PARAM_ONOFF, true)
+			Config.Misc:addParam("DrawExpRange", "Drwa Exp Range", SCRIPT_PARAM_ONOFF, true)
 			
 		Config:addParam("INFO", "", SCRIPT_PARAM_INFO, "")
 		Config:addParam("Author", "Author", SCRIPT_PARAM_INFO, Author)
@@ -212,7 +266,7 @@ function CoolDownChecker_Text()
 			for i, Spell in ipairs(SpellId) do
 				local startPos = GetHPBarPos(Enemy)
 				if not Enemy.dead and ValidTarget(Enemy) then
-					--DrawRectangleAL(startPos.x-1, startPos.y+5, 75 , 13, 0xBB202020)
+					--DrawRectangleAL(startPos.x-1, startPos.y-30, 75 , 13, 0xBB202020)
 					if Enemy:GetSpellData(SpellId[i]).level ~= 0 then
 						if Enemy:GetSpellData(SpellId[i]).currentCd == 0 then
 							DrawText("[".._SpellId[i].."]",12, startPos.x+20*(i-1), startPos.y, 0xFFFFFF00)
@@ -304,17 +358,19 @@ function CoolDownChecker_Line()
 						local currentcd = SpellsData[i][Spells].currentCd
 						local maxcd = SpellsData[i][Spells].maxCd
 						local level = SpellsData[i][Spells].level
+						
 						if j > 4 then
 							CDcolor = ARGB(255, 255, 255, 255)
 							--[[
 							for _, spell in ipairs(SSpells) do
-								if (Menu.Colors.SSpells[spell.Name] ~= nil) and (hero:GetSpellData(j == 5 and SUMMONER_1 or SUMMONER_2).name == spell.Name) then
-									CDcolor = ARGB(Menu.Colors.SSpells[spell.Name][1], Menu.Colors.SSpells[spell.Name][2], Menu.Colors.SSpells[spell.Name][3], Menu.Colors.SSpells[spell.Name][4])
+								if (hero:GetSpellData(j == 5 and SUMMONER_1 or SUMMONER_2).name == spell.Name) then
+									CDcolor = ARGB(255, 214, 114, 0)
 								end
 							end
 							]]
 							Readycolor = CDcolor
 						end
+						
 						DrawRectangleAL(pos.x-1, pos.y-1, width + sep , height+4, Backgroundcolor)
 					
 						if level == 0 then
@@ -344,20 +400,18 @@ function CoolDownChecker_Line()
 					pos.x = barpos.x + 25*5+3 + 2*4
 					pos.y = barpos.y - 8
 					--[[Last 2 spells]]
+					--[[
 					for j, Spells in ipairs (TrackSpells) do
 						local currentcd = SpellsData[i][Spells].currentCd
 						local maxcd = SpellsData[i][Spells].maxCd
 						local width2 = 202
 						if j > 4 then
-							
 							CDcolor = ARGB(255, 255, 255, 255)
-							--[[
 							for _, spell in ipairs(SSpells) do
-								if (Menu.Colors.SSpells[spell.Name] ~= nil) and (hero:GetSpellData(j == 5 and SUMMONER_1 or SUMMONER_2).name == spell.Name) then
-									CDcolor = ARGB(Menu.Colors.SSpells[spell.Name][1], Menu.Colors.SSpells[spell.Name][2], Menu.Colors.SSpells[spell.Name][3], Menu.Colors.SSpells[spell.Name][4])
+								if  (hero:GetSpellData(j == 5 and SUMMONER_1 or SUMMONER_2).name == spell.Name) then
+									CDcolor = ARGB(255, 214, 114, 0)
 								end
 							end
-							]]
 							DrawRectangleAL(pos.x, pos.y,width2+2,11,Backgroundcolor)
 							if currentcd ~= 0 then
 								DrawRectangleAL(pos.x+1, pos.y+1, width2 - width2 * currentcd / maxcd,9,CDcolor)
@@ -373,6 +427,7 @@ function CoolDownChecker_Line()
 							pos.y = pos.y - 12
 						end
 					end
+					]]
 				end
 			end
 		end
@@ -534,9 +589,6 @@ end
 
 
 
-
-
-
 ---------------------------------
 ---------WardTracker-------------
 ---------------------------------
@@ -596,19 +648,33 @@ function Jarvis(unit, spell)
 	end
 end
 
+function Jarvis_Tick()
+end
+
 function Jarvis_Draw()
-	--DrawRectangleAL(pos.x, pos.y, width, height, 0xBBFFFFFF)
-	local PosX = Config.Jarvis.X
-	local PosY = Config.Jarvis.Y
-	local Font_Size = 12
-	local J_enemy = GetEnemyHeroes()
-	--local Length = table.maxn(J_enemy)
-	DrawRectangleAL(PosX-1, PosY-1, 1000, 100, 0xBBFFFFFF)
-	for index, enemy in ipairs(GetEnemyHeroes()) do
-		DrawText(enemy.charName, Font_Size, PosX+20*(index-1), PosY, 0xffff0000)
-		DrawText(J_enemyTabls[enemy.charName].statu, Font_Size, PosX+20*(index-1), PosY+50, 0x0000ffff)
+	-- J_chat
+	-- DrawRectangleAL(pos.x, pos.y, width, height, 0xBBFFFFFF)
+	local StartPos = {x = 500, y = 100}
+	local J_Font_Size = 18
+	DrawRectangleAL(StartPos.x, StartPos.y, 1000,StartPos.y - ( #J_chat*J_Font_Size ))
+	for index, chat in ipairs(J_chat) do
+		if index > 5 then
+			table.remove(J_chat, index)
+		else
+			DrawText("Jarvis : "..J_chat[index],J_Font_Size, StartPos.x, StartPos.y - ( index * J_Font_Size ) )
+		end
 	end
 end
+
+---------------------------------
+---------ExpRange----------------
+---------------------------------
+
+function ExpRange_Draw()
+	DrawCircle(player.x, player.y, player.z,1400, 0xffffffff)
+end
+
+
 
 ---------------------------------
 ---------checker-----------------
@@ -686,8 +752,9 @@ function FindSprite(file) -- Thanks to Trees
     if FileExist(file) == true then
         return createSprite(file)
     else
-        PrintChat("0x0003 : Check your client version and change version in script maenu and reload script")
-        return createSprite("empty.dds")
+        PrintChat("0x0003 : Check your client version and change version in script menu and reload script")
+        return nil
+		--createSprite("empty.dds")
     end
 end
 
