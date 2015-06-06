@@ -18,6 +18,9 @@ if not VIP_USER or myHero.charName ~= "KogMaw" then return end
  v 1.3
  1. Add W Casting in AA Range in menu
 
+ v 1.5
+ 1. R Fix
+ 
 ]]
 
 function ScriptMsg(msg)
@@ -26,11 +29,11 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.4"
+local Version = "1.5"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.4,
+	["Version"] = 1.5,
 	["Author"] = {
 		["Your"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -381,14 +384,17 @@ function OnTick()
 	if Config.HotKey.LineClear then OnClear() end
 	
 	OnKillSteal()
-	if Next_Cast_time < os.clock() then
-		if Next_Cast_time > 0 then
-			local target = OrbTarget(R.Range)
-			if target ~= nil then
-				CastRTwo(target)
-			end	
+	if Config.HotKey.Combo or Config.HotKey.Harass or Config.HotKey.LineClear then
+		if Next_Cast_time < os.clock() then
+			if Next_Cast_time > 0 then
+				local target = OrbTarget(R.Range)
+				if target ~= nil then
+					CastRTwo(target)
+				end	
+			end
 		end
 	end
+	
 	if tostring(KogMawRStack.LastCastTime+6.5) < tostring(os.clock()) then
 		KogMawRStack.Stack = 1;
 		KogMawRStack.LastCastTime = 0;
