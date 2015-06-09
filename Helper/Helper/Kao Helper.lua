@@ -1,15 +1,15 @@
 
 function ScriptMsg(msg)
-  print("<font color=\"#daa520\"><b>Kao Helper:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
+  print("<font color=\"#daa520\"><b>APLD KogMaw:</b></font> <font color=\"#FFFFFF\">"..msg.."</font>")
 end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.01"
+local Version = "1.02"
 
 local SCRIPT_INFO = {
 	["Name"] = "Kao Helper",
-	["Version"] = 1.01,
+	["Version"] = 1.02,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -87,14 +87,18 @@ local tHealth = {1000, 1200, 1300, 1500, 2000, 2300, 2500}
 
 local player = myHero
 
+local G_enemyTable = {}
+local G_allyTable = {}
+
 local ExpRangeDraw = false
 
 local PATH = BOL_PATH.."Sprites\\"
 local Code = {
 	['5.9'] = {solution = "0.0.0.163", projects = "0.0.0.174"},
 	['5.10'] = {solution = "0.0.1.91", projects = "0.0.1.146"},
+	['5.10.1'] = {solution = "0.0.0.164", projects = "0.0.0.175"},
 }
-local LolClientVersion = {"5.10", "5.9"}
+local LolClientVersion = {"5.10.1","5.10", "5.9"}
 
 local SQUARE_PATH
 local Spell_Img_PATH
@@ -102,8 +106,9 @@ local enemyTable
 
 local J_enemyTabls = {}
 local J_allyTabls = {}
-local J_chat = {}
+local J_chat = {"test1","test2"}
 
+local DefultImageScale = 120
 
 local wards = {}
 
@@ -158,12 +163,19 @@ function OnLoad()
 	end
 	
 	for i = 1, objManager.iCount, 1 do
-        local tow = objManager:getObject(i)
-        if tow ~= nil then
+        local unit = objManager:getObject(i)
+        if unit ~= nil then
 			for j, health in ipairs(tHealth) do
-				if tow.type == "obj_AI_Turret" and not string.find(tow.name, "TurretShrine") then
-					table.insert(towers, tow)
+				if unit.type == "obj_AI_Turret" and not string.find(unit.name, "TurretShrine") then
+					table.insert(towers, unit)
 					break
+				end
+			end
+			if unit.type == player.type then
+				if unit.team ~= player.team then
+					table.insert(G_enemyTable, unit)
+				else
+					table.insert(G_allyTable, unit)
 				end
 			end
 		end
@@ -234,15 +246,15 @@ function OnLoadMenu()
 		Config:addSubMenu("WardTracker","WardTracker")
 			Config.WardTracker:addParam("On", "On", SCRIPT_PARAM_ONOFF, true)
 			
-		--[[
+--[[
 		Config:addSubMenu("Jarvis", "Jarvis")
 			Config.Jarvis:addParam("Info1", "this is beta not perfect", SCRIPT_PARAM_INFO, "")
 			Config.Jarvis:addParam("On", "On", SCRIPT_PARAM_ONOFF, false)
 			Config.Jarvis:addParam("DrawInfo", "Draw Info", SCRIPT_PARAM_ONOFF, true)
 			Config.Jarvis:addParam("X", "Draw X vector", SCRIPT_PARAM_SLICE, 100, 0, WINDOW_W, 0)
 			Config.Jarvis:addParam("Y", "Draw Y vector", SCRIPT_PARAM_SLICE, 100, 0, WINDOW_H, 0)
-		]]
 		
+	]]	
 		Config:addSubMenu("Misc", "Misc")
 			Config.Misc:addParam("DrawTawerRange", "Draw Tower Range", SCRIPT_PARAM_ONOFF, true)
 			Config.Misc:addParam("DrawExpRange", "Drwa Exp Range", SCRIPT_PARAM_ONOFF, true)
@@ -595,7 +607,7 @@ end
 
 function OnCreatWard(obj)
 	if obj.name:lower():find("sight")  or (obj.name:lower():find("vision") and obj.maxMana > 0) then
-		local ward = {x = obj.x, y = obj.y, z = obj.z, mana = obj.mana, time = GetGameTimer()}
+		local ward = {x = obj.x, y = obj.y, z = obj.z, mana = obj.mana, time = GetGameTimer(), type = "SightVision"}
 		table.insert(wards, ward);
 	end
 end
@@ -656,13 +668,13 @@ function Jarvis_Draw()
 	-- DrawRectangleAL(pos.x, pos.y, width, height, 0xBBFFFFFF)
 	local StartPos = {x = 500, y = 100}
 	local J_Font_Size = 18
-	DrawRectangleAL(StartPos.x, StartPos.y, 1000,StartPos.y - ( #J_chat*J_Font_Size ))
-	for index, chat in ipairs(J_chat) do
+	DrawRectangleAL(StartPos.x, StartPos.y, 500,StartPos.y - ( #J_chat*J_Font_Size ),  ARGB(255, 128, 128, 128))
+	for index, chat in pairs(J_chat) do
+	--[[
 		if index > 5 then
 			table.remove(J_chat, index)
-		else
-			DrawText("Jarvis : "..J_chat[index],J_Font_Size, StartPos.x, StartPos.y - ( index * J_Font_Size ) )
-		end
+		end]]
+		DrawText("Jarvis : "..J_chat[index], J_Font_Size, StartPos.x, StartPos.y - ( index * J_Font_Size ), 0xffff0000 )
 	end
 end
 
@@ -674,6 +686,10 @@ function ExpRange_Draw()
 	DrawCircle(player.x, player.y, player.z,1400, 0xffffffff)
 end
 
+
+---------------------------------
+---------side chekcer------------
+---------------------------------
 
 
 ---------------------------------
