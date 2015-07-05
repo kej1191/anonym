@@ -63,7 +63,7 @@ function OnLoad()
 			info = {unit = hero, statu = "Can't", color = c_yellow,}
 			table.insert(enemyTable, info)
 		end
-	end
+	end 
 	
 	if GetGame().map.shortName == "twistedTreeline" then
 		JungleMobNames = {
