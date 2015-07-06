@@ -1,7 +1,46 @@
+local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
+local version = 1.00
+local AUTO_UPDATE = false
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kej1191/anonym/master/KOM/CCKA/CCKA.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH.."CCKA.lua"
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
 
-class('AOW')
-require 'sourceLib'
+if AUTO_UPDATE then
+	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/KOM/CCKA/CCKA.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available"..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
+end
+
+local SCRIPT_LIBS = {
+	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
+}
+function Initiate()
+	for LIBRARY, LIBRARY_URL in pairs(SCRIPT_LIBS) do
+		if FileExist(LIB_PATH..LIBRARY..".lua") then
+			require(LIBRARY)
+		else
+			DOWNLOADING_LIBS = true
+			AutoupdaterMsg("Missing Library! Downloading "..LIBRARY..". If the library doesn't download, please download it manually.")
+			DownloadFile(LIBRARY_URL,LIB_PATH..LIBRARY..".lua",function() AutoupdaterMsg("Successfully downloaded "..LIBRARY) end)
+		end
+	end
+	if DOWNLOADING_LIBS then return true end
+end
+if Initiate() then return end
 
 local Q = {Range = 800, IsReady = function() return myHero:CanUseSpell(_Q) == READY end,}
 local W = {Range = 450, IsReady = function() return myHero:CanUseSpell(_W) == READY end,}
@@ -12,6 +51,8 @@ local AS = {Range = 375}
 local lastAttack, lastWindUpTime, lastAttackCD = 0, 0, 0
 local myTrueRange =0;
 local OrbTarget = 0;
+
+local customSAR = 0;
 
 local AzirSoldier = {}
 
@@ -80,7 +121,7 @@ function OnLoadMenu()
 			
 		Config:addSubMenu("HotKey", "HotKey")
 			Config.HotKey:addParam("Combo", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-			--Config.HotKey:addParam("Harass", "Harass", SCRIPT_PARAM_ONOFF, false, string.byte('V'))
+			Config.HotKey:addParam("Harass", "Harass", SCRIPT_PARAM_ONOFF, false, string.byte('V'))
 			Config.HotKey:addParam("Escape", "Escape", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('G'))
 			
 		Config:addSubMenu("Combo", "Combo")
@@ -91,8 +132,12 @@ function OnLoadMenu()
 			Config.Harass:addParam("UseQ", "UseQ", SCRIPT_PARAM_ONOFF, true)
 			Config.Harass:addParam("UseW", "UseW", SCRIPT_PARAM_ONOFF, true)
 		
-		Config:addSubMenu("Q", "Q")
-			Config.Q:addParam("MinNum", "Use Q can under attack number", SCRIPT_PARAM_SLICE, 2, 1, 5, 0)
+		Config:addSubMenu("[Conquering Sands] Setting", "Q")
+			Config.Q:addParam("MinNum", "Use Q can under attack number", SCRIPT_PARAM_SLICE, 1, 1, 3, 0)
+			
+		Config:addSubMenu("[Arise] Setting", "W")
+			Config.W:addParam("Keep", "Keep soldier number", SCRIPT_PARAM_SLICE, 1, 1, 3, 0)
+			Config.W:addParam("SoldierAR", "Custom Soldier AA range", SCRIPT_PARAM_SLICE, AS.Range, 300, 400, 0)
 		
 		Config:addSubMenu("Draw", "Draw")
 			Config.Draw:addParam("info0", "Draw Range", SCRIPT_PARAM_INFO, "")
@@ -120,6 +165,7 @@ function OnTick()
 		BlockAA(false)
 	end
 	if Config.HotKey.Escape then Dash() end
+	customSAR = Config.W.SoldierAR
 end
 
 function OnDraw()
@@ -141,23 +187,28 @@ function OnDraw()
 	end
 	
 	for unit, azir in ipairs(AzirSoldier) do	
-		DrawCircle(azir.x, azir.y, azir.z, AS.Range, TARGB(Config.Draw.DrawSColor))
+		DrawCircle(azir.x, azir.y, azir.z, customSAR, TARGB(Config.Draw.DrawSColor))
 	end
 end
 
 function OnCombo()
-	local t = STS:GetTarget(myTrueRange+AS.Range)
+	local t = STS:GetTarget(myTrueRange+customSAR)
 	if t ~= nil then
-		if GetDistance(t) > AS.Range and Q.IsReady() and Config.Combo.UseQ then
-			if Config.Q.MinNum <= ClosetSoldier(t) then
-				CastQ(t)
-			end
+		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Combo.UseQ then
+			CastQ(t)
 		end
 		if W.IsReady() and Config.Combo.UseW then CastW(t) end
 	end
 end
 
 function OnHarass()
+	local t = STS:GetTarget(myTrueRange+customSAR)
+	if t ~= nil then
+		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Harass.UseQ then
+			CastQ(t)
+		end
+		if W.IsReady() and Config.Harass.UseW then CastW(t) end
+	end
 end
 
 function Dash()
@@ -189,7 +240,7 @@ end
 function ClosetSoldier(target)
 	local CanAANum = 0
 	for unit, soldier in pairs(AzirSoldier) do
-		if GetDistance(soldier, target) < AS.Range then
+		if GetDistance(soldier, target) < customSAR then
 			CanAANum = CanAANum + 1
 		end
 	end
@@ -230,6 +281,7 @@ function AOW:LoadMenu(menu)
 	end
 	
 	self.menu:addParam("Combo", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
+	self.menu:addParam("Harass", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('v'))
 		
 	AddTickCallback(function() self:OrbWalk() end)
 	AddProcessSpellCallback(function(unit, spell) self:OnProcessSpell(unit, spell) end)
@@ -239,20 +291,20 @@ function AOW:OnProcessSpell(unit, spell)
 	if unit == myHero then
 		if spell.name:lower():find("attack") then
 			lastAttack = GetTickCount() - GetLatency()/2
-			lastWindUpTime = spell.windUpTime+1000
-			lastAttackCD = spell.animationTime+1000
+			lastWindUpTime = spell.windUpTime*1000
+			lastAttackCD = spell.animationTime*1000
 		end
 	end
 end
 
 function AOW:OrbWalk()
-	if self.menu.Combo then
-		OrbTarget = STS:GetTarget(myTrueRange+AS.Range)
+	if self.menu.Combo or self.menu.Harass then
+		OrbTarget = STS:GetTarget(myTrueRange+customSAR)
 		if OrbTarget ~= nil then
 			if self.tiemToShoot() then
 				if #AzirSoldier ~= 0 then
 					for i, j in pairs(AzirSoldier) do 
-						if GetDistance(j) < AS.Range+myTrueRange then
+						if GetDistance(j) < customSAR+myTrueRange then
 							myHero:Attack(OrbTarget);
 							break;
 						end
@@ -285,133 +337,3 @@ function AOW:moveToCursor()
 		myHero:MoveTo(moveToPos.x, moveToPos.z)
 	end
 end
-
---[[
-function STS_GET_PRIORITY(target)
-    if not STS_MENU or not STS_MENU.STS[target.hash] then
-        return 1
-    else
-        return STS_MENU.STS[target.hash]
-    end
-end
-
-STS_MENU = nil
-STS_NEARMOUSE                     = {id = 1, name = "Near mouse", sortfunc = function(a, b) return _GetDistanceSqr(mousePos, a) < _GetDistanceSqr(mousePos, b) end}
-STS_LESS_CAST_MAGIC               = {id = 2, name = "Less cast (magic)", sortfunc = function(a, b) return (player:CalcMagicDamage(a, 100) / a.health) > (player:CalcMagicDamage(b, 100) / b.health) end}
-STS_LESS_CAST_PHYSICAL            = {id = 3, name = "Less cast (physical)", sortfunc = function(a, b) return (player:CalcDamage(a, 100) / a.health) > (player:CalcDamage(b, 100) / b.health) end}
-STS_PRIORITY_LESS_CAST_MAGIC      = {id = 4, name = "Less cast priority (magic)", sortfunc = function(a, b) return STS_GET_PRIORITY(a) * (player:CalcMagicDamage(a, 100) / a.health) > STS_GET_PRIORITY(b) * (player:CalcMagicDamage(b, 100) / b.health) end}
-STS_PRIORITY_LESS_CAST_PHYSICAL   = {id = 5, name = "Less cast priority (physical)", sortfunc = function(a, b) return STS_GET_PRIORITY(a) * (player:CalcDamage(a, 100) / a.health) > STS_GET_PRIORITY(b) * (player:CalcDamage(b, 100) / b.health) end}
-STS_AVAILABLE_MODES = {STS_NEARMOUSE, STS_LESS_CAST_MAGIC, STS_LESS_CAST_PHYSICAL, STS_PRIORITY_LESS_CAST_MAGIC, STS_PRIORITY_LESS_CAST_PHYSICAL}
-
-function SimpleTS:__init(mode)
-    self.mode = mode and mode or STS_LESS_CAST_PHYSICAL
-    AddDrawCallback(function() self:OnDraw() end)
-    AddMsgCallback(function(msg, key) self:OnMsg(msg, key) end)
-end
-
-function SimpleTS:IsValid(target, range, selected)
-    if ValidTarget(target) and (_GetDistanceSqr(target) <= range or (self.hitboxmode and (_GetDistanceSqr(target) <= (math.sqrt(range) + self.VP:GetHitBox(myHero) + self.VP:GetHitBox(target)) ^ 2))) then
-        if selected or (not (HasBuff(target, "UndyingRage") and (target.health == 1)) and not HasBuff(target, "JudicatorIntervention")) then
-            return true
-        end
-    end
-end
-
-function SimpleTS:AddToMenu(menu)
-    self.menu = menu
-    self.menu:addSubMenu("Target Priority", "STS")
-    for i, target in ipairs(GetEnemyHeroes()) do
-            self.menu.STS:addParam(target.hash, target.charName, SCRIPT_PARAM_SLICE, 1, 1, 5, 0)
-    end
-    self.menu.STS:addParam("Info", "Info", SCRIPT_PARAM_INFO, "5 Highest priority")
-
-    local modelist = {}
-    for i, mode in ipairs(STS_AVAILABLE_MODES) do
-        table.insert(modelist, mode.name)
-    end
-
-    self.menu:addParam("mode", "Targetting mode: ", SCRIPT_PARAM_LIST, 1, modelist)
-    self.menu["mode"] = self.mode.id
-
-    self.menu:addParam("Selected", "Focus selected target", SCRIPT_PARAM_ONOFF, true)
-
-    STS_MENU = self.menu
-end
-
-function SimpleTS:OnMsg(msg, key)
-    if msg == WM_LBUTTONDOWN then
-        local MinimumDistance = math.huge
-        local SelectedTarget
-        for i, enemy in ipairs(GetEnemyHeroes()) do
-            if ValidTarget(enemy) then
-                if _GetDistanceSqr(enemy, mousePos) <= MinimumDistance then
-                    MinimumDistance = _GetDistanceSqr(enemy, mousePos)
-                    SelectedTarget = enemy
-                end
-            end
-        end
-        if SelectedTarget and MinimumDistance < 150 * 150 then
-            self.STarget = SelectedTarget
-        else
-            self.STarget = nil
-        end
-    end
-end
-
-function SimpleTS:SelectedTarget()
-    return self.STarget
-end
-
-function SimpleTS:GetTarget(range, n, forcemode)
-    assert(range, "SimpleTS: range can't be nil")
-    range = range * range
-    local PosibleTargets = {}
-    local selected = self:SelectedTarget()
-
-    if self.menu then
-        self.mode = STS_AVAILABLE_MODES[self.menu.mode]
-        if self.menu.Selected and selected and selected.type == player.type and self:IsValid(selected, range, true) then
-            return selected
-        end
-    end
-
-    for i, enemy in ipairs(GetEnemyHeroes()) do
-        if self:IsValid(enemy, range) then
-            table.insert(PosibleTargets, enemy)
-        end
-    end
-    table.sort(PosibleTargets, forcemode and forcemode.sortfunc or self.mode.sortfunc)
-
-    return PosibleTargets[n and n or 1]
-end
-
-function SimpleTS:OnDraw()
-    local selected = self:SelectedTarget()
-    if self.menu and self.menu.Selected and ValidTarget(selected) then
-        DrawCircle3D(selected.x, selected.y, selected.z, 100, 2, ARGB(175, 0, 255, 0), 25)
-    end
-end
-
-function _GetDistanceSqr(p1, p2)
-
-    p2 = p2 or player
-    if p1 and p1.networkID and (p1.networkID ~= 0) and p1.visionPos then p1 = p1.visionPos end
-    if p2 and p2.networkID and (p2.networkID ~= 0) and p2.visionPos then p2 = p2.visionPos end
-    return GetDistanceSqr(p1, p2)
-    
-end
-
-function HasBuff(unit, buffname)
-    for i = 1, unit.buffCount do
-        local tBuff = unit:getBuff(i)
-        if tBuff.valid and BuffIsValid(tBuff) and tBuff.name == buffname then
-            return true
-        end
-    end
-    return false
-end
-
-function TARGB(colorTable)
-    assert(colorTable and type(colorTable) == "table" and #colorTable == 4, "TARGB: colorTable is invalid!")
-    return ARGB(colorTable[1], colorTable[2], colorTable[3], colorTable[4])
-end]]
