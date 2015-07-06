@@ -1,14 +1,17 @@
+if myHero.charName ~= "Azir" or not VIP_USER then return end
+class('AOW')
+
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
 local version = 1.00
-local AUTO_UPDATE = false
+local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/CCKA/CCKA.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH.."CCKA.lua"
 local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
 
 if AUTO_UPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/KOM/CCKA/CCKA.version")
+	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191//anonym/master/KOM/CCKA/CCKA.version")
 	if ServerData then
 		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
 		if ServerVersion then
@@ -281,7 +284,7 @@ function AOW:LoadMenu(menu)
 	end
 	
 	self.menu:addParam("Combo", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-	self.menu:addParam("Harass", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('v'))
+	self.menu:addParam("Harass", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('V'))
 		
 	AddTickCallback(function() self:OrbWalk() end)
 	AddProcessSpellCallback(function(unit, spell) self:OnProcessSpell(unit, spell) end)
