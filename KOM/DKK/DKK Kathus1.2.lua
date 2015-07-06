@@ -236,7 +236,6 @@ function OnTick()
 	if Config.HotKey.Harass or Config.HotKey.HarassToggle then OnHarass() end
 	if Config.HotKey.Clear then OnClear() end
 	if Config.HotKey.Farm then OnFarm() end
-	if E.Active then if Config.E.UseEmanaSaveManager then CastSpell(_E) end end 
 	checkTick()
 end
 
@@ -297,7 +296,13 @@ function OnCombo()
 	if target ~= nil then
 		if Config.Combo.UseQ then CastQ(target) end
 		if Config.Combo.UseW then CastW(target) end
-		if Config.Combo.UseE then CastE() end
+		if Config.Combo.UseE then 
+			if Config.E.UseEmanaSaveManager then
+				CastSpell(_E)
+			else
+				CastE()
+			end
+		end
 	end
 end
 
