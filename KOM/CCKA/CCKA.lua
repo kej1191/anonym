@@ -245,7 +245,7 @@ end
 function Insec()
 	local target = STS:GetTarget(myTrueRange+customSAR)
 	if not R.IsReady() then return end
-	if GetDistance(target) > 100 then
+	if GetDistance(target) > 50 then
 		Dash(target)
 	else
 		if Config.Insec.To == 1 then
