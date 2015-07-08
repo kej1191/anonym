@@ -1,4 +1,4 @@
-if myHero.charName ~= "Azir" or not VIP_USER then return end
+if myHero.charName ~= "Azir" then return end
 class('AOW')
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
@@ -11,7 +11,7 @@ local UPDATE_FILE_PATH = SCRIPT_PATH.."CCKA.lua"
 local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
 
 if AUTO_UPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191//anonym/master/KOM/CCKA/CCKA.version")
+	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/KOM/CCKA/CCKA.version")
 	if ServerData then
 		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
 		if ServerVersion then
@@ -110,8 +110,9 @@ function OnLoad()
 	STS = SimpleTS()
 	AOW = AOW()
 	
+	OnOrbLoad()
 	OnLoadMenu()
-
+	
 	myTrueRange = myHero.range + GetDistance(myHero.minBBox)
 	
 end
@@ -124,8 +125,9 @@ function OnLoadMenu()
 			
 		Config:addSubMenu("HotKey", "HotKey")
 			Config.HotKey:addParam("Combo", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-			Config.HotKey:addParam("Harass", "Harass", SCRIPT_PARAM_ONOFF, false, string.byte('V'))
+			Config.HotKey:addParam("Harass", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('V'))
 			Config.HotKey:addParam("Escape", "Escape", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('G'))
+			Config.HotKey:addParam("Insec", "Insec", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('T'))
 			
 		Config:addSubMenu("Combo", "Combo")
 			Config.Combo:addParam("UseQ", "UseQ", SCRIPT_PARAM_ONOFF, true)
@@ -134,6 +136,10 @@ function OnLoadMenu()
 		Config:addSubMenu("Harass", "Harass")
 			Config.Harass:addParam("UseQ", "UseQ", SCRIPT_PARAM_ONOFF, true)
 			Config.Harass:addParam("UseW", "UseW", SCRIPT_PARAM_ONOFF, true)
+			Config.Harass:addParam("LimitAS", "Limit AzirSoldier", SCRIPT_PARAM_SLICE, 1, 1, 3, 0)
+			
+		Config:addSubMenu("Insec", "Insec")
+			Config.Insec:addParam("To", "To", SCRIPT_PARAM_LIST, 1, {"To Mouse", "To Closet Ally"})
 		
 		Config:addSubMenu("[Conquering Sands] Setting", "Q")
 			Config.Q:addParam("MinNum", "Use Q can under attack number", SCRIPT_PARAM_SLICE, 1, 1, 3, 0)
@@ -164,9 +170,13 @@ function OnTick()
 	if Config.HotKey.Combo then 
 		OnCombo()
 		BlockAA(true)
+	elseif Config.HotKey.Harass then
+		OnHarass()
+		BlockAA(true)
 	else
 		BlockAA(false)
 	end
+	if Config.HotKey.Insec then Insec() end
 	if Config.HotKey.Escape then Dash() end
 	customSAR = Config.W.SoldierAR
 end
@@ -210,17 +220,35 @@ function OnHarass()
 		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Harass.UseQ then
 			CastQ(t)
 		end
-		if W.IsReady() and Config.Harass.UseW then CastW(t) end
+		if W.IsReady() and Config.Harass.UseW and #AzirSoldier < Config.Harass.LimitAS then 
+			CastW(t)
+		end
 	end
 end
 
-function Dash()
+function Dash(Pos)
+	local Pos2 = Pos or mousePos
 	if W.IsReady() then
-		CastW(mousePos)
+		CastW(Pos2)
 	end
 	if Q.IsReady() and #AzirSoldier ~= 0 then
-		CastQ(mousePos)
-		CastE(mousePos)
+		CastE(Pos2)
+		CastQ(Pos2)
+	end
+end
+
+function Insec()
+	local target = STS:GetTarget(myTrueRange+customSAR)
+	if not R.IsReady() then return end
+	if GetDistance(target) > 100 then
+		Dash(target)
+	else
+		if Config.Insec.To == 1 then
+			CastR(mousePos)
+		elseif Config.Insec.To == 2 then
+			local target = ClosetAlly()
+			CastR(target)
+		end
 	end
 end
 
@@ -250,11 +278,21 @@ function ClosetSoldier(target)
 	return CanAANum
 end
 
+function ClosetAlly()
+	local Closet
+	for unit, ally in ipairs(GetAllyHeroes()) do
+		if Closet == nil then Closet = ally end
+		if GetDistance(ally) < GetDistance(Closet) then
+			Closet = ally
+		end
+	end
+	return Closet
+end
+
 
 function OnCreateObj(obj)
 	if obj ~= nil then
 		if obj.name == "AzirSoldier" then
-			print("Create")
 			table.insert(AzirSoldier, obj)
 		end
 	end
@@ -286,7 +324,7 @@ function AOW:LoadMenu(menu)
 	self.menu:addParam("Combo", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	self.menu:addParam("Harass", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('V'))
 		
-	AddTickCallback(function() self:OrbWalk() end)
+	AddTickCallback(function() self:OnTick() end)
 	AddProcessSpellCallback(function(unit, spell) self:OnProcessSpell(unit, spell) end)
 end
 
@@ -300,33 +338,31 @@ function AOW:OnProcessSpell(unit, spell)
 	end
 end
 
-function AOW:OrbWalk()
+function AOW:OnTick()
 	if self.menu.Combo or self.menu.Harass then
-		OrbTarget = STS:GetTarget(myTrueRange+customSAR)
-		if OrbTarget ~= nil then
-			if self.tiemToShoot() then
-				if #AzirSoldier ~= 0 then
-					for i, j in pairs(AzirSoldier) do 
-						if GetDistance(j) < customSAR+myTrueRange then
-							myHero:Attack(OrbTarget);
-							break;
-						end
-					end
-				else
-					if GetDistance(j) < myTrueRange then
-						myHero:Attack(OrbTarget);
-					end
-				end
-			elseif self.heroCanMove() then
-				self.moveToCursor()
-			end
-		else
-			self.moveToCursor()
-		end
+		self:OrbWalk()
 	end
 end
 
-function AOW:tiemToShoot()
+function AOW:OrbWalk()
+	OrbTarget = STS:GetTarget(myTrueRange+customSAR)
+	AAOrbTarget = STS:GetTarget(myTrueRange)
+	if OrbTarget ~= nil then
+		if self:heroCanAA() then
+			if GetDistance(AAOrbTarget) < myTrueRange then
+				myHero:Attack(AAOrbTarget);
+			elseif GetDistance(OrbTarget) < customSAR+myTrueRange and #AzirSoldier ~= 0 and ClosetSoldier(OrbTarget) then
+				myHero:Attack(OrbTarget);
+			end
+		elseif self:heroCanMove() then
+			self:moveToCursor()
+		end
+	else
+		self:moveToCursor()
+	end
+end
+
+function AOW:heroCanAA()
 	return (GetTickCount() + GetLatency()/2 > lastAttack + lastAttackCD)
 end
 
