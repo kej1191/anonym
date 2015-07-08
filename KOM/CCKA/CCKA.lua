@@ -60,18 +60,22 @@ local customSAR = 0;
 local AzirSoldier = {}
 
 local RebornLoad, RevampedLoaded, MMALoad, SxOLoad = false, false, false, false;
+local orbload = false
 
 function OnOrbLoad()
 	if _G.MMA_LOADED then
 		AutoupdaterMsg("MMA LOAD")
 		MMALoad = true
+		orbload = true
 	elseif _G.AutoCarry then
 		if _G.AutoCarry.Helper then
 			AutoupdaterMsg("SIDA AUTO CARRY: REBORN LOAD")
 			RebornLoad = true
+			orbload = true
 		else
 			AutoupdaterMsg("SIDA AUTO CARRY: REVAMPED LOAD")
 			RevampedLoaded = true
+			orbload = true
 		end
 	elseif _G.Reborn_Loaded then
 		SacLoad = true
@@ -81,11 +85,12 @@ function OnOrbLoad()
 		require 'SxOrbWalk'
 		SxO = SxOrbWalk()
 		SxOLoad = true
+		orbload = true
 	end
 end
 
 function BlockAA(bool)
-	if not bool then
+	if not bool and orbload then
 		if MMALoad then
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:AttacksEnabled(true)
@@ -94,7 +99,7 @@ function BlockAA(bool)
 			SxO:EnableAttacks()
 			SxO:EnableMove()
 		end
-	else
+	elseif bool and orbload then
 		if MMALoad then
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:AttacksEnabled(false)
