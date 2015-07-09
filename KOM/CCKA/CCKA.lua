@@ -3,7 +3,7 @@ class('AOW')
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.00
+local version = 1.01
 local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/CCKA/CCKA.lua".."?rand="..math.random(1,10000)
@@ -356,7 +356,7 @@ function AOW:OrbWalk()
 		if self:heroCanAA() then
 			if GetDistance(AAOrbTarget) < myTrueRange then
 				myHero:Attack(AAOrbTarget);
-			elseif GetDistance(OrbTarget) < customSAR+myTrueRange and #AzirSoldier ~= 0 and ClosetSoldier(OrbTarget) then
+			elseif #AzirSoldier ~= 0 and ClosetSoldier(OrbTarget) then
 				myHero:Attack(OrbTarget);
 			end
 		elseif self:heroCanMove() then
