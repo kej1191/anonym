@@ -1,7 +1,55 @@
-if not VIP_USER or myHero.charName ~= "Karthus" then return end
+if myHero.charName ~= "Karthus" then return end
 
-require 'DivinePred'
-require 'SourceLib'
+local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>DDK Karthus:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+
+local version = 1.00
+local AUTO_UPDATE = true
+local UPDATE_HOST = "raw.github.com"
+local UPDATE_PATH = "/kej1191/anonym/master/KOM/DDK/DDK Karthus.lua".."?rand="..math.random(1,10000)
+local UPDATE_FILE_PATH = SCRIPT_PATH.."Karthus.lua"
+local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+
+if AUTO_UPDATE then
+	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/KOM/DDK/DDK Karthus.version")
+	if ServerData then
+		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
+		if ServerVersion then
+			if tonumber(version) < ServerVersion then
+				AutoupdaterMsg("New version available"..ServerVersion)
+				AutoupdaterMsg("Updating, please don't press F9")
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+			else
+				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
+			end
+		end
+	else
+		AutoupdaterMsg("Error downloading version info")
+	end
+end
+
+local SCRIPT_LIBS = {
+	["DivinePred"] = "http://divinetek.rocks/divineprediction/DivinePred.lua",
+	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
+}
+function Initiate()
+	for LIBRARY, LIBRARY_URL in pairs(SCRIPT_LIBS) do
+		if FileExist(LIB_PATH..LIBRARY..".lua") then
+			require(LIBRARY)
+		else
+			DOWNLOADING_LIBS = true
+			if LIBRARY == "DivinePred" then
+				AutoupdaterMsg("Missing Library! Downloading "..LIBRARY..". If the library doesn't download, please download it manually.")
+				DownloadFile("http://divinetek.rocks/divineprediction/DivinePred.lua", LIB_PATH.."DivinePred.lua",function() AutoupdaterMsg("Successfully downloaded "..LIBRARY) end)
+				DownloadFile("http://divinetek.rocks/divineprediction/DivinePred.luac", LIB_PATH.."DivinePred.luac",function() AutoupdaterMsg("Successfully downloaded "..LIBRARY) end)
+			else
+				AutoupdaterMsg("Missing Library! Downloading "..LIBRARY..". If the library doesn't download, please download it manually.")
+				DownloadFile(LIBRARY_URL,LIB_PATH..LIBRARY..".lua",function() AutoupdaterMsg("Successfully downloaded "..LIBRARY) end)
+			end
+		end
+	end
+	if DOWNLOADING_LIBS then return true end
+end
+if Initiate() then return end
 
 AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
 AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)
@@ -297,7 +345,7 @@ function OnCombo()
 		if Config.Combo.UseQ then CastQ(target) end
 		if Config.Combo.UseW then CastW(target) end
 		if Config.Combo.UseE then 
-			if Config.E.UseEmanaSaveManager and GetDistance(target, player) > E.Range then
+			if Config.E.UseEmanaSaveManager and GetDistance(target) < E.Range then
 				CastSpell(_E)
 			else
 				CastE()
