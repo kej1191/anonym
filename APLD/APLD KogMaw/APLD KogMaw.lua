@@ -29,13 +29,13 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.5"
+local Version = "1.6"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.5,
+	["Version"] = 1.6,
 	["Author"] = {
-		["Your"] = "http://forum.botoflegends.com/user/145247-"
+		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
 }
 local SCRIPT_UPDATER = {
@@ -68,11 +68,11 @@ function Initiate()
 end
 if Initiate() then return end
 	
-if VIP_USER then
- 	AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
-	AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)
-	AdvancedCallback:bind('OnRemoveBuff', function(unit, buff) OnRemoveBuff(unit, buff) end)
-end
+
+AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
+AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)
+AdvancedCallback:bind('OnRemoveBuff', function(unit, buff) OnRemoveBuff(unit, buff) end)
+
 
 local player = myHero;
 
@@ -246,9 +246,9 @@ function OnLoad()
 	
 	OnMenuLoad();
 	
-	HPred:AddSpell("Q", 'KogMaw', {type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width*2, speed = Q.Speed})
-	HPred:AddSpell("E", 'KogMaw', {type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width*2, speed = E.Speed})
-	HPred:AddSpell("R", 'KogMaw', {type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width, IsVeryLowAccuracy = true})
+	HP_Q = HPSkillshot({type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width*2, speed = Q.Speed})
+	HP_E = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width*2, speed = E.Speed})
+	HP_R = HPSkillshot({type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width, IsVeryLowAccuracy = true})
 	--[[
 		-- Q
 	Spell_Q.delay['KogMaw'] = Q.Delay;
@@ -511,7 +511,7 @@ end
 function CastQ( target )
 	if Q.IsReady() then
 		if GetDistance(player, target) <= Q.Range then
-			local Pos, HitChance = HPred:GetPredict("Q", target, player)
+			local Pos, HitChance = HPred:GetPredict(HP_Q, target, player)
 			if HitChance >= Config.pred.HPSetting.QHitChance  then
 				CastSpell(_Q, Pos.x, Pos.z)
 			end
@@ -536,7 +536,7 @@ end
 function CastE( target )
 	if E.IsReady() then
 		if GetDistance(player, target) <= E.Range then
-			local Pos, HitChance = HPred:GetPredict("E", target, player)
+			local Pos, HitChance = HPred:GetPredict(HP_E, target, player)
 			if HitChance >= Config.pred.HPSetting.EHitChance  then
 				CastSpell(_E, Pos.x, Pos.z)
 			end
@@ -564,7 +564,7 @@ end
 function CastRTwo( target )
 	if not R.IsReady() then return end
 	if GetDistance(target, player) < R.Range then
-		local Pos, HitChance = HPred:GetPredict("R", target, player)
+		local Pos, HitChance = HPred:GetPredict(HP_R, target, player)
 		if HitChance >= Config.pred.HPSetting.RHitChance  then
 			CastSpell(_R, Pos.x, Pos.z)
 		end
