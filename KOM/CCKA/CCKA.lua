@@ -3,7 +3,7 @@ class('AOW')
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.01
+local version = 1.02
 local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/CCKA/CCKA.lua".."?rand="..math.random(1,10000)
@@ -49,7 +49,7 @@ local Q = {Range = 800, IsReady = function() return myHero:CanUseSpell(_Q) == RE
 local W = {Range = 450, IsReady = function() return myHero:CanUseSpell(_W) == READY end,}
 local E = {Range = 1100, IsReady = function() return myHero:CanUseSpell(_E) == READY end,}
 local R = {Range = 250, IsReady = function() return myHero:CanUseSpell(_R) == READY end,}
-local AS = {Range = 375}
+local AS = {Range = 335}
 
 local lastAttack, lastWindUpTime, lastAttackCD = 0, 0, 0
 local myTrueRange =0;
@@ -119,7 +119,6 @@ function OnLoad()
 	OnLoadMenu()
 	
 	myTrueRange = myHero.range + GetDistance(myHero.minBBox)
-	
 end
 
 function OnLoadMenu()
@@ -210,7 +209,7 @@ function OnDraw()
 end
 
 function OnCombo()
-	local t = STS:GetTarget(myTrueRange+customSAR)
+	local t = AOW:GetTarget()
 	if t ~= nil then
 		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Combo.UseQ then
 			CastQ(t)
@@ -220,7 +219,7 @@ function OnCombo()
 end
 
 function OnHarass()
-	local t = STS:GetTarget(myTrueRange+customSAR)
+	local t = AOW:GetTarget()
 	if t ~= nil then
 		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Harass.UseQ then
 			CastQ(t)
@@ -236,18 +235,19 @@ function Dash(Pos)
 	if W.IsReady() then
 		CastW(Pos2)
 	end
-	if Q.IsReady() and #AzirSoldier ~= 0 then
-		CastE(Pos2)
+	if Q.IsReady() and #AzirSoldier > 0 then
+		local soldier, etarget = ClosetSoldier(Pos)
+		CastE(etarget)
 		CastQ(Pos2)
 	end
 end
 
 function Insec()
-	local target = STS:GetTarget(myTrueRange+customSAR)
+	local target = AOW:GetTarget()
 	if not R.IsReady() then return end
-	if GetDistance(target) > 50 then
+	if GetDistance(target) > 100 then
 		Dash(target)
-	else
+	elseif GetDistance(target) <= 100 then
 		if Config.Insec.To == 1 then
 			CastR(mousePos)
 		elseif Config.Insec.To == 2 then
@@ -262,7 +262,9 @@ function CastQ(Pos)
 end
 
 function CastW(Pos)
-	CastSpell(_W, Pos.x, Pos.z)
+	if Pos then
+		CastSpell(_W, Pos.x, Pos.z)
+	end
 end
 
 function CastE(Pos)
@@ -275,12 +277,18 @@ end
 
 function ClosetSoldier(target)
 	local CanAANum = 0
+	local closetsoldier = nil
 	for unit, soldier in pairs(AzirSoldier) do
 		if GetDistance(soldier, target) < customSAR then
 			CanAANum = CanAANum + 1
+			if closetsoldier == nil then
+				closetsoldier = soldier
+			elseif GetDistance(closetsoldier, target) > GetDistance(soldier, target)  then
+				closetsoldier = soldier
+			end
 		end
 	end
-	return CanAANum
+	return CanAANum, closetsoldier
 end
 
 function ClosetAlly()
@@ -317,6 +325,7 @@ end
 
 
 function AOW:__init()
+	self.forcetarget=nil
 end
 
 function AOW:LoadMenu(menu)
@@ -349,14 +358,48 @@ function AOW:OnTick()
 	end
 end
 
+function AOW:GetTarget(OnlyChampions)
+	local result
+	local healthRatio
+
+	if self:ValidTarget(self.forcetarget) then
+		return self.forcetarget
+	elseif self.forcetarget ~= nil then
+		return nil
+	end
+
+	if (not STS or not OnlyChampions) and self:ValidTarget(GetTarget()) and (GetTarget().type == myHero.type or (not OnlyChampions)) then
+		return GetTarget()
+	end
+
+	if STS then
+		local oldhitboxmode = STS.hitboxmode
+		STS.hitboxmode = true
+
+		result = STS:GetTarget(myHero.range)
+
+		STS.hitboxmode = oldhitboxmode
+		return result
+	end
+
+	for i, champion in ipairs(GetEnemyHeroes()) do
+		local hr = champion.health / myHero:CalcDamage(champion, 200)
+		if self:ValidTarget(champion) and ((healthRatio == nil) or hr < healthRatio) then
+			result = champion
+			healthRatio = hr
+		end
+	end
+
+	return result
+end
+
 function AOW:OrbWalk()
-	OrbTarget = STS:GetTarget(myTrueRange+customSAR)
-	AAOrbTarget = STS:GetTarget(myTrueRange)
+	OrbTarget = self:GetTarget()
 	if OrbTarget ~= nil then
 		if self:heroCanAA() then
-			if GetDistance(AAOrbTarget) < myTrueRange then
-				myHero:Attack(AAOrbTarget);
-			elseif #AzirSoldier ~= 0 and ClosetSoldier(OrbTarget) then
+			if GetDistance(OrbTarget) < myTrueRange then
+				myHero:Attack(OrbTarget);
+			elseif #AzirSoldier ~= 0 and ClosetSoldier(OrbTarget) > 0 then
 				myHero:Attack(OrbTarget);
 			end
 		elseif self:heroCanMove() then
@@ -365,6 +408,13 @@ function AOW:OrbWalk()
 	else
 		self:moveToCursor()
 	end
+end
+
+function AOW:ValidTarget(target)
+	if target and target.type and (target.type == "obj_BarracksDampener" or target.type == "obj_HQ")  then
+		return false
+	end
+	return ValidTarget(target)
 end
 
 function AOW:heroCanAA()

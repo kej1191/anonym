@@ -169,13 +169,16 @@ end
 local function OrbLoad()
 	if _G.MMA_Loaded then
 		MMALoaded = true
+		orbload = true
 		ScriptMsg("Found MMA")
 	elseif _G.AutoCarry then
 		if _G.AutoCarry.Helper then
 			RebornLoaded = true
+			orbload = true
 			ScriptMsg("Found SAC: Reborn")
 		else
 			RevampedLoaded = true
+			orbload = true
 			ScriptMsg("Found SAC: Revamped")
 		end
 	elseif _G.Reborn_Loaded then
@@ -185,11 +188,13 @@ local function OrbLoad()
 		require 'SxOrbWalk'
 		SxO = SxOrbWalk()
 		SxOLoaded = true
+		orbload = true
 		ScriptMsg("Loaded SxO")
 	elseif FileExist(LIB_PATH .. "SOW.lua") then
 		require 'SOW'
 		SOW = SOW(VP)
 		SOWLoaded = true
+		orbload = true
 		ScriptMsg("Loaded SOW")
 	else
 		ScriptMsg("Cant Fine OrbWalker")
@@ -225,16 +230,18 @@ end
 
 local function OrbTarget(range)
 	local T
-	if MMALoad then T = _G.MMA_Target end
-	if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
-	if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
-	if SxOLoad then T = SxO:GetTarget() end
-	if SOWLoaded then T = SOW:GetTarget() end
-	if T == nil then 
-		T = STS:GetTarget(range)
-	end
-	if T and T.type == player.type and ValidTarget(T, range) then
-		return T
+		if orbload then
+		if MMALoad then T = _G.MMA_Target end
+		if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
+		if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
+		if SxOLoad then T = SxO:GetTarget() end
+		if SOWLoaded then T = SOW:GetTarget() end
+		if T == nil then 
+			T = STS:GetTarget(range)
+		end
+		if T and T.type == player.type and ValidTarget(T, range) then
+			return T
+		end
 	end
 end
 
@@ -246,7 +253,7 @@ function OnLoad()
 	
 	OnMenuLoad();
 	
-	HP_Q = HPSkillshot({type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width*2, speed = Q.Speed})
+	HP_Q = HPSkillshot({type = "DelayLine", delay = Q.Delay, range = Q.Range, width = Q.Width*2, speed = Q.Speed})
 	HP_E = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width*2, speed = E.Speed})
 	HP_R = HPSkillshot({type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width, IsVeryLowAccuracy = true})
 	--[[
