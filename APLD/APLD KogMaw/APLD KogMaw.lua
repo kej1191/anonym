@@ -169,16 +169,13 @@ end
 local function OrbLoad()
 	if _G.MMA_Loaded then
 		MMALoaded = true
-		orbload = true
 		ScriptMsg("Found MMA")
 	elseif _G.AutoCarry then
 		if _G.AutoCarry.Helper then
 			RebornLoaded = true
-			orbload = true
 			ScriptMsg("Found SAC: Reborn")
 		else
 			RevampedLoaded = true
-			orbload = true
 			ScriptMsg("Found SAC: Revamped")
 		end
 	elseif _G.Reborn_Loaded then
@@ -188,13 +185,11 @@ local function OrbLoad()
 		require 'SxOrbWalk'
 		SxO = SxOrbWalk()
 		SxOLoaded = true
-		orbload = true
 		ScriptMsg("Loaded SxO")
 	elseif FileExist(LIB_PATH .. "SOW.lua") then
 		require 'SOW'
 		SOW = SOW(VP)
 		SOWLoaded = true
-		orbload = true
 		ScriptMsg("Loaded SOW")
 	else
 		ScriptMsg("Cant Fine OrbWalker")
@@ -230,18 +225,16 @@ end
 
 local function OrbTarget(range)
 	local T
-		if orbload then
-		if MMALoad then T = _G.MMA_Target end
-		if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
-		if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
-		if SxOLoad then T = SxO:GetTarget() end
-		if SOWLoaded then T = SOW:GetTarget() end
-		if T == nil then 
-			T = STS:GetTarget(range)
-		end
-		if T and T.type == player.type and ValidTarget(T, range) then
-			return T
-		end
+	if MMALoad then T = _G.MMA_Target end
+	if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
+	if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
+	if SxOLoad then T = SxO:GetTarget() end
+	if SOWLoaded then T = SOW:GetTarget() end
+	if T == nil then 
+		T = STS:GetTarget(range)
+	end
+	if T and T.type == player.type and ValidTarget(T, range) then
+		return T
 	end
 end
 
@@ -253,7 +246,7 @@ function OnLoad()
 	
 	OnMenuLoad();
 	
-	HP_Q = HPSkillshot({type = "DelayLine", delay = Q.Delay, range = Q.Range, width = Q.Width*2, speed = Q.Speed})
+	HP_Q = HPSkillshot({type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width*2, speed = Q.Speed})
 	HP_E = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width*2, speed = E.Speed})
 	HP_R = HPSkillshot({type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width, IsVeryLowAccuracy = true})
 	--[[
@@ -518,7 +511,7 @@ end
 function CastQ( target )
 	if Q.IsReady() then
 		if GetDistance(player, target) <= Q.Range then
-			local Pos, HitChance = HPred:GetPredict(HP_Q, target, player)
+			local Pos, HitChance = HPred:GetPredict("Q", target, player)
 			if HitChance >= Config.pred.HPSetting.QHitChance  then
 				CastSpell(_Q, Pos.x, Pos.z)
 			end
@@ -543,7 +536,7 @@ end
 function CastE( target )
 	if E.IsReady() then
 		if GetDistance(player, target) <= E.Range then
-			local Pos, HitChance = HPred:GetPredict(HP_E, target, player)
+			local Pos, HitChance = HPred:GetPredict("E", target, player)
 			if HitChance >= Config.pred.HPSetting.EHitChance  then
 				CastSpell(_E, Pos.x, Pos.z)
 			end
@@ -571,7 +564,7 @@ end
 function CastRTwo( target )
 	if not R.IsReady() then return end
 	if GetDistance(target, player) < R.Range then
-		local Pos, HitChance = HPred:GetPredict(HP_R, target, player)
+		local Pos, HitChance = HPred:GetPredict("R", target, player)
 		if HitChance >= Config.pred.HPSetting.RHitChance  then
 			CastSpell(_R, Pos.x, Pos.z)
 		end
