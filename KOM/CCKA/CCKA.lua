@@ -3,7 +3,7 @@ class('AOW')
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.02
+local version = 1.03
 local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/CCKA/CCKA.lua".."?rand="..math.random(1,10000)
@@ -49,7 +49,7 @@ local Q = {Range = 800, IsReady = function() return myHero:CanUseSpell(_Q) == RE
 local W = {Range = 450, IsReady = function() return myHero:CanUseSpell(_W) == READY end,}
 local E = {Range = 1100, IsReady = function() return myHero:CanUseSpell(_E) == READY end,}
 local R = {Range = 250, IsReady = function() return myHero:CanUseSpell(_R) == READY end,}
-local AS = {Range = 335}
+local AS = {Range = 310}
 
 local lastAttack, lastWindUpTime, lastAttackCD = 0, 0, 0
 local myTrueRange =0;
@@ -211,7 +211,7 @@ end
 function OnCombo()
 	local t = AOW:GetTarget()
 	if t ~= nil then
-		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Combo.UseQ then
+		if CanAASoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Combo.UseQ then
 			CastQ(t)
 		end
 		if W.IsReady() and Config.Combo.UseW then CastW(t) end
@@ -221,7 +221,7 @@ end
 function OnHarass()
 	local t = AOW:GetTarget()
 	if t ~= nil then
-		if ClosetSoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Harass.UseQ then
+		if CanAASoldier(t) <= Config.Q.MinNum and Q.IsReady() and Config.Harass.UseQ then
 			CastQ(t)
 		end
 		if W.IsReady() and Config.Harass.UseW and #AzirSoldier < Config.Harass.LimitAS then 
@@ -232,13 +232,15 @@ end
 
 function Dash(Pos)
 	local Pos2 = Pos or mousePos
-	if W.IsReady() then
+	if W.IsReady()and #AzirSoldier == 0 then
 		CastW(Pos2)
 	end
-	if Q.IsReady() and #AzirSoldier > 0 then
-		local soldier, etarget = ClosetSoldier(Pos)
-		CastE(etarget)
-		CastQ(Pos2)
+	if Q.IsReady() and E.IsReady() and #AzirSoldier > 0 then
+		local etarget = ClosetSoldier(Pos2)
+		if etarget ~= nil then
+			CastE(etarget)
+			CastQ(Pos2)
+		end
 	end
 end
 
@@ -258,7 +260,9 @@ function Insec()
 end
 
 function CastQ(Pos)
-	CastSpell(_Q, Pos.x, Pos.z)
+	if Pos then
+		CastSpell(_Q, Pos.x, Pos.z)
+	end
 end
 
 function CastW(Pos)
@@ -268,27 +272,35 @@ function CastW(Pos)
 end
 
 function CastE(Pos)
-	CastSpell(_E, Pos.x, Pos.z)
+	if Pos then
+		CastSpell(_E, Pos.x, Pos.z)
+	end
 end
 
 function CastR(Pos)
 	CastSpell(_R, Pos.x, Pos.z)
 end
 
-function ClosetSoldier(target)
+function CanAASoldier(target)
 	local CanAANum = 0
-	local closetsoldier = nil
 	for unit, soldier in pairs(AzirSoldier) do
 		if GetDistance(soldier, target) < customSAR then
 			CanAANum = CanAANum + 1
-			if closetsoldier == nil then
-				closetsoldier = soldier
-			elseif GetDistance(closetsoldier, target) > GetDistance(soldier, target)  then
-				closetsoldier = soldier
-			end
 		end
 	end
-	return CanAANum, closetsoldier
+	return CanAANum
+end
+
+function ClosetSoldier(Pos)
+	local target
+	for unit, soldier in pairs(AzirSoldier) do
+		if target == nil then
+			target = soldier
+		elseif GetDistance(target, target) > GetDistance(soldier, target) and GetDistance(soldier) < E.Range then
+			target = soldier
+		end
+	end
+	return target
 end
 
 function ClosetAlly()
@@ -399,7 +411,7 @@ function AOW:OrbWalk()
 		if self:heroCanAA() then
 			if GetDistance(OrbTarget) < myTrueRange then
 				myHero:Attack(OrbTarget);
-			elseif #AzirSoldier ~= 0 and ClosetSoldier(OrbTarget) > 0 then
+			elseif #AzirSoldier ~= 0 and CanAASoldier(OrbTarget) > 0 then
 				myHero:Attack(OrbTarget);
 			end
 		elseif self:heroCanMove() then
