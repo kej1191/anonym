@@ -1,77 +1,19 @@
-local version = "1.16"
+local version = "1.00"
 --[[
 
-Free Jinx!
+APLD Jinx!
 
-by Dienofail
+by KaoKaoNi
 
 Changelog:
 
-v0.01 - release
-
-v0.02 - Draw other Q circles added. Temporary solution to R overkill problems. 
-
-v0.03 - Added collision for R, added min W slider.
-
-v0.04 - now defaults to fishbones if no enemies around.
-
-v0.05 - Small fixes to default Q swapping
-
-v0.06 - reverted to v0.04 for now until issues are resolved. 
-
-v0.07 - small fixes
-
-v0.08 - Added toggle for R overkill checks
-
-v0.09 - Fixed typo
-
-v0.10 - R fixes. 
-
-v0.11 - Deleted orbwalker check. 
-
-v0.12 - Typo fix
-
-v0.13 - Fixed draw options
-
-v1.00 - added option to auto E immobile/stunned/gapclosing enemies (vpred math, not custom math). Swapped colors back again, and added checks for last
-waypoints in E mode. Added lag free circles. 
-
-v1.01 - Now defaults to pow pow when farming
-
-v1.02 - Fixed pow pow farm 
-
-v1.03 - Added farm press requirement for pow pow
-
-v1.04 - Github
-
-v1.05 - Fixes to Q swapping
-
-v1.06 - Fixes to bugs in Q swapping introduced in v1.05
-
-v1.07 - Added mana manager and increased activation delay for auto E
-
-v1.08 - Adjusted W issues. 
-
-v1.09 - Autoupdate issues
-
-v1.10 - Finally updated variable Jinx ult speed :D
-
-v1.11 - Separate mana managers for harass
-
-v1.12 - Now reverts back to minigun if enemy out of range in harass mode
-
-v1.13 - Typo fix
-
-v1.14 - SoW integration
-
-v1.15 - Prod 1.1/1.0 integration
-
-v1.16 - Draw fixes
+v1.00 - New release
 ]]
 
-if not VIP_USER or myHero.charName ~= "Jinx" then return end
+if myHero.charName ~= "Jinx" then return end
 
 require 'VPrediction'
+require 'HPrediction'
 require 'Collision'
 require 'Prodiction'
 local ProdOneLoaded = false
@@ -97,10 +39,10 @@ end
 
 --Honda7
 local AUTOUPDATE = true
-local UPDATE_SCRIPT_NAME = "Free ADC Jinx"
+local UPDATE_SCRIPT_NAME = "APLD Jinx"
 local UPDATE_NAME = "Jinx"
 local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/kej1191/anonym/master/Fix/Free ADC/Free ADC Jinx.lua".."?rand="..math.random(1,10000)
+local UPDATE_PATH = "/kej1191/anonym/master/APLD Jinx/APLD Jinx.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
 local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
 
@@ -125,14 +67,15 @@ if AUTOUPDATE then
 	end
 end
 
-if VIP_USER then
- 	AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
-	AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)
-	AdvancedCallback:bind('OnRemoveBuff', function(unit, buff) OnRemoveBuff(unit, buff) end)
-end
+
+AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
+AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)
+AdvancedCallback:bind('OnRemoveBuff', function(unit, buff) OnRemoveBuff(unit, buff) end)
+
 
 local Config = nil
 local VP = VPrediction()
+local HPred = HPrediction()
 local Col = Collision(3000, 1700, 0.316, 140)
 local SpellW = {Speed = 3300, Range = 1500, Delay = 0.600, Width = 60}
 local SpellE = {Speed = 1750, Delay = 0.5 + 0.2658, Range = 900, Width = 120}
@@ -153,6 +96,7 @@ function OnLoad()
 	DelayAction(checkOrbwalker, 3)
 	DelayAction(Menu,5)
 	DelayAction(Init,5)
+	HP_Q = HPSkillshot({type = "DelayLine", collisionM = true, collisionH = true, range = SpellW.Speed, delay = SpellW.Delay, speed = SpellW.Speed, width = SpellW.Width})
 end
 
 function checkOrbwalker()
@@ -185,7 +129,7 @@ end
 
 
 function Menu()
-	Config = scriptConfig("Jinx", "Jinx")
+	Config = scriptConfig("APLD Jinx", "APLD Jinx")
 	Config:addParam("Combo", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 	Config:addParam("Harass", "Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('C'))
 	Config:addParam("Farm", "Farm", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('V'))
@@ -193,6 +137,7 @@ function Menu()
 	Config:addSubMenu("Harass options", "HarassSub")
 	Config:addSubMenu("KS", "KS")
 	Config:addSubMenu("Extra Config", "Extras")
+	Config:addSubMenu("Pred", "Pred")
 	Config:addSubMenu("Draw", "Draw")
 
 	--Combo
@@ -234,6 +179,8 @@ function Menu()
 	Config:addParam("INFO", "", SCRIPT_PARAM_INFO, "")
 	Config:addParam("Fixer", "Fixer", SCRIPT_PARAM_INFO, "KaoKaoNi")
 	Config:addParam("Team", "Team", SCRIPT_PARAM_INFO, "Your")
+	-- Pred
+	Config.Pred:addParam("WPred", "W Prediction", SCRIPT_PARAM_LIST, 1, {"VPrediction", "HPrediction"})
 	
 	--Permashow
 	Config:permaShow("Combo")
@@ -398,13 +345,25 @@ function CastE(Target)
 end
 
 function CastW(Target)
-	local CastPosition, HitChance, Pos = CombinedPredict(Target, SpellW.Delay, SpellW.Width, SpellW.Range, SpellW.Speed, myHero, true)
-	
-	if CastPosition ~= nil and HitChance ~= nil then
-		if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
-			CastSpell(_W, CastPosition.x, CastPosition.z)
-		elseif GetDistance(Target) > 600 and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
-			CastSpell(_W, CastPosition.x, CastPosition.z)
+	if Config.Pred.WPred == 1 then
+		local CastPosition, HitChance, Pos = CombinedPredict(Target, SpellW.Delay, SpellW.Width, SpellW.Range, SpellW.Speed, myHero, true)
+		
+		if CastPosition ~= nil and HitChance ~= nil then
+			if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
+				CastSpell(_W, CastPosition.x, CastPosition.z)
+			elseif GetDistance(Target) > 600 and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
+				CastSpell(_W, CastPosition.x, CastPosition.z)
+			end
+		end
+	elseif Config.Pred.WPred == 2 then
+		local Pos, HitChance = HPred:GetPredict(HP_Q, Target, player)
+		
+		if Pos ~= nil and HitChance ~= nil then
+			if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
+				CastSpell(_W, Pos.x, Pos.z)
+			elseif GetDistance(Target) > 600 and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
+				CastSpell(_W, Pos.x, Pos.z)
+			end
 		end
 	end
 end
