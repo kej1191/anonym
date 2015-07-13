@@ -21,7 +21,7 @@ assert(load(Base64Decode("G0x1YVIAAQQEBAgAGZMNChoKAAAAAAAAAAAAAQIKAAAABgBAAEFAAA
  v 1.5
  1. R Fix
  
- v 1.7
+ v 1.8
  1. Fix cant use non - vip user
  2. fix error
 ]]
@@ -32,11 +32,11 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.7"
+local Version = "1.8"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.7,
+	["Version"] = 1.8,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -514,7 +514,7 @@ end
 function CastQ( target )
 	if Q.IsReady() then
 		if GetDistance(player, target) <= Q.Range then
-			local Pos, HitChance = HPred:GetPredict("Q", target, player)
+			local Pos, HitChance = HPred:GetPredict(HP_Q, target, player)
 			if HitChance >= Config.pred.HPSetting.QHitChance  then
 				CastSpell(_Q, Pos.x, Pos.z)
 			end
@@ -539,7 +539,7 @@ end
 function CastE( target )
 	if E.IsReady() then
 		if GetDistance(player, target) <= E.Range then
-			local Pos, HitChance = HPred:GetPredict("E", target, player)
+			local Pos, HitChance = HPred:GetPredict(HP_E, target, player)
 			if HitChance >= Config.pred.HPSetting.EHitChance  then
 				CastSpell(_E, Pos.x, Pos.z)
 			end
@@ -567,7 +567,7 @@ end
 function CastRTwo( target )
 	if not R.IsReady() then return end
 	if GetDistance(target, player) < R.Range then
-		local Pos, HitChance = HPred:GetPredict("R", target, player)
+		local Pos, HitChance = HPred:GetPredict(HP_R, target, player)
 		if HitChance >= Config.pred.HPSetting.RHitChance  then
 			CastSpell(_R, Pos.x, Pos.z)
 		end
