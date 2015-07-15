@@ -23,8 +23,8 @@ local SCRIPT_UPDATER = {
 }
 local SCRIPT_LIBS = {
 	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
-	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua"
-	["VPrediction"] = "https://raw.githubusercontent.com/SidaBoL/Scripts/master/Common/VPrediction.lua"
+	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua",
+	["VPrediction"] = "https://raw.githubusercontent.com/SidaBoL/Scripts/master/Common/VPrediction.lua",
 }
 
 --{ Initiate Script (Checks for updates)
@@ -53,16 +53,16 @@ local E = {Range = 900, Delay = 0.8, Radius = 300, Speed = 1500, IsReady = funct
 
 function OnOrbLoad()
 	if _G.MMA_LOADED then
-		AutoupdaterMsg("MMA LOAD")
+		ScriptMsg("MMA LOAD")
 		MMALoad = true
 		orbload = true
 	elseif _G.AutoCarry then
 		if _G.AutoCarry.Helper then
-			AutoupdaterMsg("SIDA AUTO CARRY: REBORN LOAD")
+			ScriptMsg("SIDA AUTO CARRY: REBORN LOAD")
 			RebornLoad = true
 			orbload = true
 		else
-			AutoupdaterMsg("SIDA AUTO CARRY: REVAMPED LOAD")
+			ScriptMsg("SIDA AUTO CARRY: REVAMPED LOAD")
 			RevampedLoaded = true
 			orbload = true
 		end
@@ -70,7 +70,7 @@ function OnOrbLoad()
 		SacLoad = true
 		DelayAction(OnOrbLoad, 1)
 	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
-		AutoupdaterMsg("SxOrbWalk Load")
+		ScriptMsg("SxOrbWalk Load")
 		require 'SxOrbWalk'
 		SxO = SxOrbWalk()
 		SxOLoad = true
@@ -97,6 +97,7 @@ function OnLoad()
 	OnOrbLoad()
 	HPred = HPrediction()
 	VP = VPrediction()
+	STS = SimpleTS()
 
 	LoadMenu()
 	
@@ -110,7 +111,6 @@ function OnTick()
 	if Config.Hotkey.Farm then farm() end
 	if Config.Hotkey.Combo then Combo() end
 	if Config.Hotkey.Harass then harass() end
-	OnSpellcheck()
 end
 
 function OnDraw()
