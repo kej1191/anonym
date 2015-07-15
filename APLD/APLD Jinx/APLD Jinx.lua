@@ -1,4 +1,4 @@
-local version = "1.00"
+local version = "1.01"
 --[[
 
 APLD Jinx!
@@ -96,7 +96,7 @@ function OnLoad()
 	DelayAction(checkOrbwalker, 3)
 	DelayAction(Menu,5)
 	DelayAction(Init,5)
-	HP_Q = HPSkillshot({type = "DelayLine", collisionM = true, collisionH = true, range = SpellW.Speed, delay = SpellW.Delay, speed = SpellW.Speed, width = SpellW.Width})
+	Fuck_You = HPSkillshot({type = "DelayLine", collisionM = true, collisionH = true, range = SpellW.Range, delay = SpellW.Delay, speed = SpellW.Speed, width = SpellW.Width*2})
 end
 
 function checkOrbwalker()
@@ -356,7 +356,7 @@ function CastW(Target)
 			end
 		end
 	elseif Config.Pred.WPred == 2 then
-		local Pos, HitChance = HPred:GetPredict(HP_Q, Target, player)
+		local Pos, HitChance = HPred:GetPredict(Fuck_You, Target, player)
 		
 		if Pos ~= nil and HitChance ~= nil then
 			if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
