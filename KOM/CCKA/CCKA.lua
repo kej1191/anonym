@@ -3,7 +3,7 @@ class('AOW')
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>CCKAzir:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.03
+local version = 1.04
 local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/CCKA/CCKA.lua".."?rand="..math.random(1,10000)
@@ -150,7 +150,6 @@ function OnLoadMenu()
 			
 		Config:addSubMenu("[Arise] Setting", "W")
 			Config.W:addParam("Keep", "Keep soldier number", SCRIPT_PARAM_SLICE, 1, 1, 3, 0)
-			Config.W:addParam("SoldierAR", "Custom Soldier AA range", SCRIPT_PARAM_SLICE, AS.Range, 300, 400, 0)
 		
 		Config:addSubMenu("Draw", "Draw")
 			Config.Draw:addParam("info0", "Draw Range", SCRIPT_PARAM_INFO, "")
@@ -182,7 +181,7 @@ function OnTick()
 	end
 	if Config.HotKey.Insec then Insec() end
 	if Config.HotKey.Escape then Dash() end
-	customSAR = Config.W.SoldierAR
+	customSAR = AS.Range
 end
 
 function OnDraw()
@@ -278,7 +277,9 @@ function CastE(Pos)
 end
 
 function CastR(Pos)
-	CastSpell(_R, Pos.x, Pos.z)
+	if Pos then
+		CastSpell(_R, Pos.x, Pos.z)
+	end
 end
 
 function CanAASoldier(target)
@@ -304,7 +305,7 @@ function ClosetSoldier(Pos)
 end
 
 function ClosetAlly()
-	local Closet
+	local Closet = nil
 	for unit, ally in ipairs(GetAllyHeroes()) do
 		if Closet == nil then Closet = ally end
 		if GetDistance(ally) < GetDistance(Closet) then
