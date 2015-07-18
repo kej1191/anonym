@@ -1,4 +1,4 @@
-local version = "1.01"
+local version = "1.03"
 --[[
 
 APLD Jinx!
@@ -77,7 +77,7 @@ local Config = nil
 local VP = VPrediction()
 local HPred = HPrediction()
 local Col = Collision(3000, 1700, 0.316, 140)
-local SpellW = {Speed = 3300, Range = 1500, Delay = 0.600, Width = 60}
+local SpellW = {Speed = 3300, Range = 1500, Delay = 0.600, Width = 70}
 local SpellE = {Speed = 1750, Delay = 0.5 + 0.2658, Range = 900, Width = 120}
 local SpellR = {Speed = 1700, Delay = 0.066 + 0.250, Range = 25750, Width = 140}
 local QReady, WReady, EReady, RReady = nil, nil, nil, nil 
@@ -359,9 +359,9 @@ function CastW(Target)
 		local Pos, HitChance = HPred:GetPredict(Fuck_You, Target, player)
 		
 		if Pos ~= nil and HitChance ~= nil then
-			if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
+			if GetDistance(Target) < 600 and WReady and Reset(Target) and HitChance >= .8 and GetDistance(Target) > Config.Extras.WRange then
 				CastSpell(_W, Pos.x, Pos.z)
-			elseif GetDistance(Target) > 600 and HitChance >= 1.4 and GetDistance(Target) > Config.Extras.WRange then
+			elseif GetDistance(Target) > 600 and HitChance >= .8 and GetDistance(Target) > Config.Extras.WRange then
 				CastSpell(_W, Pos.x, Pos.z)
 			end
 		end
