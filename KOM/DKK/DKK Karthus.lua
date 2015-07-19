@@ -2,7 +2,7 @@ if myHero.charName ~= "Karthus" then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>DDK Karthus:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.00
+local version = 1.01
 local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/DDK/DDK Karthus.lua".."?rand="..math.random(1,10000)
@@ -66,6 +66,8 @@ local enemyTable = {}
 
 local player = myHero
 
+local Killstream = {}
+
 local c_red = 0xFFFF0000
 local c_yellow = 0xFFFFFF00
 
@@ -77,21 +79,21 @@ local KathusW = CircleSS(math.huge,1000,10,160,math.huge)
 
 function OnOrbLoad()
 	if _G.MMA_LOADED then
-		--AutoupdaterMsg("MMA LOAD")
+		AutoupdaterMsg("MMA LOAD")
 		MMALoad = true
 	elseif _G.AutoCarry then
 		if _G.AutoCarry.Helper then
-			--AutoupdaterMsg("SIDA AUTO CARRY: REBORN LOAD")
+			AutoupdaterMsg("SIDA AUTO CARRY: REBORN LOAD")
 			RebornLoad = true
 		else
-			--AutoupdaterMsg("SIDA AUTO CARRY: REVAMPED LOAD")
+			AutoupdaterMsg("SIDA AUTO CARRY: REVAMPED LOAD")
 			RevampedLoaded = true
 		end
 	elseif _G.Reborn_Loaded then
 		SacLoad = true
 		DelayAction(OnOrbLoad, 1)
 	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
-		--AutoupdaterMsg("SxOrbWalk Load")
+		AutoupdaterMsg("SxOrbWalk Load")
 		require 'SxOrbWalk'
 		SxO = SxOrbWalk()
 		SxOLoad = true
@@ -197,7 +199,7 @@ function OnLoad()
 end
 
 function OnLoadMenu()
-	Config = scriptConfig("Your Kathus", "Kathus")
+	Config = scriptConfig("DDK Kathus", "Kathus")
 	
 		Config:addSubMenu("TargetSelector", "TargetSelector")
 			STS:AddToMenu(Config.TargetSelector)
@@ -285,6 +287,7 @@ function OnTick()
 	if Config.HotKey.Clear then OnClear() end
 	if Config.HotKey.Farm then OnFarm() end
 	checkTick()
+	
 end
 
 function OnDraw()
@@ -322,6 +325,9 @@ function OnDraw()
 				DrawText("Q hit : "..hit,18 , pos.x, pos.y-48, 0xffff0000)
 			end
 		end
+	end
+	for index, text in ipairs(Killstream) do
+		DrawText(text.str, 18, text.x, 100+(i*20), c_red)
 	end
 end
 
@@ -453,12 +459,15 @@ function checkTick()
 		if getDmg("R", unit.unit, myHero) > unit.unit.health and not unit.unit.dead then
 			unit.statu = "Can"
 			unit.color = c_red
+			--InsertRK(unit.unit)
 		elseif getDmg("R", unit.unit, myHero) < unit.unit.health and not unit.unit.dead then
 			unit.statu = "Can't"
 			unit.color = c_yellow
+			--RemoveRK(unit.unit)
 		elseif unit.unit.dead then
 			unit.statu = "Dead"
 			unit.color = c_yellow
+			--InsertRK(unit.unit)
 		end
 	end
 end
@@ -477,6 +486,26 @@ function GetBestCircularFarmPosition(range, radius, objects)
          end
     end
     return BestPos, BestHit
+end
+
+function InsertRK(Unit)
+	if Unit ~= nil then
+		str = "Can Kill "..Unit.charName.." with R"
+		local str_r = string.len(str)/2
+		local x_StartPos = WINDOW_W/2-str_r
+		Info = {str = str, x = x_StartPos}
+		table.insert(Killstream, Info)
+	end
+end
+
+function RemoveRK(Unit)
+	if Unit ~= nil then
+		for index, champ in ipairs(Killstream) do
+			if champ.unit == Unit then
+				table.remove(Killstream, index)
+			end
+		end
+	end
 end
 
 function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
