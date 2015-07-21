@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.01,
+	["Version"] = 1.00,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -23,7 +23,7 @@ local SCRIPT_LIBS = {
 	["VPrediction"] = ""
 }
 
---{ Initiate Script (Checks for updates)
+
 function Initiate()
 	for LIBRARY, LIBRARY_URL in pairs(SCRIPT_LIBS) do
 		if FileExist(LIB_PATH..LIBRARY..".lua") then
@@ -281,9 +281,9 @@ function Combo()
 
 	if WTarget and Config.Combo.UseW then
 		if Config.Misc.WCenter then
-			W.width = 50
+			W.Width = 50
 		else
-			W.width = 125
+			W.Width = 125
 		end
 		CastW(WTarget)
 	end
@@ -373,7 +373,11 @@ end
 
 function CastQ(target)
     if Q.IsReady() and ValidTarget(target) then
-		delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+		if GetDistance(target) < Q.MinRange then
+			delay = 0;
+		else
+			delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+		end
         if not Q.IsCharging then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 1.4 and GetDistanceSqr(myHero, Pos) < Q.MaxRange * Q.MaxRange then
@@ -420,7 +424,7 @@ function CastE(target)
 	if target ~= nil then
 		local Pos, HitChance = HPred:GetPredict(Xerath_E, target, myHero)
 		if Pos ~= nil and HitChance ~= nil then
-			if HitChance >= 1.4 then
+			if HitChance >= 0.8 then
 				CastSpell(_E, Pos.x, Pos.z)
 			end
 		end
