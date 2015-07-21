@@ -1,12 +1,11 @@
+if myHero.charName ~= "Xerath" then return end
+
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
 
-local Author = "KaoKaoNi"
-local Version = "1.0"
-
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.0,
+	["Version"] = 1.01,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -20,7 +19,8 @@ local SCRIPT_UPDATER = {
 }
 local SCRIPT_LIBS = {
 	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
-	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua"
+	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua",
+	["VPrediction"] = ""
 }
 
 --{ Initiate Script (Checks for updates)
@@ -55,6 +55,7 @@ local R = {}
 
 local PassiveUp = false
 
+local LastPing = 0;
 local player = myHero
 
 local RebornLoad, RevampedLoaded, MMALoad, SxOLoad = false, false, false, false;
@@ -141,6 +142,8 @@ end
 function OnLoad()
 	OnOrbLoad()
 	HPred = HPrediction()
+	VP = VPrediction()
+	
 	Config = scriptConfig("Jerath", "Jerath")
 		if SxOLoad then
 			Config:addSubMenu("Orbwalking", "Orbwalking")
@@ -148,7 +151,7 @@ function OnLoad()
 		end
 		
 		Config:addSubMenu("Target selector", "STS")
-		STS:AddToMenu(Config.STS)
+			STS:AddToMenu(Config.STS)
 
 		Config:addSubMenu("Combo", "Combo")
 			Config.Combo:addParam("UseQ", "Use Q", SCRIPT_PARAM_ONOFF , true)
@@ -165,6 +168,11 @@ function OnLoad()
 			
 		Config:addSubMenu("RSnipe", "RSnipe")
 			Config.RSnipe:addParam("AutoR2", "Use 1 charge (tap)", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
+			
+			Config.RSnipe:addSubMenu("Alerter", "Alerter")
+				Config.RSnipe.Alerter:addParam("Alert", "Draw \"Snipe\" on killable enemies", SCRIPT_PARAM_ONOFF , true)
+				--Config.RSnipe.Alerter:addParam("Ping", "Ping if an enemy is killable", SCRIPT_PARAM_ONOFF , true)
+				
 			
 		Config:addSubMenu("Farm", "Farm")
 			Config.Farm:addParam("UseQ",  "Use Q", SCRIPT_PARAM_ONOFF, true)
@@ -187,12 +195,18 @@ function OnLoad()
 			Config.Draw:addParam("DrawEColor", "Draw E Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
 			Config.Draw:addParam("DrawR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
 			Config.Draw:addParam("DrawRColor", "Draw R Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
+			
+			
+		Config:addSubMenu("Misc", "Misc")
+			Config.Misc:addParam("WCenter", "Cast W centered", SCRIPT_PARAM_ONOFF, false)
+			--Config.Misc:addParam("WMR", "Cast W at max range", SCRIPT_PARAM_ONOFF, false)
+			Config.Misc:addParam("AutoEDashing", "Auto E on dashing enemies", SCRIPT_PARAM_ONOFF, true)
 		
 	
 	Q  = { Range = 1400, MinRange = 750, MaxRange = 1400, Offset = 0, Width = 100, Delay = 0.6, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, Collision = false,  IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Mana = function() return myHero:GetSpellData(_Q).mana end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
 	W  = { Range = 1100, Width = 125, Delay = 0.675, Speed = math.huge,  IsReady = function() return myHero:CanUseSpell(_W) == READY end}
 	E  = { Range = 1050, Width = 60, Delay = 0.25, Speed = 1400, IsReady = function() return myHero:CanUseSpell(_E) == READY end}
-	R  = { Range = function() return 2000 + 1200 * myHero:GetSpellData(_R).level end, Width = 120, Delay = 0.675, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, Collision = false, IsReady = function() return myHero:CanUseSpell(_R) == READY end, Mana = function() return myHero:GetSpellData(_R).mana end, Damage = function(target) return getDmg("R", target, myHero) end, IsCasting = false, Stacks = 3, ResetTime = 10, MaxStacks = 3, Target = nil, SentTime = 0, Sent = false}
+	R  = { Range = function() return 2000 + 1200 * myHero:GetSpellData(_R).level end, Width = 120, Delay = 0.9, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, Collision = false, IsReady = function() return myHero:CanUseSpell(_R) == READY end, Mana = function() return myHero:GetSpellData(_R).mana end, Damage = function(target) return getDmg("R", target, myHero) end, IsCasting = false, Stacks = 3, ResetTime = 10, MaxStacks = 3, Target = nil, SentTime = 0, Sent = false}
 	
 	Xerath_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, delay = Q.Delay, speed = Q.Speed, range = Q.Range, width = Q.Width*2})
 	Xerath_W = HPSkillshot({type = "DelayCircle", delay = W.Delay, speed = W.Speed, range = W.Range, radius = W.Width*2})
@@ -226,7 +240,32 @@ function OnTick()
 	if Config.JungleFarm.Enabled then
 		JungleFarm()
 	end
-end
+	
+	if Config.Misc.AutoEDashing then
+		for i, target in ipairs(SelectUnits(GetEnemyHeroes(), function(t) return ValidTarget(t, E.Range * 1.5) end)) do
+			CastIfDashing(target)
+		end
+	end
+	--[[
+	if Config.RSnipe.Alerter.Ping and R.IsReady and (os.clock() - LastPing > 30) then
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, R.MaxRange) and (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth then
+				for i = 1, 3 do
+					DelayAction(function() PingSignal(PING_NORMAL, enemy.x, enemy.y, enemy.z, 2) end,  50)
+				end
+				LastPing = os.clock()
+			end
+		end
+	end
+	]]
+	if R.IsCasting and orbload then
+		BlockAA(true)
+		BlockMV(true)
+	elseif not R.IsCasting and orbload then
+		BlockAA(false)
+		BlockMV(false)
+	end
+end	
 
 function Combo()
 	local QTarget = STS:GetTarget(Q.MaxRange)
@@ -240,11 +279,12 @@ function Combo()
 		BlockAA(false)
 	end
 
-	if QTarget and Config.Combo.UseQ then
-		CastQ(QTarget)
-	end
-
 	if WTarget and Config.Combo.UseW then
+		if Config.Misc.WCenter then
+			W.width = 50
+		else
+			W.width = 125
+		end
 		CastW(WTarget)
 	end
 
@@ -252,12 +292,8 @@ function Combo()
 		CastE(ETarget)
 	end
 	
-	if R.IsCasting and orbload then
-		BlockAA(true)
-		BlockMV(true)
-	elseif not R.IsCasting and orbload then
-		BlockAA(false)
-		BlockMV(false)
+	if QTarget and Config.Combo.UseQ then
+		CastQ(QTarget)
 	end
 end
 
@@ -268,7 +304,7 @@ function Harass()
 	end
 end
 
-function Farm() --TODO
+function Farm()
 	EnemyMinions:update()
 	if Config.Farm.UseQ then
 		local BestPos, BestHit, BestObj = GetBestLineFarmPosition(Q.MaxRange, Q.Width, EnemyMinions.objects)
@@ -315,6 +351,24 @@ function OnDraw()
 	if R.IsReady() and Config.Draw.DrawR then
 		DrawCircle(player.x, player.y, player.z, R.Range(), TARGB(Config.Draw.DrawRColor))
 	end
+	
+	if Config.RSnipe.Alerter.Alert and myHero:GetSpellData(_R).level > 0 then
+		for i, enemy in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(enemy, R.range) and (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth then
+				local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
+				DrawText("Snipe!", 17, pos.x, pos.y, ARGB(255,0,255,0))
+			end
+		end
+	end 
+end
+
+function CastIfDashing(target)
+    local isDashing, canHit, position = VP:IsDashing(target, E.Delay + 0.07 + GetLatency() / 2000, E.Width, E.Speed, player)
+    if isDashing and canHit and position ~= nil and E.IsReady() then
+        if not VP:CheckMinionCollision(target, position, E.Delay + 0.07 + GetLatency() / 2000, E.Width, E.Range, E.Speed, player, false, true) then
+            return CastSpell(_E, position.x, position.z)
+        end
+	end
 end
 
 function CastQ(target)
@@ -326,7 +380,6 @@ function CastQ(target)
                 CastQ1(Pos)
             end
         elseif Q.IsCharging and ValidTarget(target, Q.Range) and Q.LastCastTime + delay < os.clock() then
-			-- print("Charging")
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 1.4 then
                 CastQ2(Pos)
@@ -396,7 +449,7 @@ function CastR2()
 		target = FindBestTarget(mousePos, 500)
         if ValidTarget(target) then
             local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
-			if Pos ~= nil and HitChance >= 1.4 then
+			if Pos ~= nil and HitChance >= 2 then
 				CastSpell(_R, Pos.x, Pos.z)
 			end
         end
