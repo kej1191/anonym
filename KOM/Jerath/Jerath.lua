@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.03,
+	["Version"] = 1.04,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -168,6 +168,7 @@ function OnLoad()
 			
 		Config:addSubMenu("RSnipe", "RSnipe")
 			Config.RSnipe:addParam("UseKillable", "Use R only killable", SCRIPT_PARAM_ONOFF, true)
+			Config.RSnipe:addParam("DrawRange", "Draw R targeting range", SCRIPT_PARAM_ONOFF, true)
 			Config.RSnipe:addParam("AutoR2", "Use 1 charge (tap)", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 			
 			Config.RSnipe:addSubMenu("Alerter", "Alerter")
@@ -360,7 +361,11 @@ function OnDraw()
 				DrawText("Snipe!", 17, pos.x, pos.y, ARGB(255,0,255,0))
 			end
 		end
-	end 
+	end
+	
+	if Config.RSnipe.DrawRange and R.IsCasting then
+		DrawCircle3D(mousePos.x, mousePos.y, mousePos.z, 500, 1, ARGB(255, 0, 0, 255), 30)
+	end
 end
 
 function CastIfDashing(target)
@@ -449,7 +454,7 @@ function CastR2(_T)
         local target = _T or FindBestTarget(mousePos, 500)
         if ValidTarget(target) then
             local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
-			if Pos ~= nil and HitChance >= 2 then
+			if Pos ~= nil and HitChance >= 1.4 then
 				CastSpell(_R, Pos.x, Pos.z)
 			end
         end
