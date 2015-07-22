@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.02,
+	["Version"] = 1.03,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -167,6 +167,7 @@ function OnLoad()
 			Config.Harass:addParam("Enabled", "Harass!", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 			
 		Config:addSubMenu("RSnipe", "RSnipe")
+			Config.RSnipe:addParam("UseKillable", "Use R only killable", SCRIPT_PARAM_ONOFF, true)
 			Config.RSnipe:addParam("AutoR2", "Use 1 charge (tap)", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 			
 			Config.RSnipe:addSubMenu("Alerter", "Alerter")
@@ -269,7 +270,7 @@ end
 
 function Combo()
 	local QTarget = STS:GetTarget(Q.MaxRange)
-	local WTarget = STS:GetTarget(W.Range + W.Width)
+	local WTarget = STS:GetTarget(W.Range)
 	local ETarget = STS:GetTarget(Config.Combo.Erange)
 
 	local AAtarget = OrbTarget(450)
@@ -354,7 +355,7 @@ function OnDraw()
 	
 	if Config.RSnipe.Alerter.Alert and myHero:GetSpellData(_R).level > 0 then
 		for i, enemy in ipairs(GetEnemyHeroes()) do
-			if ValidTarget(enemy, R.range) and (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth then
+			if ValidTarget(enemy, R.Range()) and (enemy.health < R.Damage(enemy) * R.Stacks) then
 				local pos = WorldToScreen(D3DXVECTOR3(enemy.x, enemy.y, enemy.z))
 				DrawText("Snipe!", 17, pos.x, pos.y, ARGB(255,0,255,0))
 			end
@@ -432,7 +433,7 @@ function CastR(target)
         if not R.IsCasting then 
             CastR1()
         else
-            CastR2()
+            CastR2(target)
         end
     end
 end
@@ -443,10 +444,9 @@ function CastR1()
 	end
 end
 
-function CastR2()
+function CastR2(_T)
     if R.IsCasting and R.IsReady() then
-        local target = nil
-		target = FindBestTarget(mousePos, 500)
+        local target = _T or FindBestTarget(mousePos, 500)
         if ValidTarget(target) then
             local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
 			if Pos ~= nil and HitChance >= 2 then
@@ -463,8 +463,13 @@ function FindBestTarget(from, range)
             if bestTarget == nil then
                 bestTarget = enemy
             end
-			if (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth < (bestTarget.health - R.Damage(bestTarget) * R.Stacks) / bestTarget.maxHealth  then
-                bestTarget = enemy
+			if GetDistance(from, enemy) < GetDistance(from, bestTarget) then
+				if Config.RSnipe.UseKillable and (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth < (bestTarget.health - R.Damage(bestTarget) * R.Stacks) / bestTarget.maxHealth then 
+					bestTarget = enemy
+				elseif not Config.RSnipe.UseKillable then
+					bestTarget = enemy
+				end
+                
             end
         end
     end
@@ -475,11 +480,17 @@ function OnApplyBuff(source, unit, buff)
 	if unit.isMe and buff.name == "xerathascended2onhit" then
 		PassiveUp = true
 	end
+	if unit.isMe and buff.name == "XerathLocusOfPower2" then
+		R.IsCasting = true
+	end
 end
 
 function OnRemoveBuff(unit, buff)
 	if unit.isMe and buff.name == "xerathascended2onhit" then
 		PassiveUp = false
+	end
+	if unit.isMe and buff.name == "XerathLocusOfPower2" then
+		R.IsCasting = false
 	end
 end
 
