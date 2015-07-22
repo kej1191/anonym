@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.08,
+	["Version"] = 1.09,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -385,13 +385,13 @@ end
 
 function CastQ(target)
     if Q.IsReady() and ValidTarget(target) then
-		delay = math.min(1.5, math.max(0, GetDistance(myHero, target)-650)/500)
+		delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
         if not Q.IsCharging then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 1.4 and GetDistanceSqr(myHero, Pos) < Q.MaxRange * Q.MaxRange then
                 CastQ1(Pos)
             end
-        elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) and os.clock() - Q.LastCastTime > delay then
+        elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) and Q.LastCastTime + delay < os.clock() then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 2 then
                 CastQ2(Pos)
