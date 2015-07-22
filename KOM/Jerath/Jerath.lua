@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.10,
+	["Version"] = 1.11,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -210,7 +210,7 @@ function OnLoad()
 			Config.Misc:addParam("AutoEDashing", "Auto E on dashing enemies", SCRIPT_PARAM_ONOFF, true)
 		
 	
-	Q  = { Range = 0, MinRange = 750, MaxRange = 1500, Offset = 0, Width = 100, Delay = 0.55, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
+	Q  = { Range = 0, MinRange = 750, MaxRange = 1500, Offset = 0, Width = 100, Delay = 0.6, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
 	W  = { Range = 1100, Width = 125, Delay = 0.675, Speed = math.huge,  IsReady = function() return myHero:CanUseSpell(_W) == READY end}
 	E  = { Range = 1050, Width = 60, Delay = 0.25, Speed = 1400, IsReady = function() return myHero:CanUseSpell(_E) == READY end}
 	R  = { Range = function() return 2000 + 1200 * myHero:GetSpellData(_R).level end, Width = 120, Delay = 0.9, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, Collision = false, IsReady = function() return myHero:CanUseSpell(_R) == READY end, Mana = function() return myHero:GetSpellData(_R).mana end, Damage = function(target) return getDmg("R", target, myHero) end, IsCasting = false, Stacks = 3, ResetTime = 10, MaxStacks = 3, Target = nil, SentTime = 0, Sent = false}
@@ -372,6 +372,9 @@ function OnDraw()
 	if Config.RSnipe.DrawRange and R.IsCasting then
 		DrawCircle3D(mousePos.x, mousePos.y, mousePos.z, 500, 1, ARGB(255, 0, 0, 255), 30)
 	end
+	
+	DrawText(tostring(delay), 18, 100, 100, 0xffff0000)
+	DrawText(tostring(Q.LastCastTime + delay < os.clock()), 18, 100, 120, 0xffff0000)
 end
 
 function CastIfDashing(target)
@@ -392,8 +395,14 @@ function CastQ(target)
             end
         elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
-			delay = math.max(GetDistance(myHero, Pos) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
-            if Pos~=nil and HitChance > 2 and  Q.LastCastTime + delay < os.clock() then
+			if GetDistance(target) > Q.MinRange then
+				delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+			else
+				delay = math.max(GetDistance(myHero, Pos) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
+			end
+			--math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+			--math.max(GetDistance(myHero, Pos) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
+            if Pos~=nil and HitChance > 2  and  Q.LastCastTime + delay < os.clock() then
                 CastQ2(Pos)
             end
         end
