@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.09,
+	["Version"] = 1.10,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -385,17 +385,15 @@ end
 
 function CastQ(target)
     if Q.IsReady() and ValidTarget(target) then
-		delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
         if not Q.IsCharging then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 1.4 and GetDistanceSqr(myHero, Pos) < Q.MaxRange * Q.MaxRange then
                 CastQ1(Pos)
             end
-        elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) and Q.LastCastTime + delay < os.clock() then
+        elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
-            if Pos~=nil and HitChance > 2 then
-                CastQ2(Pos)
-            elseif os.clock() - Q.LastCastTime >= 0.9 * Q.End and GetDistanceSqr(myHero, target) <= Q.Range * Q.Range then
+			delay = math.max(GetDistance(myHero, Pos) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
+            if Pos~=nil and HitChance > 2 and  Q.LastCastTime + delay < os.clock() then
                 CastQ2(Pos)
             end
         end
@@ -409,7 +407,7 @@ function FarmQ(target)
 			if GetDistance(target) < Q.MaxRange then
                 CastQ1(target)
             end
-        elseif Q.IsCharging and os.clock() - Q.LastCastTime > delay then
+        elseif Q.IsCharging and Q.LastCastTime + delay < os.clock() then
             if GetDistance(target) < Q.MaxRange then
                 CastQ2(target)
             end
