@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.07,
+	["Version"] = 1.08,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -92,6 +92,7 @@ end
 function BlockAA(bool)
 	if not bool and orbload then
 		if MMALoad then
+			_G.MMA_StopAttacks(false)
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:AttacksEnabled(true)
 		elseif SxOLoad then
@@ -99,6 +100,7 @@ function BlockAA(bool)
 		end
 	elseif bool and orbload then
 		if MMALoad then
+			_G.MMA_StopAttacks(true)
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:AttacksEnabled(false)
 		elseif SxOLoad then
@@ -110,6 +112,7 @@ end
 function BlockMV(bool)
 	if not bool and orbload then
 		if MMALoad then
+			_G.MMA_AvoidMovement(true)
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:MovementEnabled(true)
 		elseif SxOLoad then
@@ -117,6 +120,7 @@ function BlockMV(bool)
 		end
 	elseif bool and orbload then
 		if MMALoad then
+			_G.MMA_AvoidMovement(false)
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:MovementEnabled(false)
 		elseif SxOLoad then
@@ -381,7 +385,7 @@ end
 
 function CastQ(target)
     if Q.IsReady() and ValidTarget(target) then
-		delay = math.min(1.5, math.max(GetDistance(myHero, target) - Q.MinRange, 0.55) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay))
+		delay = math.min(1.5, math.max(0, GetDistance(myHero, target)-650)/500)
         if not Q.IsCharging then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 1.4 and GetDistanceSqr(myHero, Pos) < Q.MaxRange * Q.MaxRange then
