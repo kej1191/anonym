@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.05,
+	["Version"] = 1.06,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -454,7 +454,6 @@ function CastR2(_T)
         local target = _T or FindBestTarget(mousePos, 500)
         if ValidTarget(target) then
             local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
-			print(HitChance)
 			if Pos ~= nil and HitChance >= 1.2 then
 				CastSpell(_R, Pos.x, Pos.z)
 			end
