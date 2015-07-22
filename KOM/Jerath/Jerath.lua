@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.06,
+	["Version"] = 1.07,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -60,6 +60,7 @@ local player = myHero
 
 local RebornLoad, RevampedLoaded, MMALoad, SxOLoad = false, false, false, false;
 local orbload = false
+local delay = 0;
 
 function OnOrbLoad()
 	if _G.MMA_LOADED then
@@ -205,12 +206,13 @@ function OnLoad()
 			Config.Misc:addParam("AutoEDashing", "Auto E on dashing enemies", SCRIPT_PARAM_ONOFF, true)
 		
 	
-	Q  = { Range = 1500, MinRange = 750, MaxRange = 1400, Offset = 0, Width = 100, Delay = 0.55, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
+	Q  = { Range = 0, MinRange = 750, MaxRange = 1500, Offset = 0, Width = 100, Delay = 0.55, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
 	W  = { Range = 1100, Width = 125, Delay = 0.675, Speed = math.huge,  IsReady = function() return myHero:CanUseSpell(_W) == READY end}
 	E  = { Range = 1050, Width = 60, Delay = 0.25, Speed = 1400, IsReady = function() return myHero:CanUseSpell(_E) == READY end}
 	R  = { Range = function() return 2000 + 1200 * myHero:GetSpellData(_R).level end, Width = 120, Delay = 0.9, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, Collision = false, IsReady = function() return myHero:CanUseSpell(_R) == READY end, Mana = function() return myHero:GetSpellData(_R).mana end, Damage = function(target) return getDmg("R", target, myHero) end, IsCasting = false, Stacks = 3, ResetTime = 10, MaxStacks = 3, Target = nil, SentTime = 0, Sent = false}
 	
-	Xerath_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, delay = Q.Delay, speed = Q.Speed, range = Q.Range, width = Q.Width*2})
+	Xerath_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, delay = Q.Delay, speed = Q.Speed, range = Q.MaxRange, width = Q.Width*2})
+	--Xerath_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, delay = Q.Delay, speed = Q.Speed, range = function() return 750+math.min(1500, 500*(os.clock()-Q.LastCastTime)) end, width = Q.Width*2})
 	Xerath_W = HPSkillshot({type = "DelayCircle", delay = W.Delay, speed = W.Speed, range = W.Range, radius = W.Width*2})
 	Xerath_E = HPSkillshot({type = "DelayLine", collisionM = true, collisionH = true, speed = E.Speed, range = E.Range, delay = E.Delay, width = E.Width*2})
 	Xerath_R = HPSkillshot({type = "DelayCircle", delay = R.Delay, range = R.Range(), speed = R.Speed, radius = R.Width*2})
@@ -235,7 +237,7 @@ function OnTick()
 			CastE(ETarget)
 		end
 	end
-	if Config.Farm.Enabled and ((myHero.mana / myHero.maxMana * 100) >= Config.Farm.ManaCheck or Q:IsCharging()) then
+	if Config.Farm.Enabled and ((myHero.mana / myHero.maxMana * 100) >= Config.Farm.ManaCheck or Q.IsCharging) then
 		Farm()
 	end
 
@@ -311,7 +313,7 @@ function Farm()
 	if Config.Farm.UseQ then
 		local BestPos, BestHit, BestObj = GetBestLineFarmPosition(Q.MaxRange, Q.Width, EnemyMinions.objects)
 		if BestPos ~= nil and BestHit ~= nil and BestObj ~= nil then
-			CastQ(BestObj)
+			FarmQ(BestPos)
 		end		
 	end
 
@@ -379,13 +381,13 @@ end
 
 function CastQ(target)
     if Q.IsReady() and ValidTarget(target) then
-		delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+		delay = math.min(1.5, math.max(GetDistance(myHero, target) - Q.MinRange, 0.55) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay))
         if not Q.IsCharging then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 1.4 and GetDistanceSqr(myHero, Pos) < Q.MaxRange * Q.MaxRange then
                 CastQ1(Pos)
             end
-        elseif Q.IsCharging and ValidTarget(target, Q.Range) and Q.LastCastTime + delay < os.clock() then
+        elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) and os.clock() - Q.LastCastTime > delay then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
             if Pos~=nil and HitChance > 2 then
                 CastQ2(Pos)
@@ -395,6 +397,39 @@ function CastQ(target)
         end
     end
 end
+
+function FarmQ(target)
+	if Q.IsReady() then
+		delay = math.min(1.5, math.max(GetDistance(myHero, target) - Q.MinRange, 0.55) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay))
+        if not Q.IsCharging then
+			if GetDistance(target) < Q.MaxRange then
+                CastQ1(target)
+            end
+        elseif Q.IsCharging and os.clock() - Q.LastCastTime > delay then
+            if GetDistance(target) < Q.MaxRange then
+                CastQ2(target)
+            end
+        end
+    end
+end
+
+--[[
+function CastQ(target)
+    if Q.IsReady() and ValidTarget(target) then
+		--delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+        if not Q.IsCharging and ValidTarget(target, Q.MaxRange) then
+                CastQ1(mousePos)
+        elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) then
+            local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
+            if Pos~=nil and HitChance > 2 then
+                CastQ2(Pos)
+            elseif os.clock() - Q.LastCastTime >= 0.9 * Q.End and GetDistanceSqr(myHero, target) <= Q.MaxRange * Q.MaxRange then
+                CastQ2(Pos)
+            end
+        end
+    end
+end
+]]
 
 function CastQ1(Pos)
     if Q.IsReady() and Pos and not Q.IsCharging then
