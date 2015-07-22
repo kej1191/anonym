@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.04,
+	["Version"] = 1.05,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -205,7 +205,7 @@ function OnLoad()
 			Config.Misc:addParam("AutoEDashing", "Auto E on dashing enemies", SCRIPT_PARAM_ONOFF, true)
 		
 	
-	Q  = { Range = 1400, MinRange = 750, MaxRange = 1400, Offset = 0, Width = 100, Delay = 0.6, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
+	Q  = { Range = 1500, MinRange = 750, MaxRange = 1400, Offset = 0, Width = 100, Delay = 0.55, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 3, SentTime = 0, LastFarmCheck = 0, Sent = false}
 	W  = { Range = 1100, Width = 125, Delay = 0.675, Speed = math.huge,  IsReady = function() return myHero:CanUseSpell(_W) == READY end}
 	E  = { Range = 1050, Width = 60, Delay = 0.25, Speed = 1400, IsReady = function() return myHero:CanUseSpell(_E) == READY end}
 	R  = { Range = function() return 2000 + 1200 * myHero:GetSpellData(_R).level end, Width = 120, Delay = 0.9, Speed = math.huge, LastCastTime = 0, LastCastTime2 = 0, Collision = false, IsReady = function() return myHero:CanUseSpell(_R) == READY end, Mana = function() return myHero:GetSpellData(_R).mana end, Damage = function(target) return getDmg("R", target, myHero) end, IsCasting = false, Stacks = 3, ResetTime = 10, MaxStacks = 3, Target = nil, SentTime = 0, Sent = false}
@@ -387,7 +387,7 @@ function CastQ(target)
             end
         elseif Q.IsCharging and ValidTarget(target, Q.Range) and Q.LastCastTime + delay < os.clock() then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
-            if Pos~=nil and HitChance > 1.4 then
+            if Pos~=nil and HitChance > 2 then
                 CastQ2(Pos)
             elseif os.clock() - Q.LastCastTime >= 0.9 * Q.End and GetDistanceSqr(myHero, target) <= Q.Range * Q.Range then
                 CastQ2(Pos)
@@ -454,7 +454,8 @@ function CastR2(_T)
         local target = _T or FindBestTarget(mousePos, 500)
         if ValidTarget(target) then
             local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
-			if Pos ~= nil and HitChance >= 1.4 then
+			print(HitChance)
+			if Pos ~= nil and HitChance >= 1.2 then
 				CastSpell(_R, Pos.x, Pos.z)
 			end
         end
@@ -469,10 +470,12 @@ function FindBestTarget(from, range)
                 bestTarget = enemy
             end
 			if GetDistance(from, enemy) < GetDistance(from, bestTarget) then
-				if Config.RSnipe.UseKillable and (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth < (bestTarget.health - R.Damage(bestTarget) * R.Stacks) / bestTarget.maxHealth then 
-					bestTarget = enemy
-				elseif not Config.RSnipe.UseKillable then
-					bestTarget = enemy
+				if (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth < (bestTarget.health - R.Damage(bestTarget) * R.Stacks) / bestTarget.maxHealth then 
+					if Config.RSnipe.UseKillable and enemy.health < R.Damage(enemy) * R.Stacks then
+						bestTarget = enemy
+					else
+						bestTarget = enemy
+					end
 				end
                 
             end
