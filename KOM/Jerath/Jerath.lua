@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.11,
+	["Version"] = 1.12,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -372,9 +372,6 @@ function OnDraw()
 	if Config.RSnipe.DrawRange and R.IsCasting then
 		DrawCircle3D(mousePos.x, mousePos.y, mousePos.z, 500, 1, ARGB(255, 0, 0, 255), 30)
 	end
-	
-	DrawText(tostring(delay), 18, 100, 100, 0xffff0000)
-	DrawText(tostring(Q.LastCastTime + delay < os.clock()), 18, 100, 120, 0xffff0000)
 end
 
 function CastIfDashing(target)
