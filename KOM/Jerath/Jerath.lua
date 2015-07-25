@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.12,
+	["Version"] = 1.13,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -392,14 +392,14 @@ function CastQ(target)
             end
         elseif Q.IsCharging and ValidTarget(target, Q.MaxRange) then
             local Pos, HitChance = HPred:GetPredict(Xerath_Q, target, myHero)
-			if GetDistance(target) > Q.MinRange then
-				delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
-			else
-				delay = math.max(GetDistance(myHero, Pos) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
-			end
+			delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
+			_QRange = math.min(Q.MinRange + (Q.MaxRange - Q.MinRange) * ((os.clock() - Q.LastCastTime) / Q.TimeToStopIncrease), Q.MaxRange)
 			--math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
 			--math.max(GetDistance(myHero, Pos) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay)
-            if Pos~=nil and HitChance > 2  and  Q.LastCastTime + delay < os.clock() then
+			--math.min(Q.MinRange + (Q.MaxRange - Q.MinRange) * ((os.clock() - Q.LastCastTime) / Q.TimeToStopIncrease), Q.MaxRange)
+			--math.min(self.__charged_initialRange + (self.__charged_maxRange - self.__charged_initialRange) * ((os.clock() - self.__charged_castTime) / self.__charged_chargeTime), self.__charged_maxRange)
+            if _QRange ~= Q.MaxRange and GetDistanceSqr(Pos) < (_QRange - 200)^2 or _QRange == Q.MaxRange and GetDistanceSqr(Pos) < (_QRange)^2 then
+			--if Pos~=nil and HitChance > 2  and  Q.LastCastTime + delay < os.clock() then
                 CastQ2(Pos)
             end
         end
@@ -408,7 +408,7 @@ end
 
 function FarmQ(target)
 	if Q.IsReady() then
-		delay = math.min(1.5, math.max(GetDistance(myHero, target) - Q.MinRange, 0.55) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease + Q.Delay))
+		delay = math.max(GetDistance(myHero, target) - Q.MinRange, 0) / ((Q.MaxRange - Q.MinRange) / Q.TimeToStopIncrease) + Q.Delay
         if not Q.IsCharging then
 			if GetDistance(target) < Q.MaxRange then
                 CastQ1(target)
@@ -559,18 +559,18 @@ end
 
 function OnProcessSpell(unit, spell)
 	if myHero.dead or Config == nil or unit == nil or not unit.isMe then return end
-	if spell.name:lower():find("xeratharcanopulsechargeup") then 
-		Q.LastCastTime = os.clock()
-		Q.IsCharging = true
-	elseif spell.name:lower():find("xeratharcanopulse2") then 
-		Q.LastCastTime2 = os.clock()
-		Q.IsCharging = false
-	elseif spell.name:lower():find("xerathlocusofpower2") then 
-        R.LastCastTime = os.clock()
-        R.IsCasting = true
-        R.LastCastTime2 = os.clock()
-		DelayAction(function() R.Stacks = R.MaxStacks R.Target = nil R.IsCasting = false end, R.ResetTime)
-    elseif spell.name:lower():find("xerathrmissilewrapper") then 
+		if spell.name:lower():find("xeratharcanopulsechargeup") then 
+			Q.LastCastTime = os.clock()
+			Q.IsCharging = true
+		elseif spell.name:lower():find("xeratharcanopulse2") then 
+			Q.LastCastTime2 = os.clock()
+			Q.IsCharging = false
+		elseif spell.name:lower():find("xerathlocusofpower2") then 
+			R.LastCastTime = os.clock()
+			R.IsCasting = true
+			R.LastCastTime2 = os.clock()
+			DelayAction(function() R.Stacks = R.MaxStacks R.Target = nil R.IsCasting = false end, R.ResetTime)
+		elseif spell.name:lower():find("xerathrmissilewrapper") then 
 	elseif spell.name:lower():find("xerathlocuspulse") then
 		R.LastCastTime2 = os.clock()
 		R.Stacks = R.Stacks - 1
