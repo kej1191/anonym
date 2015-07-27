@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.14,
+	["Version"] = 1.15,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -46,7 +46,7 @@ AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(so
 --AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)
 AdvancedCallback:bind('OnRemoveBuff', function(unit, buff) OnRemoveBuff(unit, buff) end)
 
-local STS = SimpleTS()
+local STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC)
 
 local Q = {}
 local W = {}
@@ -172,9 +172,9 @@ function OnLoad()
 			Config.Harass:addParam("Enabled", "Harass!", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 			
 		Config:addSubMenu("RSnipe", "RSnipe")
-			Config.RSnipe:addParam("UseKillable", "Priority Low HP", SCRIPT_PARAM_ONOFF, true)
+			Config.RSnipe:addParam("UseKillable", "Only Cast Killable", SCRIPT_PARAM_ONOFF, true)
 			Config.RSnipe:addParam("DrawRange", "Draw R targetting range", SCRIPT_PARAM_ONOFF, true)
-			Config.RSnipe:addParam("Targetting", "Targetting mode: ", SCRIPT_PARAM_LIST, 2, { "Near mouse (500) range from mouse", "Most killable"})
+			Config.RSnipe:addParam("Targetting", "Targetting mode: ", SCRIPT_PARAM_LIST, 2, { "Near mouse (500) range from mouse"})
 			Config.RSnipe:addParam("AutoR2", "Use 1 charge (tap)", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("T"))
 			Config.RSnipe:addParam("ForceTarget", "Force Targetting", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("G"))
 			
@@ -224,7 +224,7 @@ function OnLoad()
 	Xerath_W = HPSkillshot({type = "DelayCircle", delay = W.Delay, speed = W.Speed, range = W.Range, radius = W.Width*2})
 	Xerath_W_SENTER = HPSkillshot({type = "DelayCircle", delay = W.Delay, speed = W.Speed, range = W.Range, radius = 100})
 	Xerath_E = HPSkillshot({type = "DelayLine", collisionM = true, collisionH = true, speed = E.Speed, range = E.Range, delay = E.Delay, width = E.Width*2})
-	Xerath_R = HPSkillshot({type = "DelayCircle", delay = R.Delay, range = R.Range(), speed = R.Speed, radius = R.Width*2})
+	Xerath_R = HPSkillshot({type = "DelayCircle", delay = R.Delay, range = 3200, speed = R.Speed, radius = R.Width*2})
 	
 	EnemyMinions = minionManager(MINION_ENEMY, Q.MaxRange, myHero, MINION_SORT_MAXHEALTH_DEC)
 	JungleMinions = minionManager(MINION_JUNGLE, Q.MaxRange, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -237,7 +237,7 @@ function OnTick()
 		Harass()
 	end
 	if Config.RSnipe.AutoR2 and R.IsReady() then
-		CastR()
+			CastR()
 	end
 	if Config.Combo.CastE then
 		local ETarget = FindBestTarget(mousePos, 500)
@@ -294,6 +294,14 @@ function OnTick()
 	end
 	if R.ForceTarget ~= nil and R.ForceTarget.dead then
 		R.ForceTarget = nil
+	end
+	
+	if myHero:GetSpellData(_R).level == 1 then
+		Xerath_R = HPSkillshot({type = "DelayCircle", delay = R.Delay, range = 3200, speed = R.Speed, radius = R.Width*2})
+	elseif myHero:GetSpellData(_R).level == 2 then
+		Xerath_R = HPSkillshot({type = "DelayCircle", delay = R.Delay, range = 4400, speed = R.Speed, radius = R.Width*2})
+	elseif myHero:GetSpellData(_R).level == 3 then
+		Xerath_R = HPSkillshot({type = "DelayCircle", delay = R.Delay, range = 5600, speed = R.Speed, radius = R.Width*2})
 	end
 end	
 
@@ -397,7 +405,7 @@ function OnDraw()
 	if R.ForceTarget ~= nil and DrawForceTarget then
 		DrawCircle(R.ForceTarget.x, R.ForceTarget.y, R.ForceTarget.z, 200,ARGB(255,0,255,0) )
 	end
-	--DrawText(tostring(R.IsCasting), 18, 100, 100, 0xffff0000)
+	--DrawText(tostring(myHero:GetSpellData(_R).level), 18, 100, 100, 0xffff0000)
 end
 
 function CastIfDashing(target)
@@ -518,10 +526,13 @@ function CastR()
         else
 			if Config.RSnipe.Targetting == 1 then
 				R.Target = FindBestTarget(mousePos, 500)
-			elseif Config.RSnipe.Targetting == 2 then
-				R.Target = STS:GetTarget(R.Range())
 			end
 			if R.ForceTarget ~= nil and not R.ForceTarget.dead and R.ForceTarget ~= R.Target then R.Target = R.ForceTarget end
+			if Config.RSnipe.UseKillable and R.Target then
+				if R.Target.health > (R.Damage(R.Target) * R.Stacks) then
+					return
+				end
+			end
             if R.Target and ValidTarget(R.Target, R.Range()) then
 				CastR2(target)
 			end
@@ -538,8 +549,8 @@ end
 function CastR2(_T)
     if R.IsCasting and R.IsReady() then
         local target = _T or FindBestTarget(mousePos, 500)
-        if ValidTarget(target) then
-            local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
+        if ValidTarget(target) and not target.isMe then
+			local Pos, HitChance = HPred:GetPredict(Xerath_R, target, myHero)
 			if Pos ~= nil and HitChance >= 1.2 then
 				CastSpell(_R, Pos.x, Pos.z)
 			end
@@ -556,14 +567,25 @@ function FindBestTarget(from, range)
             end
 			if GetDistance(from, enemy) < GetDistance(from, bestTarget) then
 				if (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth < (bestTarget.health - R.Damage(bestTarget) * R.Stacks) / bestTarget.maxHealth then 
-					if Config.RSnipe.UseKillable and enemy.health < R.Damage(enemy) * R.Stacks then
-						bestTarget = enemy
-					else
-						bestTarget = enemy
-					end
+					bestTarget = enemy
 				end
                 
             end
+        end
+    end
+    return bestTarget
+end
+
+function FindBestTargetInAllMap()
+    local bestTarget = nil
+    for i, enemy in ipairs(GetEnemyHeroes()) do
+        if ValidTarget(enemy, R.Range()) then
+            if bestTarget == nil then
+                bestTarget = enemy
+            end
+			if (enemy.health -  R.Damage(enemy) * R.Stacks) / enemy.maxHealth < (bestTarget.health - R.Damage(bestTarget) * R.Stacks) / bestTarget.maxHealth then 
+				bestTarget = enemy
+			end
         end
     end
     return bestTarget
