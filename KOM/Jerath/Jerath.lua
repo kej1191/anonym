@@ -5,7 +5,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Jerath:</b>
 
 local SCRIPT_INFO = {
 	["Name"] = "Jerath",
-	["Version"] = 1.15,
+	["Version"] = 1.16,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -317,16 +317,16 @@ function Combo()
 		BlockAA(false)
 	end
 
+	if QTarget and Config.Combo.UseQ then
+		CastQ(QTarget)
+	end
+	
 	if WTarget and Config.Combo.UseW then
 		CastW(WTarget)
 	end
 
 	if ETarget and Config.Combo.UseE then
 		CastE(ETarget)
-	end
-	
-	if QTarget and Config.Combo.UseQ then
-		CastQ(QTarget)
 	end
 end
 
