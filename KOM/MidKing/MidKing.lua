@@ -1,12 +1,12 @@
 local champions = {
     ["Xerath"]          = true,
-	--["Karthus"]			= true,
+	["Karthus"]			= true,
 }
 if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.00
+local version = 1.01
 local AUTO_UPDATE = false
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/MidKing/MidKing.lua".."?rand="..math.random(1,10000)
@@ -297,6 +297,11 @@ function Xerath:__init()
 	self.minionTable =  minionManager(MINION_ENEMY, self.Q.MaxRange, myHero, MINION_SORT_MAXHEALTH_DEC)
 	self.jungleTable = minionManager(MINION_JUNGLE, self.Q.MaxRange, myHero, MINION_SORT_MAXHEALTH_DEC)
 	
+	self.QTS = TargetSelector(TARGET_LESS_CAST, self.Q.MaxRange, DAMAGE_MAGIC, false)
+	self.WTS = TargetSelector(TARGET_LESS_CAST, self.W.Range, DAMAGE_MAGIC, false)
+	self.ETS = TargetSelector(TARGET_LESS_CAST, self.E.Range, DAMAGE_MAGIC, false)
+	self.RTS = TargetSelector(TARGET_LESS_CAST, 3200, DAMAGE_MAGIC, false)
+	
 	self.PassiveUp = false
 	self.Qrange = 0
 	self.ScriptName = "Jerath"
@@ -446,12 +451,42 @@ function Xerath:Tick()
 	elseif myHero:GetSpellData(_R).level == 3 then
 		self.Xerath_R = HPSkillshot({type = "DelayCircle", delay = self.R.Delay, range = 5600, speed = self.R.Speed, radius = self.R.Width*2})
 	end
+	
+	if myHero:GetSpellData(_R).level == 1 then
+		self.RTS = TargetSelector(TARGET_LESS_CAST, 3200, DAMAGE_MAGIC, false)
+	elseif myHero:GetSpellData(_R).level == 2 then
+		self.RTS = TargetSelector(TARGET_LESS_CAST, 4400, DAMAGE_MAGIC, false)
+	elseif myHero:GetSpellData(_R).level == 3 then
+		self.RTS = TargetSelector(TARGET_LESS_CAST, 5600, DAMAGE_MAGIC, false)
+	end
+end
+
+function Xerath:GetTargets()
+	self.Target = GetTarget()
+	
+	if self.Target and self.Target.team ~= myHero.team and self.Target.type == myHero.type and ValidTarget(self.Target, self.Q.MaxRange) then
+		self.QTarget = self.Target
+	else
+		self.QTS:update()
+		self.QTarget = self.QTS.target
+	end
+	
+	self.WTS:update()
+	self.WTarget = self.WTS.target
+	
+	self.ETS:update()
+	self.ETarget = self.ETS.target
+	
+	if self.Target and self.Target.team ~= myHero.team and self.Target.type == myHero.type and ValidTarget(self.Target, self.R.Range()) then
+		self.RTarget = self.Target
+	else
+		self.RTS:update()
+		self.RTarget = self.RTS.target
+	end
 end
 
 function Xerath:Combo()
-	self.QTarget = STS:GetTarget(self.Q.MaxRange)
-	self.WTarget = STS:GetTarget(self.W.Range)
-	self.ETarget = STS:GetTarget(self.Config.Combo.Erange)
+	self:GetTargets()
 
 	self.AAtarget = OrbTarget(450)
 	if orbload then BlockAA(true) end
@@ -474,7 +509,7 @@ function Xerath:Combo()
 end
 
 function Xerath:Harass()
-	self.QTarget = STS:GetTarget(self.Q.MaxRange)
+	self:GetTargets()
 	if self.QTarget and self.Config.Harass.UseQ and ValidTarget(self.QTarget, self.Q.MaxRange) then
 		self:CastQ(self.QTarget)
 	end
@@ -913,8 +948,8 @@ function Karthus:__init()
 	self.E = {Range = 550, Active = false, IsReady = function() return myHero:CanUseSpell(_E) == READY end}
 	self.R = {IsReady = function() return myHero:CanUseSpell(_R) == READY end}
 	
-	self.HP_Q = HPSkillshot({type = "PromptCircle", range = self.Q.Range, width = self.Q.Width*2, delay = self.Q.Delay, IsLowAccuracy = true})
-	self.HP_W = HPSkillshot({type = "PromptLine", range = self.W.Range, width = self.W.Width*2, delay = self.W.Delay})
+	self.HP_Q = HPSkillshot({type = "PromptCircle", range = self.Q.Range, width = self.Q.Width, delay = self.Q.Delay, IsLowAccuracy = true})
+	self.HP_W = HPSkillshot({type = "PromptLine", range = self.W.Range, width = self.W.Width, delay = self.W.Delay})
 	
 	self.DivineQ = CircleSS(math.huge,875,200,600,math.huge)
 	self.DivineW = LineSS(math.huge,1000,10,160,math.huge)
@@ -926,6 +961,9 @@ function Karthus:__init()
 	self.dead = false
 	
 	self.enemyHeroes = {}
+	
+	self.QTS = TargetSelector(TARGET_LESS_CAST, self.Q.Range, DAMAGE_MAGIC, false)
+	self.WTS = TargetSelector(TARGET_LESS_CAST, self.W.Range, DAMAGE_MAGIC, false)
 	
 	for i = 1, heroManager.iCount do
 		local hero = heroManager:GetHero(i)
@@ -941,6 +979,10 @@ end
 function Karthus:LoadMenu()
 	self.Config = scriptConfig("DDK Kathus", "Kathus")
 	
+		if SxOLoad then
+			self.Config:addSubMenu("Orbwalker", "Orbwalker")
+				SxO:LoadToMenu(self.Config.Orbwalker)
+		end
 		self.Config:addSubMenu("TargetSelector", "TargetSelector")
 			STS:AddToMenu(self.Config.TargetSelector)
 		
@@ -1019,8 +1061,6 @@ function Karthus:LoadMenu()
 		self.Config:addSubMenu(myHero.charName.." Pred", "Pred")
 			self.Config.Pred:addParam("QPred", "Q Prediction", SCRIPT_PARAM_LIST,1, SupPred)
 			self.Config.Pred:addParam("WPred", "W Prediction", SCRIPT_PARAM_LIST,1, SupPred)
-			self.Config.Pred:addParam("EPred", "E Prediction", SCRIPT_PARAM_LIST,1, SupPred)
-			self.Config.Pred:addParam("RPred", "R Prediction", SCRIPT_PARAM_LIST,1, SupPred)
 			
 	AddTickCallback(function() self:Tick() end)
 	AddDrawCallback(function() self:Draw() end)
@@ -1035,7 +1075,8 @@ function Karthus:Tick()
 	if self.dead then self:Passive() end
 	if player.dead then return end
 	if self.Config.Combo.Enabled then self:Combo() end
-	if self.Config.Harass.Enabled  or self.Config.Harass.EnabledToggle then self:Harass() end
+	if self.Config.Harass.Enabled then self:Harass() end
+	if self.Config.Harass.EnabledToggle and not self.recall then self:Harass() end
 	if self.Config.LineClear.Enabled  then self:LineClear() end
 	if self.Config.JungleClear.Enabled then self:JungleClear() end 
 	if self.Config.Farm.Enabled  then self:Farm() end
@@ -1054,16 +1095,33 @@ function Karthus:Tick()
 	end
 end
 
+function Karthus:GetTargets()
+	self.Target = GetTarget()
+	
+	if self.Target and self.Target.team ~= myHero.team and self.Target.type == myHero.type and ValidTarget(self.Target, self.Q.Range) then
+		self.QTarget = self.Target
+	else
+		self.QTS:update()
+		self.QTarget = self.QTS.target
+	end
+	
+	if self.Target and self.Target.team ~= myHero.team and self.Target.type == myHero.type and ValidTarget(self.Target, self.W.Range) then
+		self.WTarget = self.Target
+	else
+		self.WTS:update()
+		self.WTarget = self.WTS.target
+	end
+end
+
 function Karthus:Combo()
-	local QTarget = STS:GetTarget(self.Q.Range)
-	local WTarget = STS:GetTarget(self.W.Range)
+	self:GetTargets()
 	
 	if self.Q.IsReady() and self.Config.Combo.UseQ then
-		self:CastQ(QTarget)
+		self:CastQ(self.QTarget)
 	end
 	
 	if self.W.IsReady() and self.Config.Combo.UseW then
-		self:CastW(WTarget)
+		self:CastW(self.WTarget)
 	end
 	
 	if self.E.IsReady() and self.Config.Combo.UseE then
@@ -1072,15 +1130,14 @@ function Karthus:Combo()
 end
 
 function Karthus:Harass()
-	local QTarget = STS:GetTarget(self.Q.Range)
-	local WTarget = STS:GetTarget(self.W.Range)
+	self:GetTargets()
 	
 	if self.Q.IsReady() and self.Config.Harass.UseQ then
-		self:CastQ(QTarget)
+		self:CastQ(self.QTarget)
 	end
 	
 	if self.W.IsReady() and self.Config.Harass.UseW then
-		self:CastW(WTarget)
+		self:CastW(self.WTarget)
 	end
 	
 	if self.E.IsReady() and self.Config.Harass.UseE then
@@ -1133,17 +1190,19 @@ function Karthus:Farm()
 end
 
 function Karthus:Passive()
-	local Target = STS:GetTarget(Q.Range)
-	if Target ~= nil and self.Config.Misc.PassiveManager then
-		CastQ(Target)
-		CastW(Target)
+	self:GetTargets()
+	if self.QTarget ~= nil and self.Config.Misc.PassiveManager then
+		CastQ(self.QTarget)
+	end
+	if self.WTarget ~= nil and self.Config.Misc.PassiveManager then
+		CastW(self.WTarget)
 	end
 end
 
 function Karthus:CastQ(target)
 	if target ~= nil then
 		if self.Config.Pred.QPred == 1 then
-			self.QPos, self.QHitChance = HP:GetPredict(self.HP_Q, target, myHero)
+			self.QPos, self.QHitChance = HP:GetPredict(HP.Presets["Karthus"]["Q"], target, myHero)
 			if self.QPos and self.QHitChance >= 0.8 then
 				CastSpell(_Q, self.QPos.x, self.QPos.z)
 			end
@@ -1187,9 +1246,9 @@ function Karthus:CastW(target)
 end
 
 function Karthus:CastE()
-	if CountEnemyHeroInRange(E.Range) >= 1 and not self.E.Active then
+	if CountEnemyHeroInRange(self.E.Range) >= 1 and not self.E.Active then
 		CastSpell(_E)
-	elseif CountEnemyHeroInRange(E.Range) == 0 and self.E.Active then
+	elseif CountEnemyHeroInRange(self.E.Range) == 0 and self.E.Active then
 		CastSpell(_E)
 	end
 end
