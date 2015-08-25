@@ -8,8 +8,8 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.08
-local AUTO_UPDATE = false
+local version = 1.09
+local AUTO_UPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/kej1191/anonym/master/KOM/MidKing/MidKing.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH.."MidKing.lua"
@@ -1735,7 +1735,7 @@ end
 class('Varus')
 function Varus:__init()
 	self.Q = {Range = 0, MinRange = 850, MaxRange = 1475, Offset = 0, Width = 100, Delay = 0.55, Speed = 1900, LastCastTime = 0, LastCastTime2 = 0, Collision = false, Aoe = true, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Mana = function() return myHero:GetSpellData(_Q).mana end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 4, SentTime = 0, LastFarmCheck = 0, Sent = false}
-	self.E = {Range = }
+	self.E = {Range = 80}
 	
 	
 	self.HP_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, delay = self.Q.Delay, speed = self.Q.Speed, range = self.Q.MaxRange, width = self.Q.Width})
