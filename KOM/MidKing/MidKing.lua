@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.12
+local VERSION = 1.13
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
   self.LocalVersion = LocalVersion
@@ -439,7 +439,6 @@ local function GetCustomTarget()
 end
 
 function OnLoad()
-	AuthCheck()
 	ToUpdate = {}
 	ToUpdate.Host = "raw.githubusercontent.com"
 	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/MidKing/MidKing.version"
