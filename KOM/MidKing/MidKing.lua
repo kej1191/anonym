@@ -8,29 +8,290 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local version = 1.11
-local AUTO_UPDATE = true
-local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/kej1191/anonym/master/KOM/MidKing/MidKing.lua".."?rand="..math.random(1,10000)
-local UPDATE_FILE_PATH = SCRIPT_PATH.."MidKing.lua"
-local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+local VERSION = 1.12
+class("ScriptUpdate")
+function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
+  self.LocalVersion = LocalVersion
+  self.Host = Host
+  self.VersionPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '5' or '6')..'.php?script='..self:Base64Encode(self.Host..VersionPath)..'&rand='..math.random(99999999)
+  self.ScriptPath = '/BoL/TCPUpdater/GetScript'..(UseHttps and '5' or '6')..'.php?script='..self:Base64Encode(self.Host..ScriptPath)..'&rand='..math.random(99999999)
+  self.SavePath = SavePath
+  self.CallbackUpdate = CallbackUpdate
+  self.CallbackNoUpdate = CallbackNoUpdate
+  self.CallbackNewVersion = CallbackNewVersion
+  self.CallbackError = CallbackError
+  AddDrawCallback(function() self:OnDraw() end)
+  self:CreateSocket(self.VersionPath)
+  self.DownloadStatus = 'Connect to Server for VersionInfo'
+  AddTickCallback(function() self:GetOnlineVersion() end)
+end
 
-if AUTO_UPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/kej1191/anonym/master/KOM/MidKing/MidKing.version")
-	if ServerData then
-		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
-		if ServerVersion then
-			if tonumber(version) < ServerVersion then
-				AutoupdaterMsg("New version available"..ServerVersion)
-				AutoupdaterMsg("Updating, please don't press F9")
-				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
-			else
-				AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
-			end
-		end
-	else
-		AutoupdaterMsg("Error downloading version info")
-	end
+function ScriptUpdate:print(str)
+  print('<font color="#FFFFFF">'..os.clock()..': '..str)
+end
+
+function ScriptUpdate:OnDraw()
+
+  if self.DownloadStatus ~= 'Downloading Script (100%)' and self.DownloadStatus ~= 'Downloading VersionInfo (100%)'then
+    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),18,10,50,ARGB(0xFF,0xFF,0xFF,0xFF))
+  end
+  
+end
+
+function ScriptUpdate:CreateSocket(url)
+
+  if not self.LuaSocket then
+    self.LuaSocket = require("socket")
+  else
+    self.Socket:close()
+    self.Socket = nil
+    self.Size = nil
+    self.RecvStarted = false
+  end
+  
+  self.LuaSocket = require("socket")
+  self.Socket = self.LuaSocket.tcp()
+  self.Socket:settimeout(0, 'b')
+  self.Socket:settimeout(99999999, 't')
+  self.Socket:connect('sx-bol.eu', 80)
+  self.Url = url
+  self.Started = false
+  self.LastPrint = ""
+  self.File = ""
+end
+
+function ScriptUpdate:Base64Encode(data)
+
+  local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  
+  return ((data:gsub('.', function(x)
+  
+    local r,b='',x:byte()
+    
+    for i=8,1,-1 do
+      r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0')
+    end
+    
+    return r;
+  end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+  
+    if (#x < 6) then
+      return ''
+    end
+    
+    local c=0
+    
+    for i=1,6 do
+      c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0)
+    end
+    
+    return b:sub(c+1,c+1)
+  end)..({ '', '==', '=' })[#data%3+1])
+  
+end
+
+function ScriptUpdate:GetOnlineVersion()
+
+  if self.GotScriptVersion then
+    return
+  end
+  
+  self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+  
+  if self.Status == 'timeout' and not self.Started then
+    self.Started = true
+    self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+  end
+  
+  if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+    self.RecvStarted = true
+    self.DownloadStatus = 'Downloading VersionInfo (0%)'
+  end
+  
+  self.File = self.File .. (self.Receive or self.Snipped)
+  
+  if self.File:find('</s'..'ize>') then
+  
+    if not self.Size then
+      self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</si'..'ze>')-1))
+    end
+    
+    if self.File:find('<scr'..'ipt>') then
+    
+      local _,ScriptFind = self.File:find('<scr'..'ipt>')
+      local ScriptEnd = self.File:find('</scr'..'ipt>')
+      
+      if ScriptEnd then
+        ScriptEnd = ScriptEnd-1
+      end
+      
+      local DownloadedSize = self.File:sub(ScriptFind+1,ScriptEnd or -1):len()
+      
+      self.DownloadStatus = 'Downloading VersionInfo ('..math.round(100/self.Size*DownloadedSize,2)..'%)'
+    end
+    
+  end
+  
+  if self.File:find('</scr'..'ipt>') then
+    self.DownloadStatus = 'Downloading VersionInfo (100%)'
+    
+    local a,b = self.File:find('\r\n\r\n')
+    
+    self.File = self.File:sub(a,-1)
+     self.NewFile = ''
+    
+    for line,content in ipairs(self.File:split('\n')) do
+    
+      if content:len() > 5 then
+        self.NewFile = self.NewFile .. content
+      end
+      
+    end
+    
+    local HeaderEnd, ContentStart = self.File:find('<scr'..'ipt>')
+    local ContentEnd, _ = self.File:find('</sc'..'ript>')
+    
+    if not ContentStart or not ContentEnd then
+    
+      if self.CallbackError and type(self.CallbackError) == 'function' then
+        self.CallbackError()
+      end
+      
+    else
+      self.OnlineVersion = (Base64Decode(self.File:sub(ContentStart+1,ContentEnd-1)))
+      self.OnlineVersion = tonumber(self.OnlineVersion)
+      
+      if self.OnlineVersion > self.LocalVersion then
+      
+        if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
+          self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
+        end
+        
+        self:CreateSocket(self.ScriptPath)
+        self.DownloadStatus = 'Connect to Server for ScriptDownload'
+        AddTickCallback(function() self:DownloadUpdate() end)
+      else
+        
+        if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
+          self.CallbackNoUpdate(self.LocalVersion)
+        end
+        
+      end
+      
+    end
+    
+    self.GotScriptVersion = true
+  end
+  
+end
+
+function ScriptUpdate:DownloadUpdate()
+
+  if self.GotScriptUpdate then
+    return
+  end
+  
+  self.Receive, self.Status, self.Snipped = self.Socket:receive(1024)
+  
+  if self.Status == 'timeout' and not self.Started then
+    self.Started = true
+    self.Socket:send("GET "..self.Url.." HTTP/1.1\r\nHost: sx-bol.eu\r\n\r\n")
+  end
+  
+  if (self.Receive or (#self.Snipped > 0)) and not self.RecvStarted then
+    self.RecvStarted = true
+    self.DownloadStatus = 'Downloading Script (0%)'
+  end
+  
+  self.File = self.File .. (self.Receive or self.Snipped)
+  
+  if self.File:find('</si'..'ze>') then
+  
+    if not self.Size then
+      self.Size = tonumber(self.File:sub(self.File:find('<si'..'ze>')+6,self.File:find('</si'..'ze>')-1))
+    end
+    
+    if self.File:find('<scr'..'ipt>') then
+    
+      local _,ScriptFind = self.File:find('<scr'..'ipt>')
+      local ScriptEnd = self.File:find('</scr'..'ipt>')
+      
+      if ScriptEnd then
+        ScriptEnd = ScriptEnd-1
+      end
+      
+      local DownloadedSize = self.File:sub(ScriptFind+1,ScriptEnd or -1):len()
+      
+      self.DownloadStatus = 'Downloading Script ('..math.round(100/self.Size*DownloadedSize,2)..'%)'
+    end
+    
+  end
+  
+  if self.File:find('</scr'..'ipt>') then
+    self.DownloadStatus = 'Downloading Script (100%)'
+    
+    local a,b = self.File:find('\r\n\r\n')
+    
+    self.File = self.File:sub(a,-1)
+    self.NewFile = ''
+    
+    for line,content in ipairs(self.File:split('\n')) do
+    
+      if content:len() > 5 then
+        self.NewFile = self.NewFile .. content
+      end
+      
+    end
+    
+    local HeaderEnd, ContentStart = self.NewFile:find('<sc'..'ript>')
+    local ContentEnd, _ = self.NewFile:find('</scr'..'ipt>')
+    
+    if not ContentStart or not ContentEnd then
+      
+      if self.CallbackError and type(self.CallbackError) == 'function' then
+        self.CallbackError()
+      end
+      
+    else
+      
+      local newf = self.NewFile:sub(ContentStart+1,ContentEnd-1)
+      local newf = newf:gsub('\r','')
+      
+      if newf:len() ~= self.Size then
+      
+        if self.CallbackError and type(self.CallbackError) == 'function' then
+          self.CallbackError()
+        end
+        
+        return
+      end
+      
+      local newf = Base64Decode(newf)
+      
+      if type(load(newf)) ~= 'function' then
+      
+        if self.CallbackError and type(self.CallbackError) == 'function' then
+          self.CallbackError()
+        end
+        
+      else
+      
+        local f = io.open(self.SavePath,"w+b")
+        
+        f:write(newf)
+        f:close()
+        
+        if self.CallbackUpdate and type(self.CallbackUpdate) == 'function' then
+          self.CallbackUpdate(self.OnlineVersion,self.LocalVersion)
+        end
+        
+      end
+      
+    end
+    
+    self.GotScriptUpdate = true
+  end
+  
 end
 
 local SCRIPT_LIBS = {
@@ -178,6 +439,18 @@ local function GetCustomTarget()
 end
 
 function OnLoad()
+	AuthCheck()
+	ToUpdate = {}
+	ToUpdate.Host = "raw.githubusercontent.com"
+	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/MidKing/MidKing.version"
+	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/MidKing/MidKing.lua"
+	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
+	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"#00FA9A\"><b>[MidKing] </b></font> <font color=\"#6699ff\">Updated to "..NewVersion..". </b></font>") end
+	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#00FA9A\"><b>[MidKing] </b></font> <font color=\"#6699ff\">You have lastest version ("..OldVersion..")</b></font>") end
+	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#00FA9A\"><b>[MidKing] </b></font> <font color=\"#6699ff\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#00FA9A\"><b>[MidKing] </b></font> <font color=\"#6699ff\">Error while Downloading. Please try again.</b></font>") end
+	ScriptUpdate(VERSION, true, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
+
 	OnOrbLoad()
 	Aw = Awareness()
 	if myHero.charName == "Xerath" then
@@ -671,7 +944,7 @@ function Xerath:CastQ1(target)
 		end
 	elseif self.Config.Pred.QPred == 2 then
 		local Target = DPTarget(target)
-		local DivineQ = LineSS(self.Q.Speed, self.Q.MaxRange, self.Q.Width, self.Q.Delay, math.huge)
+		local DivineQ = LineSS(self.Q.Speed, self.Q.MaxRange, self.Q.Width, self.Q.Delay)
 		DivineQ = dp:bindSS("DivineQ", DivineQ)
 		self.Qstate, self.QPos, self.Prec = dp:predict("DivineQ", Target)
 		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
@@ -1504,7 +1777,7 @@ function MissFortune:__init()
 	self.HP_E = HPSkillshot({type = "PromptCircle", range = self.E.Range, delay = self.E.Delay, radius = self.E.Width})
 	self.DivineE = CircleSS(self.E.Speed, self.E.Range, self.E.Width, self.E.Delay, math.huge)
 	
-	self.DivineE = dp:bind("DivineE", self.DivineE)
+	self.DivineE = dp:bindSS("DivineE", self.DivineE)
 	self:LoadMenu()
 end
 
@@ -1739,158 +2012,6 @@ function MissFortune:Draw()
 		end
 		
 		self.EPos = nil
-	end
-end
-
-class('Varus')
-function Varus:__init()
-	self.Q = {Range = 0, MinRange = 850, MaxRange = 1475, Offset = 0, Width = 100, Delay = 0.55, Speed = 1900, LastCastTime = 0, LastCastTime2 = 0, Collision = false, Aoe = true, IsReady = function() return myHero:CanUseSpell(_Q) == READY end, Mana = function() return myHero:GetSpellData(_Q).mana end, Damage = function(target) return getDmg("Q", target, myHero) end, IsCharging = false, TimeToStopIncrease = 1.5 , End = 4, SentTime = 0, LastFarmCheck = 0, Sent = false}
-	self.E = {Range = 80}
-	
-	
-	self.HP_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, delay = self.Q.Delay, speed = self.Q.Speed, range = self.Q.MaxRange, width = self.Q.Width})
-	
-	
-	self.Qbuff = {}
-	
-	for i, hero in ipairs(GetEnemyHeroes()) do
-		buff = {unit = hero, stacks = 0}
-		table.insert(self.Qbuff, buff)
-	end
-	
-	self:LoadMenu()
-	self.QTS = TargetSelector(TARGET_LESS_CAST, self.Q.MaxRange, DAMAGE_MAGIC, false)
-end
-
-function Varus:LoadMenu()
-	self.Config = scriptConfig("Varus", "Varus")
-		if SxOLoad then
-			self.Config:addSubMenu("Orbwalking", "Orbwalking")
-				SxO:LoadToMenu(self.Config.Orbwalking, Orbwalking)
-		end
-		self.Config:addParam("Use", "Use", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-		
-		
-		self.Config:addSubMenu(myHero.charName.." Pred", "Pred")
-			self.Config.Pred:addParam("QPred", "Q Prediction", SCRIPT_PARAM_LIST,1, SupPred)
-		
-	AddTickCallback(function() self:Tick() end)
-	AddProcessSpellCallback(function(unit, spell) self:ProcessSpell(unit, spell) end)
-	AddApplyBuffCallback(function(source, unit, buff) self:OnApplyBuff(source, unit, buff) end)
-	AddUpdateBuffCallback(function(unit, buff, stacks) self:OnUpdateBuff(unit, buff, stacks) end)
-	AddRemoveBuffCallback(function(unit, buff) self:OnRemoveBuff(unit, buff) end)	
-	AddDrawCallback(function() self:Draw() end)
-end
-
-function Varus:Tick()
-	if self.Q.IsCharging and myHero:GetSpellData(_Q).currentCd > 1 then
-		self.Q.IsCharging = false
-	end
-	self.QTS:update()
-	if self.Config.Use then
-		for i, Qbuff in ipairs(self.Qbuff) do
-			if GetDistance(Qbuff.unit) < self.Q.MaxRange and Qbuff.stacks > 2 then
-				self:CastQ(Qbuff.unit)
-			end
-		end
-	end
-end
-
-function Varus:CastQ(target)
-	if self.Q.IsReady() and ValidTarget(target) then
-        if self.Q.IsCharging then
-            self:CastQ1(target)
-        else
-            CastSpell(_Q, target.x, target.z)
-        end
-    end
-end
-
-function Varus:CastQ1(target)
-	self.Qrange = math.min(self.Q.MinRange + (self.Q.MaxRange - self.Q.MinRange) * ((os.clock() - self.Q.LastCastTime) / self.Q.TimeToStopIncrease), self.Q.MaxRange)
-	if self.Config.Pred.QPred == 1 then
-		self.QPos, self.QHitChance = HP:GetPredict(self.HP_Q, target, myHero)
-		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.QHitChance >= 1.4 then
-				self:CastQ2(self.QPos)
-			end
-		end
-	elseif self.Config.Pred.QPred == 2 then
-		local Target = DPTarget(target)
-		local DivineQ = LineSS(self.Q.Speed, self.Q.MaxRange, self.Q.Width/2, self.Q.Delay, math.huge)
-		self.Qstate, self.QPos, self.Prec = dp:predict(Target, DivineQ)
-		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.Qstate == SkillShot.STATUS.SUCCESS_HIT then
-				self:CastQ2(self.QPos)
-			end
-		end
-	elseif self.Config.Pred.QPred == 3 then
-		self.QPos, self.QHitChance, self.PredPos = SP:Predict(target, self.Q.MaxRange, self.Q.Speed, self.Q.Delay, self.Q.Width, false, myHero)
-		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.QHitChance >= 1.4 then
-				self:CastQ2(self.QPos)
-			end
-		end
-	end
-end
-
-function Varus:CastQ2(Pos)
-	if self.Q.IsReady() and Pos and self.Q.IsCharging then
-        local d3vector = D3DXVECTOR3(Pos.x, Pos.y, Pos.z)
-        self.Q.Sent = true
-        CastSpell2(_Q, d3vector)
-        self.Q.Sent = false
-    end
-end
-
-function Varus:CastE(target)
-end
-
-function Varus:CastR(target)
-end
-
-function Varus:Draw()
-	for i, Qbuff in ipairs(self.Qbuff) do
-		DrawText(tostring(Qbuff.stacks), 18, Qbuff.unit.x, Qbuff.unit.y, Qbuff.unit.z)
-	end
-end
-
-function Varus:ProcessSpell(unit, spell)
-	if myHero.dead or self.Config == nil or unit == nil or not unit.isMe then return end
-	if spell.name:lower():find("varusq") then 
-		self.Q.LastCastTime = os.clock()
-		self.Q.IsCharging = true
-	end
-end
-
-function Varus:OnApplyBuff(source, unit, buff)
-	if buff.name == "varuswdebuff" then
-		for i, Qbuff in ipairs(self.Qbuff) do
-			if Qbuff.unit == unit then
-				Qbuff.stacks = 1
-			end
-		end
-	end
-end
-
-function Varus:OnUpdateBuff(unit, buff, stacks)
-	if buff.name == "varuswdebuff" then
-		for i, Qbuff in ipairs(self.Qbuff) do
-			print(stacks)
-			if Qbuff.unit == unit then
-				Qbuff.stacks = stacks
-			end
-		end
-	end
-end
-
-function Varus:OnRemoveBuff(unit, buff)
-	if buff.name == "varuswdebuff" then
-		for i, Qbuff in ipairs(self.Qbuff) do
-			if Qbuff.unit == unit then
-				Qbuff.stacks = 0
-			end
-		end
 	end
 end
 

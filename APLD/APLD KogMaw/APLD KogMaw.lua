@@ -70,7 +70,8 @@ function Initiate()
 	end
 end
 if Initiate() then return end
-	
+
+
 
 AdvancedCallback:bind('OnApplyBuff', function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
 AdvancedCallback:bind('OnUpdateBuff', function(unit, buff, stack) OnUpdateBuff(unit, buff, stack) end)

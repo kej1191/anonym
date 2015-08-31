@@ -15,27 +15,6 @@ if myHero.charName ~= "Jinx" then return end
 require 'VPrediction'
 require 'HPrediction'
 require 'Collision'
-require 'Prodiction'
-local ProdOneLoaded = false
-local ProdFile = LIB_PATH .. "Prodiction.lua"
-local fh = io.open(ProdFile, 'r')
-if fh ~= nil then
-  local line = fh:read()
-  local Version = string.match(line, "%d+.%d+")
-  if Version == nil or tonumber(Version) == nil then
-    ProdOneLoaded = false
-  elseif tonumber(Version) > 0.8 then
-    ProdOneLoaded = true
-  end
-  if ProdOneLoaded then
-    require 'Prodiction'
-    print("<font color=\"#FF0000\">Prodiction 1.0 Loaded for DienoJinx, 1.0 option is usable</font>")
-  else
-    print("<font color=\"#FF0000\">Prodiction 1.0 not detected for DienoJinx, 1.0 is not usable (will cause errors if checked)</font>")
-  end
-else
-  print("<font color=\"#FF0000\">No Prodiction.lua detected, using only VPRED</font>")
-end
 
 --Honda7
 local AUTOUPDATE = true
@@ -173,9 +152,6 @@ function Menu()
 	Config.Extras:addParam("SwapThree", "Swap Q at three fishbone stacks", SCRIPT_PARAM_ONOFF, false)
 	Config.Extras:addParam("SwapDistance", "Swap Q for Distance", SCRIPT_PARAM_ONOFF, true)
 	Config.Extras:addParam("SwapAOE", "Swap Q for AoE", SCRIPT_PARAM_ONOFF, true)
-	if ProdOneLoaded then
-		Config.Extras:addParam("Prodiction", "Use Prodiction 1.0 instead of VPred", SCRIPT_PARAM_ONOFF, false)
-	end	
 	Config:addParam("INFO", "", SCRIPT_PARAM_INFO, "")
 	Config:addParam("Fixer", "Fixer", SCRIPT_PARAM_INFO, "KaoKaoNi")
 	Config:addParam("Team", "Team", SCRIPT_PARAM_INFO, "Your")
@@ -662,53 +638,20 @@ end
 
 
 function CombinedPredict(Target, Delay, Width, Range, Speed, myHero, boolean)
-  if Target == nil or Target.dead or not ValidTarget(Target) then return end
-  if not ProdOneLoaded or not Config.Extras.Prodiction then
-    local CastPosition, Hitchance, Position = VP:GetLineCastPosition(Target, Delay, Width, Range, Speed, myHero, boolean)
-    if CastPosition ~= nil and Hitchance >= 1 then 
-      return CastPosition, Hitchance+1, Position
+	if Target == nil or Target.dead or not ValidTarget(Target) then return end
+	local CastPosition, Hitchance, Position = VP:GetLineCastPosition(Target, Delay, Width, Range, Speed, myHero, boolean)
+	if CastPosition ~= nil and Hitchance >= 1 then 
+		return CastPosition, Hitchance+1, Position
     end
-  elseif ProdOneLoaded and Config.Extras.Prodiction then
-    local CastPosition, info = Prodiction.GetPrediction(Target, Range, Speed, Delay, Width, myHero)
-    local isCol = false
-    if info ~= nil and info.mCollision() ~= nil then
-       isCol, _ = info.mCollision()
-	    if Config.Extras.Debug and CastPosition ~= nil then
-	    	print(CastPosition)
-	    	print(isCol)
-	    end
-    end
-    if info ~= nil and info.hitchance ~= nil and CastPosition ~= nil and isCol and boolean then
-        return CastPosition, 0, CastPosition
-    elseif info ~= nil and info.hitchance ~= nil and CastPosition ~= nil then 
-        Hitchance = info.hitchance
-        return CastPosition, Hitchance, CastPosition
-    end
-  end
 end
 
 
 function CombinedPos(Target, Delay, Speed, myHero, boolean)
-  if Target == nil or Target.dead or not ValidTarget(Target) then return end
+	if Target == nil or Target.dead or not ValidTarget(Target) then return end
 
-  if Collision == nil then Collision = false end
-    if not ProdOneLoaded or not Config.Extras.Prodiction then
-      local PredictedPos, HitChance = VP:GetPredictedPos(Target, Delay, Speed, myHero, boolean)
-      return PredictedPos, HitChance
-    elseif ProdOneLoaded and Config.Extras.Prodiction then
-      local PredictedPos, info = Prodiction.GetPrediction(Target, 5000, Speed, Delay, 10, myHero)
-      local isCol = false
-      local hitchance = 0
-      if info ~= nil and info.mCollision() ~= nil then
-        isCol, _ = info.mCollision()
-        hitchance = info.hitchance 
-      end
-      if PredictedPos ~= nil and info ~= nil and isCol and boolean then
-        return PredictedPos, 0
-      elseif PredictedPos ~= nil and info ~= nil and hitchance~= nil then
-        return PredictedPos, hitchance
-      end
-    end
-  end
+	if Collision == nil then Collision = false end
+    local PredictedPos, HitChance = VP:GetPredictedPos(Target, Delay, Speed, myHero, boolean)
+    return PredictedPos, HitChance
+end
 
 
