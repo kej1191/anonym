@@ -8,7 +8,8 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.13
+local VERSION = 1.14
+
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
   self.LocalVersion = LocalVersion
@@ -295,7 +296,6 @@ function ScriptUpdate:DownloadUpdate()
 end
 
 local SCRIPT_LIBS = {
-	["DivinePred"] = "http://divinetek.rocks/divineprediction/DivinePred.lua",
 	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua",
 	["SPrediction"] = "https://raw.githubusercontent.com/nebelwolfi/BoL/master/Common/SPrediction.lua",
 	["VPrediction"] = "",
@@ -330,7 +330,6 @@ local minionTable =  minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_MAXHE
 
 local SP = SPrediction()
 local HP = HPrediction()
-local dp = DivinePred()
 local VP = VPrediction()
 
 local Colors = { 
@@ -342,7 +341,7 @@ local Colors = {
     Blue    =  ARGB(255, 0, 0, 255),
 }
 
-local SupPred = {"H Prediction", "D Prediction", "S Prediction"}
+local SupPred = {"H Prediction", "V Prediction", "S Prediction"}
 
 function OnOrbLoad()
 	if _G.MMA_LOADED then
@@ -942,12 +941,9 @@ function Xerath:CastQ1(target)
 			end
 		end
 	elseif self.Config.Pred.QPred == 2 then
-		local Target = DPTarget(target)
-		local DivineQ = LineSS(self.Q.Speed, self.Q.MaxRange, self.Q.Width, self.Q.Delay)
-		DivineQ = dp:bindSS("DivineQ", DivineQ)
-		self.Qstate, self.QPos, self.Prec = dp:predict("DivineQ", Target)
+		self.QPos, self.QHitChance = VP:GetLineAOECastPosition(target, self.Q.Delay, self.Q.Width, self.Q.Range, self.Q.Speed, myHero)
 		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.Qstate == SkillShot.STATUS.SUCCESS_HIT then
+			if self.QPos and self.QHitChance >= 1.4 then
 				self:CastQ2(self.QPos)
 			end
 		end
@@ -990,20 +986,18 @@ function Xerath:CastW(target)
 			end
 		elseif self.Config.Pred.WPred == 2 then
 			if self.Config.Misc.WCenter then
-				local Target = DPTarget(target)
-				local XerathW = CircleSS(self.W.Speed, self.W.Range, 50, self.W.Delay, math.huge)
-				local XerathW = dp:bindSS("XerathW", XerathW)
-				self.Wstate, self.WPos, self.Prec = dp:predict("XerathW", Target)
-				if self.WPos and self.Wstate == SkillShot.STATUS.SUCCESS_HIT then
-					CastSpell(_W, self.WPos.x, self.WPos.z)
+				self.WPos, self.WHitChance = VP:GetCircularAOECastPosition(target, self.W.Delay, 50, self.W.Range, self.W.Speed, myHero)
+				if self.WPos ~= nil and self.WHitChance ~= nil then
+					if self.WHitChance >= 1.4 then
+						CastSpell(_W, self.WPos.x, self.WPos.z)
+					end
 				end
 			else
-				local Target = DPTarget(target)
-				local XerathW = CircleSS(self.W.Speed, self.W.Range, self.W.Width, self.W.Delay, math.huge)
-				local XerathW = dp:bindSS("XerathW", XerathW)
-				self.Wstate, self.WPos, self.Prec = dp:predict("XerathW", Target)
-				if self.WPos and self.Wstate == SkillShot.STATUS.SUCCESS_HIT then
-					CastSpell(_W, self.WPos.x, self.WPos.z)
+				self.WPos, self.WHitChance = VP:GetCircularAOECastPosition(target, self.W.Delay, self.W.Width, self.W.Range, self.W.Speed, myHero)
+				if self.WPos ~= nil and self.WHitChance ~= nil then
+					if self.WHitChance >= 1.4 then
+						CastSpell(_W, self.WPos.x, self.WPos.z)
+					end
 				end
 			end
 		elseif self.Config.Pred.WPred == 3 then
@@ -1025,12 +1019,11 @@ function Xerath:CastE(target)
 				end
 			end
 		elseif self.Config.Pred.EPred == 2 then
-			local Target = DPTarget(target)
-			local XerathE = LineSS(self.E.Speed, self.E.Range,self.E.Width, self.E.Delay, 0)
-			local XerathE = dp:bindSS("XerathE", Target)
-			self.Estate, self.EPos, self.Prec = dp:predict("XerathE", Target)
-			if self.EPos and self.Estate == SkillShot.STATUS.SUCCESS_HIT then
-				CastSpell(_E, self.EPos.x, self.EPos.z)
+			self.EPos, self.EHitChance = VP:VP:GetLineCastPosition(target, self.E.Delay, self.E.Width, self.E.Range, self.E.Speed, myHero, true)
+			if self.EPos ~= nil and self.EHitChance ~= nil then
+				if self.EHitChance >= 0.8 then
+					CastSpell(_E, self.EPos.x, self.EPos.z)
+				end
 			end
 		elseif self.Config.Pred.EPred == 3 then
 			self.EPos, self.EHitChance, self.PredPos = SP:Predict(target, self.E.Range, self.E.Speed, self.E.Delay, self.E.Width*2, false, myHero)
@@ -1092,11 +1085,8 @@ function Xerath:CastR3(target)
 				end
 			end
 		elseif self.Config.Pred.RPred == 2 then
-			local Target = DPTarget(target)
-			local DivineR = CircleSS(self.R.Speed, self.R.Range(), self.R.Width, self.R.Delay, math.huge)
-			local DivineR = dp:bindSS("DivineR", DivineR)
-			self.Rstate, self.RPos, self.Prec = dp:predict("DivineR", Target)
-			if self.RPos and self.Rstate == SkillShot.STATUS.SUCCESS_HIT then
+			self.RPos, self.RHitChance = VP:GetCircularAOECastPosition(target, self.R.Delay, self.R.Width, self.R.Range, self.R.Speed, myHero)
+			if self.RPos and self.RHitChance >= 1.4 then
 				CastSpell(_R, self.RPos.x, self.RPos.z)
 			end
 		elseif self.Config.Pred.RPred == 3 then
@@ -1153,16 +1143,6 @@ function Xerath:Draw()
 			self.Qcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
 		end
 	end
-	
-	if self.Qstate ~= nil then
-		if self.Qstate == SkillShot.STATUS.MINION_HIT then
-			self.Qcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Qstate == SkillShot.STATUS.HERO_HIT then
-			self.Qcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Qstate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Qcolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
-		end
-	end
   
 	if self.WHitChance ~= nil then
 		if self.WHitChance < 1 then
@@ -1173,16 +1153,6 @@ function Xerath:Draw()
 			self.Wcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
 		elseif self.WHitChance >= 1 then
 			self.Wcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		end
-	end
-	
-	if self.Wstate ~= nil then
-		if self.Wstate == SkillShot.STATUS.MINION_HIT then
-			self.Wcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Wstate == SkillShot.STATUS.HERO_HIT then
-			self.Wcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Wstate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Wcolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
 		end
 	end
   
@@ -1200,15 +1170,6 @@ function Xerath:Draw()
 		end
 	end
 	
-	if self.Estate ~= nil then
-		if self.Estate == SkillShot.STATUS.MINION_HIT then
-			self.Ecolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Estate == SkillShot.STATUS.HERO_HIT then
-			self.Ecolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Estate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Ecolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
-		end
-	end
   
 	if self.RHitChance ~= nil then
 		if self.RHitChance < 1 then
@@ -1222,15 +1183,6 @@ function Xerath:Draw()
 		end
 	end
 	
-	if self.Rstate ~= nil then
-		if self.Rstate == SkillShot.STATUS.MINION_HIT then
-			self.Rcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Rstate == SkillShot.STATUS.HERO_HIT then
-			self.Rcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Rstate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Rcolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
-		end
-	end
 	
 	if self.QPos and self.Qcolor and self.Q.IsReady() then
 		DrawCircles(self.QPos.x, self.QPos.y, self.QPos.z, self.Q.Width/2, self.Qcolor)
@@ -1313,9 +1265,6 @@ function Karthus:__init()
 	
 	self.HP_Q = HPSkillshot({type = "PromptCircle", range = self.Q.Range, width = self.Q.Width, delay = self.Q.Delay, IsLowAccuracy = true})
 	self.HP_W = HPSkillshot({type = "PromptLine", range = self.W.Range, width = self.W.Width, delay = self.W.Delay})
-	
-	self.DivineQ = CircleSS(math.huge,875,200,600,math.huge)
-	self.DivineW = LineSS(math.huge,1000,10,160,math.huge)
 	
 	local DivineW = dp:bindSS("DivineW", self.DivineW)
 	
@@ -1571,12 +1520,7 @@ function Karthus:CastQ(target)
 				CastSpell(_Q, self.QPos.x, self.QPos.z)
 			end
 		elseif self.Config.Pred.QPred == 2 then
-			local Target = DPTarget(target)
-			local DivineQ = dp:bindSS("DivineQ", self.DivineQ)
-			self.Qstate, self.QPos, self.Prec = dp:predict("DivineQ", Target)
-			if self.QPos and self.Qstate == SkillShot.STATUS.SUCCESS_HIT then
-				CastSpell(_Q, self.QPos.x, self.QPos.z)
-			end
+
 		elseif self.Config.Pred.QPred == 3 then
 			self.QPos, self.QHitChance, self.PredPos = SP:PredictPos(target, math.huge, self.Q.Delay)
 			if self.QPos and self.QHitChance >= 0.8 then
@@ -1596,9 +1540,8 @@ function Karthus:CastW(target)
 				end
 			end
 		elseif self.Config.Pred.WPred == 2 then
-			local Target = DPTarget(target)
-			self.Wstate, self.WPos, self.Prec = dp:predict("DivineW", Target)
-			if self.WPos and self.Wstate == SkillShot.STATUS.SUCCESS_HIT then
+			self.WPos, self.WHitChance = VP:GetLineAOECastPosition(target, self.W.Delay, self.W.Width, self.W.Range, self.W.Speed, myHero)
+			if self.WPos and self.WHitChance >= 1.4 then
 				CastSpell(_W, self.WPos.x, self.WPos.z)
 			end
 		elseif self.Config.Pred.WPred == 3 then
@@ -1643,16 +1586,6 @@ function Karthus:Draw()
 			self.Qcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
 		end
 	end
-	
-	if self.Qstate ~= nil then
-		if self.Qstate == SkillShot.STATUS.MINION_HIT then
-			self.Qcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Qstate == SkillShot.STATUS.HERO_HIT then
-			self.Qcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Qstate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Qcolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
-		end
-	end
   
 	if self.WHitChance ~= nil then
 		if self.WHitChance < 1 then
@@ -1665,16 +1598,7 @@ function Karthus:Draw()
 			self.Wcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
 		end
 	end
-	
-	if self.Wstate ~= nil then
-		if self.Wstate == SkillShot.STATUS.MINION_HIT then
-			self.Wcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Wstate == SkillShot.STATUS.HERO_HIT then
-			self.Wcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Wstate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Wcolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
-		end
-	end
+
 	
 	if self.QPos and self.Qcolor and self.Q.IsReady() then
 		DrawCircles(self.QPos.x, self.QPos.y, self.QPos.z, self.Q.Width/2, self.Qcolor)
@@ -1774,9 +1698,6 @@ function MissFortune:__init()
 	self.ScriptName = "Project Kidding"
 	
 	self.HP_E = HPSkillshot({type = "PromptCircle", range = self.E.Range, delay = self.E.Delay, radius = self.E.Width})
-	self.DivineE = CircleSS(self.E.Speed, self.E.Range, self.E.Width, self.E.Delay, math.huge)
-	
-	self.DivineE = dp:bindSS("DivineE", self.DivineE)
 	self:LoadMenu()
 end
 
@@ -1951,10 +1872,9 @@ function MissFortune:CastE(target)
 				CastSpell(_E, self.EPos.x, self.EPos.z)
 			end
 		elseif self.Config.Pred.EPred == 2 then
-			local Target = DPTarget(target)
-			self.Estate, self.EPos, self.Prec = dp:predict("DivineE", Target)
-			if self.EPos and self.Estate == SkillShot.STATUS.SUCCESS_HIT then
-				CastSpell(_E, self.EPos.x, self.EPos.z)
+			self.EPos, self.EHitChance = VP:GetLineAOECastPosition(target, self.E.Delay, self.E.Width, self.E.Range, self.E.Speed, myHero)
+			if self.EPos and self.EHitChance >= 1.4 then
+				CastSpell(_W, self.EPos.x, self.EPos.z)
 			end
 		elseif self.Config.Pred.EPred == 3 then
 			self.EPos, self.EHitChance, self.PredPos = SP:PredictPos(target, self.E.Speed, self.E.Delay)
@@ -1992,16 +1912,7 @@ function MissFortune:Draw()
 			self.Ecolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
 		end
 	end
-	
-	if self.Estate ~= nil then
-		if self.Estate == SkillShot.STATUS.MINION_HIT then
-			self.Ecolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
-		elseif self.Estate == SkillShot.STATUS.HERO_HIT then
-			self.Ecolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
-		elseif self.Estate == SkillShot.STATUS.SUCCESS_HIT then
-			self.Ecolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
-		end
-	end
+
 	
 		if self.EPos and self.Ecolor and self.E.IsReady() then
 		DrawCircles(self.EPos.x, self.EPos.y, self.EPos.z, self.E.Width/2, self.Ecolor)
