@@ -21,6 +21,8 @@
     
 --]]
 
+if myHero.charName ~= "Vayne" then return end
+
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
   self.LocalVersion = LocalVersion
@@ -307,9 +309,6 @@ function ScriptUpdate:DownloadUpdate()
 end
 
 require 'VPrediction'
-require 'SOW'
-
-if myHero.charName ~= "Vayne" then return end
 
 local ts
 local Menu
@@ -321,11 +320,41 @@ local VP = VPrediction()
 local AllClassMenu = 16
 local qOff, wOff, eOff, rOff = 0,0,0,0
 local abilitySequence = {1, 2, 3, 1, 1, 4, 1, 2, 1, 2, 4, 2, 2, 3, 3, 4, 3, 3}
+local MMALoad, orbload, RebornLoad, RevampedLoaded, SxOLoad = nil, false, nil, nil, nil
 
-HWID = Base64Encode(tostring(os.getenv("PROCESSOR_IDENTIFIER")..os.getenv("USERNAME")..os.getenv("COMPUTERNAME")..os.getenv("PROCESSOR_LEVEL")..os.getenv("PROCESSOR_REVISION")))
-id = 321
 ScriptName = "NoVayneNoGain"
 VERSION = 1.00
+local function _print(msg)
+	print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">"..msg..". </b></font>")
+end
+function OnOrbLoad()
+	if _G.MMA_LOADED then
+		_print("MMA LOAD")
+		MMALoad = true
+		orbload = true
+	elseif _G.AutoCarry then
+		if _G.AutoCarry.Helper then
+			_print("SIDA AUTO CARRY: REBORN LOAD")
+			RebornLoad = true
+			orbload = true
+		else
+			_print("SIDA AUTO CARRY: REVAMPED LOAD")
+			RevampedLoaded = true
+			orbload = true
+		end
+	elseif _G.Reborn_Loaded then
+		SacLoad = true
+		DelayAction(OnOrbLoad, 1)
+	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
+		_print("SxOrbWalk Load")
+		require 'SxOrbWalk'
+		SxO = SxOrbWalk()
+		SxOLoad = true
+		orbload = true
+	end
+end
+
+
 function OnLoad()
 	
 	ToUpdate = {}
@@ -338,14 +367,19 @@ function OnLoad()
 	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
 	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">Error while Downloading. Please try again.</b></font>") end
 	ScriptUpdate(VERSION, true, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
-
-    Orbwalker = SOW(VP)
+	OnOrbLoad()
     ts = TargetSelector(TARGET_NEAR_MOUSE,1000)
 
     Menu = scriptConfig("No Vayne No Gain", "VayneBL")
 
     Menu:addSubMenu("["..myHero.charName.." - Orbwalker]", "SOWorb")
-    Orbwalker:LoadToMenu(Menu.SOWorb)
+    if SxOLoad then
+		SxO:LoadToMenu(Menu.SOWorb)
+	elseif SacLoad then
+		Menu.SOWorb:addParam("", "SAC Detected", SCRIPT_PARAM_INFO, "")
+	elseif MMALoad then
+		Menu.SOWorb:addParam("", "MMA Detected", SCRIPT_PARAM_INFO, "")
+	end
 
     Menu:addSubMenu("["..myHero.charName.." - Combo]", "VayneCombo")
     Menu.VayneCombo:addParam("combo", "Combo key", SCRIPT_PARAM_ONKEYDOWN, false, 32)
@@ -372,7 +406,7 @@ function OnLoad()
     Menu.Condemn:addSubMenu("Features & Settings", "settingsSubMenu")
     Menu.Condemn:addSubMenu("Disable Auto-Condemn on", "condemnSubMenu")
 
-    Menu.Condemn:addParam("autoCondemn", "Auto-Condemn Toggle:", SCRIPT_PARAM_ONKEYTOGGLE, false, 32)
+    Menu.Condemn:addParam("autoCondemn", "Auto-Condemn Toggle:", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("Z"))
     Menu.Condemn:addParam("switchKey", "Switch key mode:", SCRIPT_PARAM_ONOFF, false)
 
     Menu.Condemn:addSubMenu("Only Condemn current target", "OnlyCurrentTarget")
@@ -400,17 +434,7 @@ function OnLoad()
     Menu:addSubMenu("["..myHero.charName.." - Drawings]", "drawings")
     Menu.drawings:addParam("drawCircleAA", "Draw AA Range", SCRIPT_PARAM_ONOFF, true)
 
-	UpdateWeb(true, ScriptName, id, HWID)
-
     PrintChat("<font color = \"#33CCCC\">No Vayne No Gain by</font> <font color = \"#fff8e7\">Lillgoalie</font> <font color = \"#33CCCC\"> Fixed by </font> <font color = \"#fff8e7\"> KaoKaoNi </font>")
-end
-
-function OnBugsplat()
-	UpdateWeb(false, ScriptName, id, HWID)
-end
-
-function OnUnload()
-	UpdateWeb(false, ScriptName, id, HWID)
 end
 
 function OnTick()
