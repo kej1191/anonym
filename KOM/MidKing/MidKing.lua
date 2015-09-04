@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.15
+local VERSION = 1.16
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -1019,7 +1019,7 @@ function Xerath:CastE(target)
 				end
 			end
 		elseif self.Config.Pred.EPred == 2 then
-			self.EPos, self.EHitChance = VP:VP:GetLineCastPosition(target, self.E.Delay, self.E.Width, self.E.Range, self.E.Speed, myHero, true)
+			self.EPos, self.EHitChance = VP:GetLineCastPosition(target, self.E.Delay, self.E.Width, self.E.Range, self.E.Speed, myHero, true)
 			if self.EPos ~= nil and self.EHitChance ~= nil then
 				if self.EHitChance >= 0.8 then
 					CastSpell(_E, self.EPos.x, self.EPos.z)
