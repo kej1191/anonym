@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.16
+local VERSION = 1.17
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -659,7 +659,7 @@ function Xerath:__init()
 	self.WTS = TargetSelector(TARGET_LESS_CAST, self.W.Range, DAMAGE_MAGIC, false)
 	self.ETS = TargetSelector(TARGET_LESS_CAST, self.E.Range, DAMAGE_MAGIC, false)
 	self.RTS = TargetSelector(TARGET_LESS_CAST, 3200, DAMAGE_MAGIC, false)
-	
+
 	
 	self.ECol = Collision(self.E.Range, self.E.Speed, self.E.Delay, self.E.Width)
 	
@@ -1026,8 +1026,8 @@ function Xerath:CastE(target)
 				end
 			end
 		elseif self.Config.Pred.EPred == 3 then
-			self.EPos, self.EHitChance, self.PredPos = SP:Predict(target, self.E.Range, self.E.Speed, self.E.Delay, self.E.Width*2, false, myHero)
-			if self.EPos ~= nil and self.EHitChance ~= nil and not self.ECol:GetMinionCollision(myHero, target) and not self.ECol:GetHeroCollision(myHero, target, HERO_ALL) then
+			self.EPos, self.EHitChance, self.PredPos = SP:Predict(target, self.E.Range, self.E.Speed, self.E.Delay, self.E.Width*2, true, myHero)
+			if self.EPos ~= nil and self.EHitChance ~= nil then
 				if self.EHitChance >= 0.8 then
 					CastSpell(_E, self.EPos.x, self.EPos.z)
 				end
@@ -1265,8 +1265,6 @@ function Karthus:__init()
 	
 	self.HP_Q = HPSkillshot({type = "PromptCircle", range = self.Q.Range, width = self.Q.Width, delay = self.Q.Delay, IsLowAccuracy = true})
 	self.HP_W = HPSkillshot({type = "PromptLine", range = self.W.Range, width = self.W.Width, delay = self.W.Delay})
-	
-	local DivineW = dp:bindSS("DivineW", self.DivineW)
 	
 	self.minionTable =  minionManager(MINION_ENEMY, self.Q.Range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	self.jungleTable = minionManager(MINION_JUNGLE, self.Q.Range, myHero, MINION_SORT_MAXHEALTH_DEC)
