@@ -46,7 +46,8 @@ end
 function ScriptUpdate:OnDraw()
 
   if self.DownloadStatus ~= 'Downloading Script (100%)' and self.DownloadStatus ~= 'Downloading VersionInfo (100%)'then
-    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),18,10,50,ARGB(0xFF,0xFF,0xFF,0xFF))
+	DrawText3D('No Vayne No Gain',myHero.x,myHero.y,myHero.z+70, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
+    DrawText3D('Download Status: '..(self.DownloadStatus or 'Unknown'),myHero.x,myHero.y,myHero.z+50, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
   end
   
 end
@@ -320,9 +321,10 @@ local AllClassMenu = 16
 local qOff, wOff, eOff, rOff = 0,0,0,0
 local abilitySequence = {1, 2, 3, 1, 1, 4, 1, 2, 1, 2, 4, 2, 2, 3, 3, 4, 3, 3}
 local MMALoad, orbload, RebornLoad, RevampedLoaded, SxOLoad = nil, false, nil, nil, nil
+local silverTable = {}
 
 ScriptName = "NoVayneNoGain"
-VERSION = 1.01
+VERSION = 1.02
 local function _print(msg)
 	print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">"..msg..". </b></font>")
 end
@@ -353,6 +355,21 @@ function OnOrbLoad()
 	end
 end
 
+local function OrbTarget(range)
+	local T
+	if MMALoad then T = _G.MMA_Target end
+	if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
+	if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
+	if SxOLoad then T = SxO:GetTarget() end
+	if SOWLoaded then T = SOW:GetTarget() end
+	if T == nil then 
+		T = STS:GetTarget(range)
+	end
+	if T and T.type == player.type and ValidTarget(T, range) then
+		return T
+	end
+end
+
 
 function OnLoad()
 	
@@ -379,7 +396,6 @@ function OnLoad()
 	elseif MMALoad then
 		Menu.SOWorb:addParam("", "MMA Detected", SCRIPT_PARAM_INFO, "")
 	end
-
     Menu:addSubMenu("["..myHero.charName.." - Combo]", "VayneCombo")
     Menu.VayneCombo:addParam("combo", "Combo key", SCRIPT_PARAM_ONKEYDOWN, false, 32)
     Menu.VayneCombo:addParam("comboQ", "Use Q in combo", SCRIPT_PARAM_ONOFF, true)
@@ -387,7 +403,11 @@ function OnLoad()
     Menu.VayneCombo:addParam("comboRRange", "Enemies in range for R", SCRIPT_PARAM_SLICE, 2, 0, 5, 0)
     Menu.VayneCombo:addSubMenu("Item usage", "itemUse")
     Menu.VayneCombo.itemUse:addParam("BOTRK", "Use BOTRK in combo", SCRIPT_PARAM_ONOFF, true)
-
+	
+	Menu:addSubMenu("["..myHero.charName.." - Harass]", "Harass")
+	Menu.Harass:addParam("harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+	Menu.Harass:addParam("LastE", "3hit with E", SCRIPT_PARAM_ONOFF, true)
+	
     Menu:addSubMenu("["..myHero.charName.." - Laneclear]", "LaneC")
     Menu.LaneC:addParam("laneclr", "Laneclear key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
     Menu.LaneC:addParam("clearQ", "Use Q in laneclear", SCRIPT_PARAM_ONOFF, true)
@@ -406,7 +426,8 @@ function OnLoad()
     Menu.Condemn:addSubMenu("Disable Auto-Condemn on", "condemnSubMenu")
 
     Menu.Condemn:addParam("autoCondemn", "Auto-Condemn Toggle:", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("Z"))
-    Menu.Condemn:addParam("switchKey", "Switch key mode:", SCRIPT_PARAM_ONOFF, false)
+    Menu.Condemn:addParam("switchKey", "hot key mode:", SCRIPT_PARAM_ONOFF, true)
+	Menu.Condemn:addParam("Condemn", "Condemn key:", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 
     Menu.Condemn:addSubMenu("Only Condemn current target", "OnlyCurrentTarget")
     Menu.Condemn.OnlyCurrentTarget:addParam("Condemntarget", "Only condemn current target", SCRIPT_PARAM_ONOFF, false)
@@ -434,11 +455,42 @@ function OnLoad()
     Menu.drawings:addParam("drawCircleAA", "Draw AA Range", SCRIPT_PARAM_ONOFF, true)
 
     PrintChat("<font color = \"#33CCCC\">No Vayne No Gain by</font> <font color = \"#fff8e7\">Lillgoalie</font> <font color = \"#33CCCC\"> Fixed by </font> <font color = \"#fff8e7\"> KaoKaoNi </font>")
+	
+	AddApplyBuffCallback(function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
+	AddUpdateBuffCallback(function(unit, buff, stacks) OnUpdateBuff(unit, buff, stacks) end)
+	AddRemoveBuffCallback(function(unit, buff) OnRemoveBuff(unit, buff) end)
+	
+end
+
+function OnApplyBuff(source, unit, buff)
+	if unit and buff.name == "vaynesilvereddebuff" then
+		_silver = { unit = unit, stack = 1 }
+		table.insert(silverTable, _silver)
+	end
+end
+
+function OnUpdateBuff(unit, buff, stacks)
+	if unit and buff.name == "vaynesilvereddebuff" then
+		for index , _unit in ipairs(silverTable) do
+			if _unit.unit == unit then
+				unit.stack = stacks
+			end
+		end
+	end
+end
+
+function OnRemoveBuff(unit, buff)
+	if unit and buff.name == "vaynesilvereddebuff" then
+		for index , _unit in ipairs(silverTable) do
+			if _unit.unit == unit then
+				table.remove(silverTable, index)
+			end
+		end
+	end
 end
 
 function OnTick()
     ts:update()
-
     if CountEnemyHeroInRange(600) >= Menu.VayneCombo.comboRRange then
         if (Menu.VayneCombo.comboR) then
             if (Menu.VayneCombo.combo) then
@@ -451,7 +503,9 @@ function OnTick()
     if (Menu.VayneCombo.combo) then
         UseBotrk()
     end
-
+	if Menu.Harass.Harass then
+		Harass()
+	end
     if Menu.Ads.AutoLevelspells then
         AutoLevel()
     end
@@ -469,13 +523,26 @@ function OnTick()
 		startUp = false;
 	end
 	
-	if Menu.Condemn.autoCondemn then
+	if (not Menu.Condemn.switchKey and Menu.Condemn.autoCondemn) or (Menu.Condemn.switchKey and Menu.Condemn.Condemn) then
         if not Menu.Condemn.OnlyCurrentTarget.Condemntarget then
             CondemnAll()
         elseif Menu.Condemn.OnlyCurrentTarget.Condemntarget then
             CondemnNearMouse()
         end
     end
+end
+
+function Harass()
+	if Menu.Harass.LastE then
+		local ETarget = OrbTarget()
+		if myHero:CanUseSpell(_E) == READY then
+			for index , _unit in ipairs(silverTable) do
+				if _unit.unit == ETarget and _unit.stack == 2 then
+					CastSpell(_E, _unit.unit)
+				end
+			end
+		end
+	end
 end
 
 function DrakeWall()
@@ -488,11 +555,11 @@ function DrakeWall()
 end
 
 function MidWall()
-    if Menu.WallT.midwall and myHero.x < 6600 or myHero.x > 6660 or myHero.z < 8630 or myHero.z > 8680 then
-      myHero:MoveTo(6623, 8649)
+    if Menu.WallT.midwall and myHero.x < 7204 or myHero.x > 7204 or myHero.z < 8770 or myHero.z > 8770 then
+      myHero:MoveTo(7204, 8770)
     else
-      myHero:MoveTo(6623, 8649)
-      CastSpell(_Q, 6010.5869140625, 8508.8740234375)
+      myHero:MoveTo(7204, 8770)
+      CastSpell(_Q, 6818, 8510)
     end
 end
 
@@ -642,7 +709,7 @@ function OnProcessSpell(unit, spell)
         end
     end
 
-    if unit.isMe and spell.name:lower():find("attack") and Menu.LaneC.clearQ and Menu.LaneC.laneclr and myHero.mana >= (myHero.maxMana*(Menu.LaneC.laneclearMana*0.01)) then
+    if unit.isMe and spell.name:lower():find("attack") and Menu.LaneC.clearQ and Menu.LaneC.laneclr and myHero.mana >= (myHero.maxMana*(Menu.LaneC.laneclearMana*0.01)) and getDmg("AD", unit , myHero) < unit.health then
         SpellTarget = spell.target
             DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
     end
@@ -679,6 +746,7 @@ function OnProcessSpell(unit, spell)
         ['Tristana']    = {true, spell = _W,                  range = 900,   projSpeed = 2000, },
         ['Tryndamere']  = {true, spell = 'Slash',             range = 650,   projSpeed = 1450, },
         ['XinZhao']     = {true, spell = _E,                  range = 650,   projSpeed = 2000, }, -- Targeted ability
+		['Ekko'] 		= {true, spell = _E,				  range = 360,	 projSpeed = 2000, },
     }
     if unit.type == 'obj_AI_Hero' and unit.team == TEAM_ENEMY and isAGapcloserUnit[unit.charName] and GetDistance(unit) < 2000 and spell ~= nil then
         if spell.name == (type(isAGapcloserUnit[unit.charName].spell) == 'number' and unit:GetSpellData(isAGapcloserUnit[unit.charName].spell).name or isAGapcloserUnit[unit.charName].spell) then
