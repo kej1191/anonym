@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.17
+local VERSION = 1.18
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -34,7 +34,8 @@ end
 function ScriptUpdate:OnDraw()
 
   if self.DownloadStatus ~= 'Downloading Script (100%)' and self.DownloadStatus ~= 'Downloading VersionInfo (100%)'then
-    DrawText('Download Status: '..(self.DownloadStatus or 'Unknown'),18,10,50,ARGB(0xFF,0xFF,0xFF,0xFF))
+    DrawText3D('MidKing',myHero.x,myHero.y,myHero.z+70, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
+    DrawText3D('Download Status: '..(self.DownloadStatus or 'Unknown'),myHero.x,myHero.y,myHero.z+50, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
   end
   
 end
@@ -299,6 +300,7 @@ local SCRIPT_LIBS = {
 	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua",
 	["SPrediction"] = "https://raw.githubusercontent.com/nebelwolfi/BoL/master/Common/SPrediction.lua",
 	["VPrediction"] = "",
+	["DivinePred"]	= "",
 	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
 	["Collision"] = "https://bitbucket.org/Klokje/public-klokjes-bol-scripts/raw/b891699e739f77f77fd428e74dec00b2a692fdef/Common/Collision.lua",
 }
@@ -331,6 +333,7 @@ local minionTable =  minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_MAXHE
 local SP = SPrediction()
 local HP = HPrediction()
 local VP = VPrediction()
+local dp = DivinePred()
 
 local Colors = { 
     -- O R G B
@@ -341,7 +344,7 @@ local Colors = {
     Blue    =  ARGB(255, 0, 0, 255),
 }
 
-local SupPred = {"H Prediction", "V Prediction", "S Prediction"}
+local SupPred = {"H Prediction", "V Prediction", "S Prediction", "D Prediction"}
 
 function OnOrbLoad()
 	if _G.MMA_LOADED then
@@ -660,6 +663,20 @@ function Xerath:__init()
 	self.ETS = TargetSelector(TARGET_LESS_CAST, self.E.Range, DAMAGE_MAGIC, false)
 	self.RTS = TargetSelector(TARGET_LESS_CAST, 3200, DAMAGE_MAGIC, false)
 
+	self.DivineQ = LineSS(self.Q.Speed, self.Q.MaxRange, self.Q.Width, self.Q.Delay * 1000, 0)
+	local DivineQ = dp:bindSS("DivineQ", self.DivineQ, 1)
+	
+	self.DivineW = CircleSS(self.W.Speed, self.W.Range, self.W.Width, self.W.Delay * 1000, 0)
+	local DivineW = dp:bindSS("DivineW", self.DivineW, 1)
+	
+	self.DivineWS = CircleSS(self.W.Speed, self.W.Range, 50, self.W.Delay * 1000, 0)
+	local DivineWS = dp:bindSS("DivineWS", self.DivineWS, 1)
+	
+	self.DivineE = LineSS(self.E.Speed, self.E.Range, self.E.Width, self.E.Delay * 1000,  math.huge)
+	local DivineE = dp:bindSS("DivineE", self.DivineE, 1)
+	
+	self.DivineR = CircleSS(self.R.Speed, 5600, self.R.Width, self.R.Delay * 1000, 0)
+	local DivineR = dp:bindSS("DivineR", self.DivineR, 1)
 	
 	self.ECol = Collision(self.E.Range, self.E.Speed, self.E.Delay, self.E.Width)
 	
@@ -808,10 +825,13 @@ function Xerath:Tick()
 	
 	if myHero:GetSpellData(_R).level == 1 then
 		self.Xerath_R = HPSkillshot({type = "DelayCircle", delay = self.R.Delay, range = 3200, speed = self.R.Speed, radius = self.R.Width*2})
+		dp:getSS("DivineR").range = 3200
 	elseif myHero:GetSpellData(_R).level == 2 then
 		self.Xerath_R = HPSkillshot({type = "DelayCircle", delay = self.R.Delay, range = 4400, speed = self.R.Speed, radius = self.R.Width*2})
+		dp:getSS("DivineR").range = 4400
 	elseif myHero:GetSpellData(_R).level == 3 then
 		self.Xerath_R = HPSkillshot({type = "DelayCircle", delay = self.R.Delay, range = 5600, speed = self.R.Speed, radius = self.R.Width*2})
+		dp:getSS("DivineR").range = 5600
 	end
 	
 	if myHero:GetSpellData(_R).level == 1 then
@@ -932,26 +952,36 @@ function Xerath:CastQ(target)
 end
 
 function Xerath:CastQ1(target)
-	self.Qrange = math.min(self.Q.MinRange + (self.Q.MaxRange - self.Q.MinRange) * ((os.clock() - self.Q.LastCastTime) / self.Q.TimeToStopIncrease), self.Q.MaxRange)
-	if self.Config.Pred.QPred == 1 then
-		self.QPos, self.QHitChance = HP:GetPredict(self.Xerath_Q, target, myHero)
-		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.QHitChance >= 1.4 then
-				self:CastQ2(self.QPos)
+	if target ~= nil then
+		self.Qrange = math.min(self.Q.MinRange + (self.Q.MaxRange - self.Q.MinRange) * ((os.clock() - self.Q.LastCastTime) / self.Q.TimeToStopIncrease), self.Q.MaxRange)
+		if self.Config.Pred.QPred == 1 then
+			self.QPos, self.QHitChance = HP:GetPredict(self.Xerath_Q, target, myHero)
+			if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
+				if self.QPos and self.QHitChance >= 1.4 then
+					self:CastQ2(self.QPos)
+				end
 			end
-		end
-	elseif self.Config.Pred.QPred == 2 then
-		self.QPos, self.QHitChance = VP:GetLineAOECastPosition(target, self.Q.Delay, self.Q.Width, self.Q.MaxRange, self.Q.Speed, myHero)
-		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.QHitChance >= 1.4 then
-				self:CastQ2(self.QPos)
+		elseif self.Config.Pred.QPred == 2 then
+			self.QPos, self.QHitChance = VP:GetLineAOECastPosition(target, self.Q.Delay, self.Q.Width, self.Q.MaxRange, self.Q.Speed, myHero)
+			if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
+				if self.QPos and self.QHitChance >= 1.4 then
+					self:CastQ2(self.QPos)
+				end
 			end
-		end
-	elseif self.Config.Pred.QPred == 3 then
-		self.QPos, self.QHitChance, self.PredPos = SP:Predict(target, self.Q.MaxRange, self.Q.Speed, self.Q.Delay, self.Q.Width*2, false, myHero)
-		if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
-			if self.QPos and self.QHitChance >= 1.4 then
-				self:CastQ2(self.QPos)
+		elseif self.Config.Pred.QPred == 3 then
+			self.QPos, self.QHitChance, self.PredPos = SP:Predict(target, self.Q.MaxRange, self.Q.Speed, self.Q.Delay, self.Q.Width*2, false, myHero)
+			if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
+				if self.QPos and self.QHitChance >= 1.4 then
+					self:CastQ2(self.QPos)
+				end
+			end
+		elseif self.Config.Pred.QPred == 4 then
+			local Target = DPTarget(target)
+			self.QState, self.QPos, self.QPerc = dp:predict("DivineQ", Target)
+			if self.QPos and self.QState and self.QState == SkillShot.STATUS.SUCCESS_HIT then
+				if self.Qrange ~= self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange - 200)^2 or self.Qrange == self.Q.MaxRange and GetDistanceSqr(self.QPos) < (self.Qrange)^2 then
+					self:CastQ2(self.QPos)
+				end
 			end
 		end
 	end
@@ -1005,6 +1035,19 @@ function Xerath:CastW(target)
 			if self.WPos and self.WHitChance >= 1.4 then
 				CastSpell(_W, self.WPos.x, self.WPos.z)
 			end
+		elseif self.Config.Pred.WPred == 4 then
+			local Target = DPTarget(target)
+			if self.Config.Misc.WCenter then
+				self.WState, self.WPos, self.WPerc = dp:predict("DivineW", Target)
+				if self.WPos and self.WState == SkillShot.STATUS.SUCCESS_HIT then
+					CastSpell(_W, self.WPos.x, self.WPos.z)
+				end
+			else
+				self.WState, self.WPos, self.WPerc = dp:predict("DivineWS", Target)
+				if self.WPos and self.WState == SkillShot.STATUS.SUCCESS_HIT then
+					CastSpell(_W, self.WPos.x, self.WPos.z)
+				end
+			end
 		end
 	end
 end
@@ -1031,6 +1074,12 @@ function Xerath:CastE(target)
 				if self.EHitChance >= 0.8 then
 					CastSpell(_E, self.EPos.x, self.EPos.z)
 				end
+			end
+		elseif self.Config.Pred.EPred == 4 then
+			local Target = DPTarget(target)
+			self.EState, self.EPos, self.EPerc = dp:predict("DivineE", Target)
+			if self.EPos and self.EState == SkillShot.STATUS.SUCCESS_HIT then
+				CastSpell(_E, self.EPos.x, self.EPos.z)
 			end
 		end
 	end
@@ -1092,6 +1141,12 @@ function Xerath:CastR3(target)
 		elseif self.Config.Pred.RPred == 3 then
 			self.RPos, self.RHitChance = SP:PredictPos(target, self.R.Speed, self.R.Delay)
 			if self.RPos and self.RHitChance >= 1.4 then
+				CastSpell(_R, self.RPos.x, self.RPos.z)
+			end
+		elseif self.Config.Pred.RPred == 4 then
+			local Target = DPTarget(target)
+			self.RState, self.RPos, self.RPerc = dp:predict("DivineR", Target)
+			if self.RPos and self.RState == SkillShot.STATUS.SUCCESS_HIT then
 				CastSpell(_R, self.RPos.x, self.RPos.z)
 			end
 		end
@@ -1268,6 +1323,12 @@ function Karthus:__init()
 	
 	self.minionTable =  minionManager(MINION_ENEMY, self.Q.Range, myHero, MINION_SORT_MAXHEALTH_DEC)
 	self.jungleTable = minionManager(MINION_JUNGLE, self.Q.Range, myHero, MINION_SORT_MAXHEALTH_DEC)
+	
+	self.DivineQ = CircleSS(math.huge,875,200,600,math.huge)
+	local DivineQ = dp:bindSS("DivineQ", self.DivineQ, 1)
+	
+	self.DivineW = CircleSS(math.huge,1000,10,160,math.huge)
+	local DivineW = dp:bindSS("DivineW", self.DivineW, 1)
 	
 	self.recall = false
 	self.dead = false
@@ -1518,10 +1579,19 @@ function Karthus:CastQ(target)
 				CastSpell(_Q, self.QPos.x, self.QPos.z)
 			end
 		elseif self.Config.Pred.QPred == 2 then
-
+			self.QPos, self.QHitChance = VP:GetCircularAOECastPosition(target, self.Q.Delay, self.Q.Width, self.Q.Range, self.Q.Speed, myHero)
+			if self.QPos and self.QHitChance >= 1.4 then
+				CastSpell(_Q, self.QPos.x, self.QPos.z)
+			end
 		elseif self.Config.Pred.QPred == 3 then
 			self.QPos, self.QHitChance, self.PredPos = SP:PredictPos(target, math.huge, self.Q.Delay)
 			if self.QPos and self.QHitChance >= 0.8 then
+				CastSpell(_Q, self.QPos.x, self.QPos.z)
+			end
+		elseif self.Config.Pred.QPred == 4 then
+			Target = DPTarget(target)
+			self.QState, self.QPos, self.Qperc = dp:predict("DivineQ",Target)
+			if self.QState == SkillShot.STATUS.SUCCESS_HIT then
 				CastSpell(_Q, self.QPos.x, self.QPos.z)
 			end
 		end
@@ -1545,6 +1615,12 @@ function Karthus:CastW(target)
 		elseif self.Config.Pred.WPred == 3 then
 			self.WPos, self.WHitChance = SP:PredictPos(target, self.W.Speed, self.W.Delay)
 			if self.WPos and self.WHitChance >= 1.4 then
+				CastSpell(_W, self.WPos.x, self.WPos.z)
+			end
+		elseif self.Config.Pred.WPred == 4 then
+			Target = DPTarget(target)
+			self.WState, self.WPos, self.Qperc = dp:predict("DivineW",Target)
+			if self.WState == SkillShot.STATUS.SUCCESS_HIT then
 				CastSpell(_W, self.WPos.x, self.WPos.z)
 			end
 		end
@@ -1696,6 +1772,10 @@ function MissFortune:__init()
 	self.ScriptName = "Project Kidding"
 	
 	self.HP_E = HPSkillshot({type = "PromptCircle", range = self.E.Range, delay = self.E.Delay, radius = self.E.Width})
+	
+	self.DivineE = CircleSS(self.E.Speed, self.E.Range, self.E.Width, self.E.Delay * 1000, math.huge)
+	local DivineE = dp:bindSS("DivineE", self.DivineE, 1)
+	
 	self:LoadMenu()
 end
 
@@ -1878,6 +1958,12 @@ function MissFortune:CastE(target)
 			self.EPos, self.EHitChance, self.PredPos = SP:PredictPos(target, self.E.Speed, self.E.Delay)
 			if self.EPos and self.EHitChance >= 0.4 then
 				CastSpell(_Q, self.EPos.x, self.EPos.z)
+			end
+		elseif self.Config.Pred.EPred == 4 then
+			Target = DPTarget(target)
+			self.EState, self.EPos, self.Qperc = dp:predict("DivineE",Target)
+			if self.EState == SkillShot.STATUS.SUCCESS_HIT then
+				CastSpell(_E, self.EPos.x, self.EPos.z)
 			end
 		end
 	end
@@ -2403,16 +2489,3 @@ function Awareness:WardTrackerDraw()
 		end
 	end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
