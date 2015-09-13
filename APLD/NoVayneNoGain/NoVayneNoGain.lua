@@ -2,7 +2,8 @@
 
     No Vayne No Gain by Lillgoalie (Condemn based on Vayne's Mighty Assistant by Manciuszz)
 	Fixed by KaoKaoNi (Condemn based on dienofail)
-    Version: 1.00
+    Version: 1.03
+	LastUpdate: 20150913
     
     Features:
         - Combo Mode:
@@ -19,7 +20,8 @@
     Instructions on saving the file:
     - Save the file in scripts folder
 --]]
-
+VERSION = 1.03
+LastUpdate = 20150913
 if myHero.charName ~= "Vayne" then return end
 assert(load(Base64Decode("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"), nil, "bt", _ENV))() ScriptStatus("QDGGDJFFIJF") 
 class("ScriptUpdate")
@@ -324,7 +326,6 @@ local MMALoad, orbload, RebornLoad, RevampedLoaded, SxOLoad = nil, false, nil, n
 local silverTable = {}
 
 ScriptName = "NoVayneNoGain"
-VERSION = 1.02
 local function _print(msg)
 	print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">"..msg..". </b></font>")
 end
@@ -406,6 +407,7 @@ function OnLoad()
 	
 	Menu:addSubMenu("["..myHero.charName.." - Harass]", "Harass")
 	Menu.Harass:addParam("harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+	Menu.Harass:addParam("harassQ", "Use Q in harass", SCRIPT_PARAM_ONOFF, true)
 	Menu.Harass:addParam("LastE", "3hit with E", SCRIPT_PARAM_ONOFF, true)
 	
     Menu:addSubMenu("["..myHero.charName.." - Laneclear]", "LaneC")
@@ -439,7 +441,10 @@ function OnLoad()
     Menu.Condemn.settingsSubMenu:addParam("pushDistance", "Push Distance", SCRIPT_PARAM_SLICE, 440, 0, 450, 0) -- Reducing this value means that the enemy has to be closer to the wall, so you could cast condemn.
     Menu.Condemn.settingsSubMenu:addParam("eyeCandy", "After-Condemn Circle:", SCRIPT_PARAM_ONOFF, true)
 	Menu.Condemn.settingsSubMenu:addParam("accuracy", "Accuracy", SCRIPT_PARAM_SLICE, 5, 1, 50, 15)
-
+	
+	Menu:addParam("V", "Version", SCRIPT_PARAM_INFO, VERSION)
+	Menu:addParam("L", "LastUpdate", SCRIPT_PARAM_INFO, LastUpdate)
+	
     Menu.Condemn:permaShow("autoCondemn")
     -- Override in case it's stuck.
 --    Menu.Condemn.pushDistance = 300
@@ -456,35 +461,20 @@ function OnLoad()
 
     PrintChat("<font color = \"#33CCCC\">No Vayne No Gain by</font> <font color = \"#fff8e7\">Lillgoalie</font> <font color = \"#33CCCC\"> Fixed by </font> <font color = \"#fff8e7\"> KaoKaoNi </font>")
 	
-	AddApplyBuffCallback(function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
+	AddProcessSpellCallback(function(unit, spell) OnProcessSpell(unit, spell) end)
+	--AddApplyBuffCallback(function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
 	AddUpdateBuffCallback(function(unit, buff, stacks) OnUpdateBuff(unit, buff, stacks) end)
-	AddRemoveBuffCallback(function(unit, buff) OnRemoveBuff(unit, buff) end)
-	
-end
-
-function OnApplyBuff(source, unit, buff)
-	if unit and buff.name == "vaynesilvereddebuff" then
-		_silver = { unit = unit, stack = 1 }
-		table.insert(silverTable, _silver)
+	--AddRemoveBuffCallback(function(unit, buff) OnRemoveBuff(unit, buff) end)
+	if AddProcessAttackCallback then
+		AddProcessAttackCallback(function(unit, spell) OnProcessAttack(unit, spell) end)
 	end
 end
 
 function OnUpdateBuff(unit, buff, stacks)
 	if unit and buff.name == "vaynesilvereddebuff" then
-		for index , _unit in ipairs(silverTable) do
-			if _unit.unit == unit then
-				unit.stack = stacks
-			end
-		end
-	end
-end
-
-function OnRemoveBuff(unit, buff)
-	if unit and buff.name == "vaynesilvereddebuff" then
-		for index , _unit in ipairs(silverTable) do
-			if _unit.unit == unit then
-				table.remove(silverTable, index)
-			end
+		if unit.type == myHero.type and stacks >= 2 and Menu.Harass.harass and Menu.Harass.LastE then
+			print("Cast")
+			CastSpell(_E, unit)
 		end
 	end
 end
@@ -504,7 +494,7 @@ function OnTick()
         UseBotrk()
     end
 	if Menu.Harass.Harass then
-		Harass()
+		--Harass()
 	end
     if Menu.Ads.AutoLevelspells then
         AutoLevel()
@@ -530,19 +520,6 @@ function OnTick()
             CondemnNearMouse()
         end
     end
-end
-
-function Harass()
-	if Menu.Harass.LastE then
-		local ETarget = OrbTarget()
-		if myHero:CanUseSpell(_E) == READY then
-			for index , _unit in ipairs(silverTable) do
-				if _unit.unit == ETarget and _unit.stack == 2 then
-					CastSpell(_E, _unit.unit)
-				end
-			end
-		end
-	end
 end
 
 function DrakeWall()
@@ -702,18 +679,6 @@ function CondemnMethod(enemyHero)
 end
 
 function OnProcessSpell(unit, spell)
-    if unit.isMe and spell.name:lower():find("attack") and Menu.VayneCombo.combo and Menu.VayneCombo.comboQ then
-        SpellTarget = spell.target
-        if SpellTarget.type == myHero.type then
-            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
-        end
-    end
-
-    if unit.isMe and spell.name:lower():find("attack") and Menu.LaneC.clearQ and Menu.LaneC.laneclr and myHero.mana >= (myHero.maxMana*(Menu.LaneC.laneclearMana*0.01)) and getDmg("AD", unit , myHero) < unit.health then
-        SpellTarget = spell.target
-            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
-    end
-
     if not Menu.Condemn.settingsSubMenu.PushAwayGapclosers then return end
 
     local jarvanAddition = unit.charName == "JarvanIV" and unit:CanUseSpell(_Q) ~= READY and _R or _Q -- Did not want to break the table below.
@@ -747,10 +712,16 @@ function OnProcessSpell(unit, spell)
         ['Tryndamere']  = {true, spell = 'Slash',             range = 650,   projSpeed = 1450, },
         ['XinZhao']     = {true, spell = _E,                  range = 650,   projSpeed = 2000, }, -- Targeted ability
 		['Ekko'] 		= {true, spell = _E,				  range = 360,	 projSpeed = 2000, },
+		-- new add
+		['Rengar']		= {true, spell = 'RengarLeap',		  range = 600,	 projSpeed = 1800, }, -- Targeted ability
     }
+	local IsSpecial = {
+		['LeeSin'] = true,
+		['Rengar'] = true,
+	}
     if unit.type == 'obj_AI_Hero' and unit.team == TEAM_ENEMY and isAGapcloserUnit[unit.charName] and GetDistance(unit) < 2000 and spell ~= nil then
         if spell.name == (type(isAGapcloserUnit[unit.charName].spell) == 'number' and unit:GetSpellData(isAGapcloserUnit[unit.charName].spell).name or isAGapcloserUnit[unit.charName].spell) then
-            if spell.target ~= nil and spell.target.name == myHero.name or isAGapcloserUnit[unit.charName].spell == 'blindmonkqtwo' then
+            if spell.target ~= nil and (spell.target.name == myHero.name or IsSpecial[unit.charName]) then
 --                print('Gapcloser: ',unit.charName, ' Target: ', (spell.target ~= nil and spell.target.name or 'NONE'), " ", spell.name, " ", spell.projectileID)
                 CastSpell(_E, unit)
             else
@@ -767,4 +738,52 @@ function OnProcessSpell(unit, spell)
             end
         end
     end
+end
+
+function OnProcessAttack(unit, spell)
+	if unit.isMe and spell.name:lower():find("attack") and Menu.VayneCombo.combo and Menu.VayneCombo.comboQ then
+        SpellTarget = spell.target
+        if SpellTarget.type == myHero.type then
+            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
+        end
+    end
+	
+	if unit.isMe and spell.name:lower():find("attack") and Menu.Harass.harass and Menu.Harass.comboQ then
+        SpellTarget = spell.target
+        if SpellTarget.type == myHero.type then
+            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
+        end
+    end
+
+    if unit.isMe and spell.name:lower():find("attack") and Menu.LaneC.clearQ and Menu.LaneC.laneclr and myHero.mana >= (myHero.maxMana*(Menu.LaneC.laneclearMana*0.01)) and getDmg("AD", unit , myHero) < unit.health then
+        SpellTarget = spell.target
+		DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
+    end
+end
+
+function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
+    radius = radius or 300
+    quality = math.max(8,math.floor(180/math.deg((math.asin((chordlength/(2*radius)))))))
+    quality = 2 * math.pi / quality
+    radius = radius*.92
+    local points = {}
+    for theta = 0, 2 * math.pi + quality, quality do
+        local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+        points[#points + 1] = D3DXVECTOR2(c.x, c.y)
+    end
+    DrawLines2(points, width or 1, color or 4294967295)
+end
+
+function DrawCircle2(x, y, z, radius, color)
+    local vPos1 = Vector(x, y, z)
+    local vPos2 = Vector(cameraPos.x, cameraPos.y, cameraPos.z)
+    local tPos = vPos1 - (vPos1 - vPos2):normalized() * radius
+    local sPos = WorldToScreen(D3DXVECTOR3(tPos.x, tPos.y, tPos.z))
+    if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y })  then
+        DrawCircleNextLvl(x, y, z, radius, 1, color, 75)
+    end
+end
+
+function CircleDraw(x,y,z,radius, color)
+    DrawCircle2(x, y, z, radius, color)
 end
