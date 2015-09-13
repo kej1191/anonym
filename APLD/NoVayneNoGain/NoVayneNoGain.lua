@@ -20,7 +20,7 @@
     Instructions on saving the file:
     - Save the file in scripts folder
 --]]
-VERSION = 1.04
+VERSION = 1.05
 LastUpdate = 20150913
 if myHero.charName ~= "Vayne" then return end
 assert(load(Base64Decode("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"), nil, "bt", _ENV))() ScriptStatus("QDGGDJFFIJF") 
@@ -327,6 +327,7 @@ local ForceTarget = nil
 local SSpell = {flash = nil}
 local attacked = false
 local block_aa = false
+local r_IsCasting = false
 
 ScriptName = "NoVayneNoGain"
 local function _print(msg)
@@ -365,7 +366,6 @@ function GetSlotItem(id, unit)
 
 	for slot = ITEM_1, ITEM_7 do
 		local item = unit:GetSpellData(slot).name
-		print(item)
 		if ((#item > 0) and (item:lower() == name:lower())) then
 			return slot
 		end
@@ -420,16 +420,13 @@ function BlockAA(bool)
 	end
 end
 
-local function OrbTarget(range)
+local function OrbTarget()
 	local T
 	if MMALoad then T = _G.MMA_Target end
 	if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
 	if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
 	if SxOLoad then T = SxO:GetTarget() end
 	if SOWLoaded then T = SOW:GetTarget() end
-	if T == nil then 
-		T = STS:GetTarget(range)
-	end
 	if T and T.type == player.type and ValidTarget(T, range) then
 		return T
 	end
@@ -499,6 +496,7 @@ function OnLoad()
     Menu.Condemn.settingsSubMenu:addParam("eyeCandy", "After-Condemn Circle:", SCRIPT_PARAM_ONOFF, true)
 	Menu.Condemn.settingsSubMenu:addParam("accuracy", "Accuracy", SCRIPT_PARAM_SLICE, 5, 1, 50, 15)
 	--Menu.Condemn.settingsSubMenu:addParam("flashCondemn", "Flash Condemn", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('G'))
+	--Menu.Condemn.settingsSubMenu:addParam("flashCondemnToWall", "Flash Condemn To Wall", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('T'))
 	
     Menu.Condemn:addSubMenu("Disable Auto-Condemn on", "condemnSubMenu")
 
@@ -558,6 +556,7 @@ function OnLoad()
 end
 
 function OnApplyBuff(source, unit, buff)
+	if unit.isMe then print(buff.name) end
 	if unit and buff.name == "vaynetumblefade" then
 		if Menu.Misc.Shad.useDelay == 1 or (Menu.Misc.Shad.useDelay == 2 and myHero.health < (myHero.maxHealth*(Menu.Misc.Shad.HPper*0.01))) then
 			if not IsTowerNear() then
@@ -565,6 +564,10 @@ function OnApplyBuff(source, unit, buff)
 				block_aa = true
 			end
 		end
+	end
+	
+	if unit and buff.name == "VayneInquisition" then
+		r_IsCasting = true
 	end
 end
 
@@ -588,6 +591,10 @@ function OnUpdateBuff(unit, buff, stacks)
 		if unit.type == myHero.type and stacks >= 2 and Menu.Harass.harass and Menu.Harass.LastE then
 			CastSpell(_E, unit)
 		end
+	end
+	
+	if unit and buff.name == "VayneInquisition" then
+		r_IsCasting = false
 	end
 end
 
@@ -653,9 +660,9 @@ function OnTick()
 	end
 	
 	if Menu.Misc.Rlow.Enable then
-		if myHero.health < (myHero.maxHealth*(Menu.Misc.Rlow.HPper*0.01)) and CountEnemyHeroInRange(525) > Menu.Misc.Rlow.NearEnemy and not Menu.Misc.Rlow.attacked then
+		if myHero.health < (myHero.maxHealth*(Menu.Misc.Rlow.HPper*0.01)) and CountEnemyHeroInRange(525) > Menu.Misc.Rlow.NearEnemy and not Menu.Misc.Rlow.attacked and (myHero:CanUseSpell(_R) == READY and myHero:CanUseSpell(_Q) == READY) then
 			local _pos = behind(ts.target)
-			CastSpell(_R)
+			if not r_IsCasting then CastSpell(_R) end
 			CastSpell(_Q, _pos.x, _pos.z)
 		end
 	end
@@ -698,18 +705,16 @@ function AutoLevel()
 end
 
 function UseBotrk()
-	local target = OrbTarget(450)
+	local target = OrbTarget()
     if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3153) ~= nil and myHero:CanUseSpell(GetSlotItem(3153)) == READY then
-		print("Ready and Target is not nil")
         if (Menu.VayneCombo.itemUse.BOTRK) then
-			print("Cast!")
             CastSpell(GetSlotItem(3153), target)
         end
     end
 end
 
 function UseBilge()
-	local target = OrbTarget(450)
+	local target = OrbTarget()
 	if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3144) ~= nil and myHero:CanUseSpell(GetSlotItem(3144)) == READY then
         if (Menu.VayneCombo.itemUse.Bilge) then 
             CastSpell(GetSlotItem(3144), target)
@@ -718,7 +723,7 @@ function UseBilge()
 end
 
 function UseYoumuus()
-	local target = OrbTarget(450)
+	local target = OrbTarget()
     if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible  and GetSlotItem(3142) ~= nil and myHero:CanUseSpell(GetSlotItem(3142)) == READY then
         if (Menu.VayneCombo.itemUse.YOUMUUS) then 
             CastSpell(GetSlotItem(3142))
@@ -727,7 +732,7 @@ function UseYoumuus()
 end
 
 function UsePotion()
-	local target = OrbTarget(450)
+	local target = OrbTarget()
     if target ~= nil and not target.dead and target.visible and Menu.VayneCombo.combo and GetSlotItem(9999) ~= nil and myHero:CanUseSpell(GetSlotItem(9999)) == READY then
         if (Menu.VayneCombo.itemUse.Potion) then 
             CastSpell(GetSlotItem(9999))
@@ -744,6 +749,48 @@ function OnDraw()
     if (Menu.drawings.drawCircleAA) then
         DrawCircle(myHero.x, myHero.y, myHero.z, 655, ARGB(255, 0, 255, 0))
     end
+end
+
+function CheckCondemn()
+	local point = GetPoint(myHero.x, myHero.y, myHero.z, 450, 20)
+	for index, _pos in ipairs(point) do
+		for j , enemy in ipairs(GetEnemyHeroes()) do
+			if GetDistance(_pos, enemy) < 800 then
+				throwaway, Hitchance, troll = VP:GetLineCastPosition(enemy, 0.250, 0, 600, 2200, _pos, false)
+				if Hitchance >= 1 then
+					ePos = troll
+				end
+				maxxPushPosition = Vector(ePos) + (Vector(ePos) - myHero):normalized()*Menu.Condemn.settingsSubMenu.pushDistance
+				if ePos ~= nil then
+					local checks = math.ceil(Menu.Condemn.settingsSubMenu.accuracy)
+					local checkDistance = math.ceil(Menu.Condemn.settingsSubMenu.pushDistance/checks)
+					local InsideTheWall = false
+					for k=1, checks, 1 do
+						local PushPosition = Vector(ePos) + Vector(Vector(ePos) - Vector(myHero)):normalized()*(checkDistance*k)
+						if IsWall(D3DXVECTOR3(PushPosition.x, PushPosition.y, PushPosition.z)) then
+							if GetDistance(PushPosition) < 450 and GetDistance(PushPosition) > 0 and myHero:CanUseSpell(SSpell.flash) == READY and myHero:CanUseSpell(_E) == READY then
+								CastSpell(_E, enemy)
+								CastSpell(SSpell.flash, PushPosition.x, PushPosition.z)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+function GetPoint(x, y, z, radius, chordlength)
+    radius = radius or 300
+    quality = math.max(8,math.floor(180/math.deg((math.asin((chordlength/(2*radius)))))))
+    quality = 2 * math.pi / quality
+    radius = radius*.92
+    local points = {}
+    for theta = 0, 2 * math.pi + quality, quality do
+        local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+        table.insert(points, c)
+    end
+	return points
 end
 
 function CondemnAll()
