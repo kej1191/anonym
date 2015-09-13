@@ -2,7 +2,7 @@
 
     No Vayne No Gain by Lillgoalie (Condemn based on Vayne's Mighty Assistant by Manciuszz)
 	Fixed by KaoKaoNi (Condemn based on dienofail)
-    Version: 1.03
+    Version: 1.04
 	LastUpdate: 20150913
     
     Features:
@@ -20,7 +20,7 @@
     Instructions on saving the file:
     - Save the file in scripts folder
 --]]
-VERSION = 1.03
+VERSION = 1.04
 LastUpdate = 20150913
 if myHero.charName ~= "Vayne" then return end
 assert(load(Base64Decode("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"), nil, "bt", _ENV))() ScriptStatus("QDGGDJFFIJF") 
@@ -323,12 +323,56 @@ local AllClassMenu = 16
 local qOff, wOff, eOff, rOff = 0,0,0,0
 local abilitySequence = {1, 2, 3, 1, 1, 4, 1, 2, 1, 2, 4, 2, 2, 3, 3, 4, 3, 3}
 local MMALoad, orbload, RebornLoad, RevampedLoaded, SxOLoad = nil, false, nil, nil, nil
-local silverTable = {}
+local ForceTarget = nil
+local SSpell = {flash = nil}
+local attacked = false
+local block_aa = false
 
 ScriptName = "NoVayneNoGain"
 local function _print(msg)
 	print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">"..msg..". </b></font>")
 end
+
+function LoadItem()
+	ItemNames				= {
+		[3153]				= "itemswordoffeastandfamine", -- BOTRk currectly work
+		[3142]				= "Youmusblade", -- YOUMUUS currectly work
+		[9999]				= "Elixirofwrath", -- Wrath Elixir not work
+		[3144]				= "Bilgewatercutless", -- Bilge water cutless not work
+	}
+
+	_G.ITEM_1				= 06
+	_G.ITEM_2				= 07
+	_G.ITEM_3				= 08
+	_G.ITEM_4				= 09
+	_G.ITEM_5				= 10
+	_G.ITEM_6				= 11
+	_G.ITEM_7				= 12
+
+	___GetInventorySlotItem	= rawget(_G, "GetInventorySlotItem")
+	_G.GetInventorySlotItem	= GetSlotItem
+end
+
+function GetSlotItem(id, unit)
+
+	unit 		= unit or myHero
+
+	if (not ItemNames[id]) then
+		return ___GetInventorySlotItem(id, unit)
+	end
+
+	local name	= ItemNames[id]
+
+	for slot = ITEM_1, ITEM_7 do
+		local item = unit:GetSpellData(slot).name
+		print(item)
+		if ((#item > 0) and (item:lower() == name:lower())) then
+			return slot
+		end
+	end
+end
+
+
 function OnOrbLoad()
 	if _G.MMA_LOADED then
 		_print("MMA LOAD")
@@ -356,6 +400,26 @@ function OnOrbLoad()
 	end
 end
 
+function BlockAA(bool)
+	if not bool and orbload then
+		if MMALoad then
+			_G.MMA_StopAttacks(false)
+		elseif SacLoad then
+			_G.AutoCarry.MyHero:AttacksEnabled(true)
+		elseif SxOLoad then
+			SxO:EnableAttacks()
+		end
+	elseif bool and orbload then
+		if MMALoad then
+			_G.MMA_StopAttacks(true)
+		elseif SacLoad then
+			_G.AutoCarry.MyHero:AttacksEnabled(false)
+		elseif SxOLoad then
+			SxO:DisableAttacks()
+		end
+	end
+end
+
 local function OrbTarget(range)
 	local T
 	if MMALoad then T = _G.MMA_Target end
@@ -373,7 +437,7 @@ end
 
 
 function OnLoad()
-	
+	LoadItem()
 	ToUpdate = {}
 	ToUpdate.Host = "raw.githubusercontent.com"
 	ToUpdate.VersionPath = "/kej1191/anonym/master/APLD/NoVayneNoGain/NoVayneNoGain.version"
@@ -404,6 +468,9 @@ function OnLoad()
     Menu.VayneCombo:addParam("comboRRange", "Enemies in range for R", SCRIPT_PARAM_SLICE, 2, 0, 5, 0)
     Menu.VayneCombo:addSubMenu("Item usage", "itemUse")
     Menu.VayneCombo.itemUse:addParam("BOTRK", "Use BOTRK in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.VayneCombo.itemUse:addParam("YOUMUUS", "Use YOUMUUS in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.VayneCombo.itemUse:addParam("POTION", "Use Wrath Elixir in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.VayneCombo.itemUse:addParam("Bilge", "Use Bilgewater in combo", SCRIPT_PARAM_ONOFF, true)
 	
 	Menu:addSubMenu("["..myHero.charName.." - Harass]", "Harass")
 	Menu.Harass:addParam("harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
@@ -425,6 +492,14 @@ function OnLoad()
     Menu:addSubMenu("["..myHero.charName.." - Condemn]", "Condemn")
 
     Menu.Condemn:addSubMenu("Features & Settings", "settingsSubMenu")
+	Menu.Condemn.settingsSubMenu:addParam("PushAwayGapclosers", "Push Gapclosers Away", SCRIPT_PARAM_ONOFF, true)
+	Menu.Condemn.settingsSubMenu:addParam("QafterPush", "Cast Q back after push", SCRIPT_PARAM_ONOFF, true)
+    Menu.Condemn.settingsSubMenu:addParam("CondemnAssistant", "Condemn Visual Assistant:", SCRIPT_PARAM_ONOFF, true)
+    Menu.Condemn.settingsSubMenu:addParam("pushDistance", "Push Distance", SCRIPT_PARAM_SLICE, 440, 0, 450, 0) -- Reducing this value means that the enemy has to be closer to the wall, so you could cast condemn.
+    Menu.Condemn.settingsSubMenu:addParam("eyeCandy", "After-Condemn Circle:", SCRIPT_PARAM_ONOFF, true)
+	Menu.Condemn.settingsSubMenu:addParam("accuracy", "Accuracy", SCRIPT_PARAM_SLICE, 5, 1, 50, 15)
+	--Menu.Condemn.settingsSubMenu:addParam("flashCondemn", "Flash Condemn", SCRIPT_PARAM_ONKEYDOWN, false, string.byte('G'))
+	
     Menu.Condemn:addSubMenu("Disable Auto-Condemn on", "condemnSubMenu")
 
     Menu.Condemn:addParam("autoCondemn", "Auto-Condemn Toggle:", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("Z"))
@@ -433,14 +508,24 @@ function OnLoad()
 
     Menu.Condemn:addSubMenu("Only Condemn current target", "OnlyCurrentTarget")
     Menu.Condemn.OnlyCurrentTarget:addParam("Condemntarget", "Only condemn current target", SCRIPT_PARAM_ONOFF, false)
+	Menu.Condemn.OnlyCurrentTarget:addParam("Info", "targeting is mouse click", SCRIPT_PARAM_INFO, "")
     Menu.Condemn.OnlyCurrentTarget:addTS(ts)
     ts.name = "Condemn"
-
-    Menu.Condemn.settingsSubMenu:addParam("PushAwayGapclosers", "Push Gapclosers Away", SCRIPT_PARAM_ONOFF, true)
-    Menu.Condemn.settingsSubMenu:addParam("CondemnAssistant", "Condemn Visual Assistant:", SCRIPT_PARAM_ONOFF, true)
-    Menu.Condemn.settingsSubMenu:addParam("pushDistance", "Push Distance", SCRIPT_PARAM_SLICE, 440, 0, 450, 0) -- Reducing this value means that the enemy has to be closer to the wall, so you could cast condemn.
-    Menu.Condemn.settingsSubMenu:addParam("eyeCandy", "After-Condemn Circle:", SCRIPT_PARAM_ONOFF, true)
-	Menu.Condemn.settingsSubMenu:addParam("accuracy", "Accuracy", SCRIPT_PARAM_SLICE, 5, 1, 50, 15)
+	
+	
+	Menu:addSubMenu("["..myHero.charName.." - Misc]", "Misc")
+	Menu.Misc:addSubMenu("use R low hp", "Rlow")
+	Menu.Misc:addSubMenu("Shadow delay", "Shad")
+	
+	Menu.Misc.Rlow:addParam("Enable", "Use R when low hp", SCRIPT_PARAM_ONOFF, true)
+	Menu.Misc.Rlow:addParam("HPper", "Use R hp >= ", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
+	Menu.Misc.Rlow:addParam("NearEnemy", "Use R near enemy >=", SCRIPT_PARAM_SLICE, 2, 0, 5)
+	Menu.Misc.Rlow:addParam("attacked", "Use R only attacked", SCRIPT_PARAM_ONOFF, true)
+	Menu.Misc.Rlow:addParam("QafterR", "Cast Q after r", SCRIPT_PARAM_ONOFF, true)
+	
+	Menu.Misc.Shad:addParam("useDelay", "Use Delay", SCRIPT_PARAM_LIST, 1, {"Always", "Depanding on health", "OFF"})
+	Menu.Misc.Shad:addParam("HPper", "Use Delay my health >=", SCRIPT_PARAM_SLICE, 50, 0, 100, 0)
+	
 	
 	Menu:addParam("V", "Version", SCRIPT_PARAM_INFO, VERSION)
 	Menu:addParam("L", "LastUpdate", SCRIPT_PARAM_INFO, LastUpdate)
@@ -461,26 +546,61 @@ function OnLoad()
 
     PrintChat("<font color = \"#33CCCC\">No Vayne No Gain by</font> <font color = \"#fff8e7\">Lillgoalie</font> <font color = \"#33CCCC\"> Fixed by </font> <font color = \"#fff8e7\"> KaoKaoNi </font>")
 	
+	SSpell.flash= FindSummonerSlot("flash")
+	
 	AddProcessSpellCallback(function(unit, spell) OnProcessSpell(unit, spell) end)
-	--AddApplyBuffCallback(function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
+	AddApplyBuffCallback(function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
 	AddUpdateBuffCallback(function(unit, buff, stacks) OnUpdateBuff(unit, buff, stacks) end)
-	--AddRemoveBuffCallback(function(unit, buff) OnRemoveBuff(unit, buff) end)
+	AddRemoveBuffCallback(function(unit, buff) OnRemoveBuff(unit, buff) end)
 	if AddProcessAttackCallback then
 		AddProcessAttackCallback(function(unit, spell) OnProcessAttack(unit, spell) end)
 	end
 end
 
+function OnApplyBuff(source, unit, buff)
+	if unit and buff.name == "vaynetumblefade" then
+		if Menu.Misc.Shad.useDelay == 1 or (Menu.Misc.Shad.useDelay == 2 and myHero.health < (myHero.maxHealth*(Menu.Misc.Shad.HPper*0.01))) then
+			if not IsTowerNear() then
+				BlockAA(true)
+				block_aa = true
+			end
+		end
+	end
+end
+
+function IsTowerNear()
+	local tHealth = {1000, 1200, 1300, 1500, 2000, 2300, 2500}
+	for i = 1, objManager.iCount, 1 do
+        local unit = objManager:getObject(i)
+        if unit ~= nil then
+			for j, health in ipairs(tHealth) do
+				if unit.type == "obj_AI_Turret" and unit.team ~= unit.team and not string.find(unit.name, "TurretShrine") and GetDistance(unit) < 950 then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 function OnUpdateBuff(unit, buff, stacks)
 	if unit and buff.name == "vaynesilvereddebuff" then
 		if unit.type == myHero.type and stacks >= 2 and Menu.Harass.harass and Menu.Harass.LastE then
-			print("Cast")
 			CastSpell(_E, unit)
 		end
 	end
 end
 
+function OnRemoveBuff(unit, buff)
+	if unit and buff.name == "vaynetumblefade" then
+		BlockAA(false)
+		block_aa = false
+	end
+end
+
 function OnTick()
     ts:update()
+	ForceTarget = GetTarget()
     if CountEnemyHeroInRange(600) >= Menu.VayneCombo.comboRRange then
         if (Menu.VayneCombo.comboR) then
             if (Menu.VayneCombo.combo) then
@@ -492,6 +612,9 @@ function OnTick()
     end
     if (Menu.VayneCombo.combo) then
         UseBotrk()
+		UseYoumuus()
+		UsePotion()
+		UseBilge()
     end
 	if Menu.Harass.Harass then
 		--Harass()
@@ -520,6 +643,26 @@ function OnTick()
             CondemnNearMouse()
         end
     end
+	
+	if Menu.Condemn.settingsSubMenu.flashCondemn then
+		if ForceTarget and myHero:CanUseSpell(SSpell.flash) == READY and GetDistance(ForceTarget) < eRange then
+			local _pos = behind(mousePos)
+			CastSpell(_E, ForceTarget )
+			CastSpell(SSpell.flash, _pos.x, _pos.z)
+		end
+	end
+	
+	if Menu.Misc.Rlow.Enable then
+		if myHero.health < (myHero.maxHealth*(Menu.Misc.Rlow.HPper*0.01)) and CountEnemyHeroInRange(525) > Menu.Misc.Rlow.NearEnemy and not Menu.Misc.Rlow.attacked then
+			local _pos = behind(ts.target)
+			CastSpell(_R)
+			CastSpell(_Q, _pos.x, _pos.z)
+		end
+	end
+	
+	if not myHero:CanUseSpell(_R) == READY then
+		BlockAA(false)
+	end
 end
 
 function DrakeWall()
@@ -555,9 +698,39 @@ function AutoLevel()
 end
 
 function UseBotrk()
-    if ts.target ~= nil and Menu.VayneCombo.combo and GetDistance(ts.target) < 450 and not ts.target.dead and ts.target.visible and GetInventorySlotItem(3153) ~= nil and myHero:CanUseSpell(GetInventorySlotItem(3153)) == READY then
-        if (Menu.VayneCombo.itemUse.BOTRK) then 
-            CastSpell(GetInventorySlotItem(3153), ts.target)
+	local target = OrbTarget(450)
+    if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3153) ~= nil and myHero:CanUseSpell(GetSlotItem(3153)) == READY then
+		print("Ready and Target is not nil")
+        if (Menu.VayneCombo.itemUse.BOTRK) then
+			print("Cast!")
+            CastSpell(GetSlotItem(3153), target)
+        end
+    end
+end
+
+function UseBilge()
+	local target = OrbTarget(450)
+	if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3144) ~= nil and myHero:CanUseSpell(GetSlotItem(3144)) == READY then
+        if (Menu.VayneCombo.itemUse.Bilge) then 
+            CastSpell(GetSlotItem(3144), target)
+        end
+    end
+end
+
+function UseYoumuus()
+	local target = OrbTarget(450)
+    if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible  and GetSlotItem(3142) ~= nil and myHero:CanUseSpell(GetSlotItem(3142)) == READY then
+        if (Menu.VayneCombo.itemUse.YOUMUUS) then 
+            CastSpell(GetSlotItem(3142))
+        end
+    end
+end
+
+function UsePotion()
+	local target = OrbTarget(450)
+    if target ~= nil and not target.dead and target.visible and Menu.VayneCombo.combo and GetSlotItem(9999) ~= nil and myHero:CanUseSpell(GetSlotItem(9999)) == READY then
+        if (Menu.VayneCombo.itemUse.Potion) then 
+            CastSpell(GetSlotItem(9999))
         end
     end
 end
@@ -565,7 +738,7 @@ end
 function OnDraw()
     if myHero.dead then return end
 
-    DrawCircle(6623, 100, 8649, 100, ARGB(0, 102, 0, 0))
+    DrawCircle(7204, 100, 8770, 100, ARGB(0, 102, 0, 0))
     DrawCircle(11590.95, 100, 4656.26, 100, ARGB(0, 102, 0, 0))
 
     if (Menu.drawings.drawCircleAA) then
@@ -595,6 +768,10 @@ function CondemnAll()
 
                 if lineSegment:distance(heroPosition) <= (not informationTable.spellIsAnExpetion and 65 or 200) then
                     CastSpell(_E, informationTable.spellSource)
+					if Menu.Config.settingsSubMenu.QafterPush then
+						local _pos = behind(unit)
+						DelayAction(function() CastSpell(_E, _pos.x, _pos.z) end, 0.25)
+					end
                 end
             else
                 spellExpired = true
@@ -604,7 +781,7 @@ function CondemnAll()
 
         if not Menu.Condemn.OnlyCurrentTarget.Condemntarget and Menu.Condemn.autoCondemn then
             for i, enemyHero in ipairs(enemyTable) do
-                if not Menu.Condemn.condemnSubMenu["disableCondemn"..i] then 
+                if not Menu.Condemn.condemnSubMenu["disableCondemn"..i] and enemyHero == ForceTarget then 
                     InsideTheWall = CondemnMethod(enemyHero)
 					if InsideTheWall then CastSpell(_E, enemyHero) end
                 end
@@ -635,6 +812,10 @@ function CondemnNearMouse()
 
                 if lineSegment:distance(heroPosition) <= (not informationTable.spellIsAnExpetion and 65 or 200) then
                     CastSpell(_E, informationTable.spellSource)
+					if Menu.Config.settingsSubMenu.QafterPush then
+						local _pos = behind(unit)
+						DelayAction(function() CastSpell(_E, _pos.x, _pos.z) end, 0.25)
+					end
                 end
             else
                 spellExpired = true
@@ -724,6 +905,10 @@ function OnProcessSpell(unit, spell)
             if spell.target ~= nil and (spell.target.name == myHero.name or IsSpecial[unit.charName]) then
 --                print('Gapcloser: ',unit.charName, ' Target: ', (spell.target ~= nil and spell.target.name or 'NONE'), " ", spell.name, " ", spell.projectileID)
                 CastSpell(_E, unit)
+				if Menu.Config.settingsSubMenu.QafterPush then
+					local _pos = behind(unit)
+					DelayAction(function() CastSpell(_E, _pos.x, _pos.z) end, 0.25)
+				end
             else
                 spellExpired = false
                 informationTable = {
@@ -741,6 +926,16 @@ function OnProcessSpell(unit, spell)
 end
 
 function OnProcessAttack(unit, spell)
+	if unit.isMe and spell.name:lower():find("attack") then
+		if Menu.Misc.Rlow.Enable then
+			if myHero.health < (myHero.maxHealth*(Menu.Misc.Rlow.HPper*0.01)) and CountEnemyHeroInRange(525) > Menu.Misc.Rlow.NearEnemy and Menu.Misc.Rlow.attacked then
+				local _pos = behind(unit)
+				CastSpell(_R)
+				CastSpell(_Q, _pos.x, _pos.z)
+			end
+		end
+	end
+
 	if unit.isMe and spell.name:lower():find("attack") and Menu.VayneCombo.combo and Menu.VayneCombo.comboQ then
         SpellTarget = spell.target
         if SpellTarget.type == myHero.type then
@@ -786,4 +981,17 @@ end
 
 function CircleDraw(x,y,z,radius, color)
     DrawCircle2(x, y, z, radius, color)
+end
+
+function FindSummonerSlot(name)
+    for slot = SUMMONER_1,SUMMONER_2 do
+        if myHero:GetSpellData(slot).name:lower():find(name:lower()) then
+            return slot
+        end
+    end
+    return nil
+end
+
+function behind(target)
+	return target + Vector(myHero.x-target.x,myHero.y,myHero.z-target.z):normalized()*(GetDistance(myHero,target)+100)
 end
