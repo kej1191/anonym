@@ -20,8 +20,8 @@
     Instructions on saving the file:
     - Save the file in scripts folder
 --]]
-VERSION = 1.07
-LastUpdate = 20150913
+VERSION = 1.08
+LastUpdate = 20150918
 if myHero.charName ~= "Vayne" then return end
 assert(load(Base64Decode("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"), nil, "bt", _ENV))() ScriptStatus("QDGGDJFFIJF") 
 class("ScriptUpdate")
@@ -328,6 +328,7 @@ local SSpell = {flash = nil}
 local attacked = false
 local block_aa = false
 local r_IsCasting = false
+local Elixir = false
 
 ScriptName = "NoVayneNoGain"
 local function _print(msg)
@@ -366,7 +367,6 @@ function GetSlotItem(id, unit)
 
 	for slot = ITEM_1, ITEM_7 do
 		local item = unit:GetSpellData(slot).name
-		DrawText(item, 18, 100, 100+((slot-5)*20), 0xffff0000)
 		if ((#item > 0) and (item:lower() == name:lower())) then
 			return slot
 		end
@@ -441,10 +441,10 @@ function OnLoad()
 	ToUpdate.VersionPath = "/kej1191/anonym/master/APLD/NoVayneNoGain/NoVayneNoGain.version"
 	ToUpdate.ScriptPath =  "/kej1191/anonym/master/APLD/NoVayneNoGain/NoVayneNoGain.lua"
 	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
-	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">Updated to "..NewVersion..". </b></font>") end
-	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">You have lastest version ("..OldVersion..")</b></font>") end
-	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#33CCCC\"><b>[NoVayneNoGain] </b></font> <font color=\"#fff8e7\">Error while Downloading. Please try again.</b></font>") end
+	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"#33CCCC\"><b>NoVayneNoGain </b></font> <font color=\"#fff8e7\">Updated to "..NewVersion..". </b></font>") end
+	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#33CCCC\"><b>NoVayneNoGain </b></font> <font color=\"#fff8e7\">You have lastest version ("..OldVersion..")</b></font>") end
+	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#33CCCC\"><b>NoVayneNoGain </b></font> <font color=\"#fff8e7\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#33CCCC\"><b>NoVayneNoGain </b></font> <font color=\"#fff8e7\">Error while Downloading. Please try again.</b></font>") end
 	ScriptUpdate(VERSION, true, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 	OnOrbLoad()
     ts = TargetSelector(TARGET_NEAR_MOUSE,1000)
@@ -464,11 +464,29 @@ function OnLoad()
     Menu.VayneCombo:addParam("comboQ", "Use Q in combo", SCRIPT_PARAM_ONOFF, true)
     Menu.VayneCombo:addParam("comboR", "Use R in combo", SCRIPT_PARAM_ONOFF, true)
     Menu.VayneCombo:addParam("comboRRange", "Enemies in range for R", SCRIPT_PARAM_SLICE, 2, 0, 5, 0)
-    Menu.VayneCombo:addSubMenu("Item usage", "itemUse")
-    Menu.VayneCombo.itemUse:addParam("BOTRK", "Use BOTRK in combo", SCRIPT_PARAM_ONOFF, true)
-	Menu.VayneCombo.itemUse:addParam("YOUMUUS", "Use YOUMUUS in combo", SCRIPT_PARAM_ONOFF, true)
-	Menu.VayneCombo.itemUse:addParam("POTION", "Use Wrath Elixir in combo", SCRIPT_PARAM_ONOFF, true)
-	Menu.VayneCombo.itemUse:addParam("Bilge", "Use Bilgewater in combo", SCRIPT_PARAM_ONOFF, true)
+	
+    Menu:addSubMenu("["..myHero.charName.." - Items]", "itemUse")
+	
+	Menu.itemUse:addSubMenu("BOTRK", "BOTRK")
+    Menu.itemUse.BOTRK:addParam("Combo", "Use BOTRK in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.BOTRK:addParam("Harass", "Use BOTRK in harass", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.BOTRK:addParam('MaxOwnHealth', 'Max Own Health Percent', SCRIPT_PARAM_SLICE, 90, 1, 100, 0)
+    Menu.itemUse.BOTRK:addParam('MinEnemyHealth', 'Min Enemy Health Percent', SCRIPT_PARAM_SLICE, 20, 1, 100, 0)
+	
+	Menu.itemUse:addSubMenu("YOUMUUS", "YOUMUUS")
+    Menu.itemUse.YOUMUUS:addParam("Combo", "Use BOTRK in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.YOUMUUS:addParam("Harass", "Use BOTRK in harass", SCRIPT_PARAM_ONOFF, true)
+	
+	Menu.itemUse:addSubMenu("Wrath Of Elixir", "Wrath")
+	Menu.itemUse.Wrath:addParam("Combo", "Use Wrath Elixir in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.Wrath:addParam("Harass", "Use Wrath Elixir in harass", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.Wrath:addParam('MaxOwnHealth', 'Max Own Health Percent', SCRIPT_PARAM_SLICE, 80, 1, 100, 0)
+	
+	Menu.itemUse:addSubMenu("bilgewater", "bilgewater")
+    Menu.itemUse.bilgewater:addParam("Combo", "Use bilgewater in combo", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.bilgewater:addParam("Harass", "Use bilgewater in harass", SCRIPT_PARAM_ONOFF, true)
+	Menu.itemUse.bilgewater:addParam('MaxOwnHealth', 'Max Own Health Percent', SCRIPT_PARAM_SLICE, 90, 1, 100, 0)
+    Menu.itemUse.bilgewater:addParam('MinEnemyHealth', 'Min Enemy Health Percent', SCRIPT_PARAM_SLICE, 20, 1, 100, 0)
 	
 	Menu:addSubMenu("["..myHero.charName.." - Harass]", "Harass")
 	Menu.Harass:addParam("harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
@@ -557,7 +575,7 @@ function OnLoad()
 end
 
 function OnApplyBuff(source, unit, buff)
-	if unit and buff.name == "vaynetumblefade" then
+	if unit and unit.isMe and buff.name == "vaynetumblefade" then
 		if Menu.Misc.Shad.useDelay == 1 or (Menu.Misc.Shad.useDelay == 2 and myHero.health < (myHero.maxHealth*(Menu.Misc.Shad.HPper*0.01))) then
 			if not IsTowerNear() then
 				BlockAA(true)
@@ -566,8 +584,11 @@ function OnApplyBuff(source, unit, buff)
 		end
 	end
 	
-	if unit and buff.name == "VayneInquisition" then
+	if unit and unit.isMe and buff.name == "VayneInquisition" then
 		r_IsCasting = true
+	end
+	if unit and unit.isMe and buff.name == "ElixirOfWrath" then
+		Elixir = true
 	end
 end
 
@@ -587,21 +608,24 @@ function IsTowerNear()
 end
 
 function OnUpdateBuff(unit, buff, stacks)
-	if unit and buff.name == "vaynesilvereddebuff" then
+	if unit and unit.isMe and buff.name == "vaynesilvereddebuff" then
 		if unit.type == myHero.type and stacks >= 2 and Menu.Harass.harass and Menu.Harass.LastE then
 			CastSpell(_E, unit)
 		end
 	end
 	
-	if unit and buff.name == "VayneInquisition" then
+	if unit and unit.isMe and buff.name == "VayneInquisition" then
 		r_IsCasting = false
 	end
 end
 
 function OnRemoveBuff(unit, buff)
-	if unit and buff.name == "vaynetumblefade" then
+	if unit and unit.isMe and buff.name == "vaynetumblefade" then
 		BlockAA(false)
 		block_aa = false
+	end
+	if unit and unit.isMe and buff.name == "ElixirOfWrath" then
+		Elixir = false
 	end
 end
 
@@ -617,12 +641,10 @@ function OnTick()
             end
         end
     end
-    if (Menu.VayneCombo.combo) then
-        UseBotrk()
-		UseYoumuus()
-		UsePotion()
-		UseBilge()
-    end
+	UseBotrk()
+	UseYoumuus()
+	UsePotion()
+	UseBilge()
 	if Menu.Harass.Harass then
 		--Harass()
 	end
@@ -707,7 +729,9 @@ end
 function UseBotrk()
 	local target = OrbTarget()
     if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3153) ~= nil and myHero:CanUseSpell(GetSlotItem(3153)) == READY then
-        if (Menu.VayneCombo.itemUse.BOTRK) then
+        if (math.floor(myHero.health / myHero.maxHealth * 100)) > Menu.itemUse.BOTRK.MaxOwnHealth then return end
+		if (math.floor(target.health / target.maxHealth * 100)) < Menu.itemUse.BOTRK.MinEnemyHealth then return end
+		if (Menu.itemUse.BOTRK.Combo and Menu.VayneCombo.combo) or (Menu.itemUse.BOTRK.Harass and Menu.VayneCombo.harass) then
             CastSpell(GetSlotItem(3153), target)
         end
     end
@@ -715,8 +739,10 @@ end
 
 function UseBilge()
 	local target = OrbTarget()
-	if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3144) ~= nil and myHero:CanUseSpell(GetSlotItem(3144)) == READY then
-        if (Menu.VayneCombo.itemUse.Bilge) then 
+	if target ~= nil and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3144) ~= nil and myHero:CanUseSpell(GetSlotItem(3144)) == READY then
+        if (math.floor(myHero.health / myHero.maxHealth * 100)) > Menu.itemUse.bilgewater.MaxOwnHealth then return end
+		if (math.floor(target.health / target.maxHealth * 100)) < Menu.itemUse.bilgewater.MinEnemyHealth then return end
+		if (Menu.itemUse.bilgewater.Combo and Menu.VayneCombo.combo) or (Menu.itemUse.bilgewater.Harass and Menu.VayneCombo.harass) then
             CastSpell(GetSlotItem(3144), target)
         end
     end
@@ -724,8 +750,8 @@ end
 
 function UseYoumuus()
 	local target = OrbTarget()
-    if target ~= nil and Menu.VayneCombo.combo and GetDistance(target) < 450 and not target.dead and target.visible  and GetSlotItem(3142) ~= nil and myHero:CanUseSpell(GetSlotItem(3142)) == READY then
-        if (Menu.VayneCombo.itemUse.YOUMUUS) then 
+    if target ~= nil and GetDistance(target) < 450 and not target.dead and target.visible and GetSlotItem(3142) ~= nil and myHero:CanUseSpell(GetSlotItem(3142)) == READY then
+        if (Menu.itemUse.YOUMUUS.Combo and Menu.VayneCombo.combo) or (Menu.itemUse.YOUMUUS.Harass and Menu.VayneCombo.harass) then
             CastSpell(GetSlotItem(3142))
         end
     end
@@ -733,8 +759,9 @@ end
 
 function UsePotion()
 	local target = OrbTarget()
-    if target ~= nil and not target.dead and target.visible and Menu.VayneCombo.combo and GetSlotItem(9999) ~= nil and myHero:CanUseSpell(GetSlotItem(9999)) == READY then
-        if (Menu.VayneCombo.itemUse.Potion) then 
+    if target ~= nil and not target.dead and target.visible and GetSlotItem(9999) ~= nil and myHero:CanUseSpell(GetSlotItem(9999)) == READY and not Elixir then
+	if (math.floor(myHero.health / myHero.maxHealth * 100)) > Menu.itemUse.Wrath.MaxOwnHealth then return end
+        if (Menu.itemUse.Wrath.Combo and Menu.VayneCombo.combo) or (Menu.itemUse.Wrath.Harass and Menu.VayneCombo.harass) then
             CastSpell(GetSlotItem(9999))
         end
     end
@@ -743,11 +770,11 @@ end
 function OnDraw()
     if myHero.dead then return end
 
-    DrawCircle(7204, 100, 8770, 100, ARGB(0, 102, 0, 0))
-    DrawCircle(11590.95, 100, 4656.26, 100, ARGB(0, 102, 0, 0))
+    DrawCircles(7204, 100, 8770, 100, ARGB(0, 102, 0, 0))
+    DrawCircles(11590.95, 100, 4656.26, 100, ARGB(0, 102, 0, 0))
 
     if (Menu.drawings.drawCircleAA) then
-        DrawCircle(myHero.x, myHero.y, myHero.z, 655, ARGB(255, 0, 255, 0))
+        DrawCircles(myHero.x, myHero.y, myHero.z, 655, ARGB(255, 0, 255, 0))
     end
 end
 
@@ -1026,7 +1053,7 @@ function DrawCircle2(x, y, z, radius, color)
     end
 end
 
-function CircleDraw(x,y,z,radius, color)
+function DrawCircles(x,y,z,radius, color)
     DrawCircle2(x, y, z, radius, color)
 end
 
