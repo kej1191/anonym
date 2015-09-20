@@ -1,4 +1,4 @@
-Version = 2
+Version = 3
 _G.GoodEvade = true
 _G.GoodEvadeVersion = Version
 
@@ -378,8 +378,8 @@ champions2 = {
 		["Winters Bite"]            = {name = "WintersBite", 					spellName = "BraumQ", spellDelay = 225, projectileName = "Braum_Base_Q_mis.troy", projectileSpeed = 1600, range = 1000, radius = 100, type = "line", cc = "false", collision = "true", shieldnow = "true"},
 		["Glacial Fissure"]         = {name = "GlacialFissure", 			spellName = "BraumRWrapper", spellDelay = 500, projectileName = "Braum_Base_R_mis.troy", projectileSpeed = 1250, range = 1250, radius = 100, type = "line", cc = "false", collision = "true", shieldnow = "true"}}},
 	["Ekko"]					 = {charName = "Ekko", skillshots = {
-		["Timewinder"]				= {name = "Timewinder", spellName = "EkkoQ", spellDelay = 250, projectileName = "", projectileSpeed = 1650, range = 950, radius = 60, type = "line", cc = "false", collision = "true", shieldnow = "true"},
-		["Parallel Convergence"]	= {name = "Parallel Convergence", spellName = "EkkoW", spellDelay = 3750, projectileName = "", projectileSpeed = 1650, radius = 373, type = "circular", cc = "false", collision = "false", shieldnow = "false"},
+		["Timewinder"]				= {name = "Timewinder", spellName = "EkkoQ", spellDelay = 250, projectileName = "Ekko_Base_Q_Aoe_Dilation.troy", projectileSpeed = 1650, range = 950, radius = 60, type = "line", cc = "false", collision = "true", shieldnow = "true"},
+		["Parallel Convergence"]	= {name = "Parallel Convergence", spellName = "EkkoW", spellDelay = 3750, projectileName = "Ekko_Base_W_Branch_Timeline.troy", projectileSpeed = 1650, radius = 373, type = "circular", cc = "false", collision = "false", shieldnow = "false"},
 	}}
 	}
 
@@ -763,10 +763,10 @@ function OnLoad()
 	ToUpdate.VersionPath = "/kej1191/anonym/master/GoodEvade/GoodEvade.version"
 	ToUpdate.ScriptPath =  "/kej1191/anonym/master/GoodEvade/GoodEvade.lua"
 	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
-	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"#81BEF7\"><b>FreakingGoodEvade </b></font> <font color=\"#6699ff\">Updated to "..NewVersion..". </b></font>") end
-	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#81BEF7\"><b>FreakingGoodEvade </b></font> <font color=\"#6699ff\">You have lastest version ("..OldVersion..")</b></font>") end
-	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#81BEF7\"><b>FreakingGoodEvade </b></font> <font color=\"#6699ff\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#81BEF7\"><b>FreakingGoodEvade </b></font> <font color=\"#6699ff\">Error while Downloading. Please try again.</b></font>") end
+	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"#81BEF7\"><b>GoodEvade </b></font> <font color=\"#6699ff\">Updated to "..NewVersion..". </b></font>") end
+	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#81BEF7\"><b>GoodEvade </b></font> <font color=\"#6699ff\">You have lastest version ("..OldVersion..")</b></font>") end
+	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#81BEF7\"><b>GoodEvade </b></font> <font color=\"#6699ff\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
+	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#81BEF7\"><b>GoodEvade </b></font> <font color=\"#6699ff\">Error while Downloading. Please try again.</b></font>") end
 	ScriptUpdate(Version, true, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
 	
 	hitboxSize = hitboxTable[GetMyHero().charName]
@@ -1791,7 +1791,7 @@ function NeedDash(skillshot, forceDash)
 	return false
 end
 
-function evadeTo(x, y, forceDash)
+function evadeTo(x, y, forceDash, skillshot)
 	_type = 0
 	if NeedDash(skillshot, true) then
 		_type = 1
@@ -1809,9 +1809,9 @@ function evadeTo(x, y, forceDash)
 		local ourdistance = evadePos:distance(myPos)
 		local dashPos = myPos - (myPos - evadePos):normalized() * dashrange
 		if _type == 1 then
-			DashTo(dashPos.x, dashPos.y)
+			DashTo(x, y)
 		elseif _type == 2 then
-			WardJumpTo(dashPos.x, dashPos.y)
+			WardJumpTo(x, y)
 		end
 	else   
 		myHero:MoveTo(x, y)
@@ -1999,7 +1999,7 @@ end
 -- beggining of circular skillshot dodging functions --
 function mainCircularskillshot5(skillshot, safeTarget)
 	if NeedDash(skillshot, true) and not skillshot.alreadydashed then 
-		evadeTo(safeTarget.x, safeTarget.y, true, a)
+		evadeTo(safeTarget.x, safeTarget.y, true, skillshot)
 		skillshot.alreadydashed = true
 		return true
 		else return false
@@ -2055,7 +2055,7 @@ function mainCircularskillshot4(skillshot, heroPosition, moveableDistance, evade
 		closestPoint = findBestDirection(skillshot, getLastMovementDestination(), possibleMovementTargets)
 		if closestPoint ~= nil then
 			closestPoint = closestPoint + (closestPoint - heroPosition):normalized() * smoothing
-			evadeTo(closestPoint.x, closestPoint.y, true)
+			evadeTo(closestPoint.x, closestPoint.y, true, skillshot)
 			skillshot.alreadydashed = true
 			return true
 			else return false
@@ -2069,7 +2069,7 @@ function mainCircularskillshot3(skillshot, heroPosition)
 		if getLastMovementDestination():distance(heroPosition) > 20 and NeedDash(skillshot, true) and not skillshot.alreadydashed then
 		dashpos = getLastMovementDestination() + (getLastMovementDestination() - heroPosition):normalized() * dashrange
 		if dashpos:distance(skillshot.endPosition) > skillshot.skillshot.radius and not InsideTheWall(dashpos) then
-			evadeTo(dashpos.x, dashpos.y, true)
+			evadeTo(dashpos.x, dashpos.y, true, skillshot)
 			skillshot.alreadydashed = true
 			return true
 			else return false
@@ -2149,7 +2149,7 @@ function mainCircularskillshot1(skillshot, heroPosition, moveableDistance, evade
 	closestPoint = findBestDirection(skillshot, getLastMovementDestination(), possibleMovementTargets)
 	if closestPoint ~= nil then
 		closestPoint = closestPoint + (closestPoint - heroPosition):normalized() * smoothing
-		evadeTo(closestPoint.x, closestPoint.y)
+		evadeTo(closestPoint.x, closestPoint.y, true, skillshot)
 		return true
 		else return false
 	end
@@ -2335,7 +2335,7 @@ function lineSkillshot1(skillshot, heroPosition, skillshotLine, distanceFromSkil
 				evadeTarget = evadeTarget + pathDirectionVector:normalized() * (pathDirectionVector:len() + smoothing / (evadeDistance + distanceFromSkillshotPath) * pathDirectionVector:len())
 			end
 		end
-		evadeTo(evadeTarget.x, evadeTarget.y)
+		evadeTo(evadeTarget.x, evadeTarget.y, true, skillshot)
 		return true
 		else return false
 	end
@@ -2383,7 +2383,7 @@ function lineSkillshot2(skillshot)
 end
 
 function lineSkillshot3(skillshot, evadeTo1, evadeTo2)
-		if not skillshot.alreadydashed then
+	if not skillshot.alreadydashed then
 		local safeTarget = nil
 		if NeedDash(skillshot, true)
 			then if (evadeTo1:distance(lastMovement.destination) > evadeTo2:distance(lastMovement.destination)) and not InsideTheWall(evadeTo2) then
@@ -2396,7 +2396,7 @@ function lineSkillshot3(skillshot, evadeTo1, evadeTo2)
 				safeTarget = evadeTo2
 			end
 			if safeTarget ~= nil then
-				evadeTo(safeTarget.x, safeTarget.y, true)
+				evadeTo(safeTarget.x, safeTarget.y, true, skillshot)
 				skillshot.alreadydashed = true
 				return true
 				else return false
@@ -2430,7 +2430,7 @@ function lineSkillshot4(skillshot, evadeTo1, evadeTo2)
 		end
 		
 		if safeTarget ~= nil then
-			evadeTo(safeTarget.x, safeTarget.y)
+			evadeTo(safeTarget.x, safeTarget.y, false, skillshot)
 			return true
 			else return false
 		end
