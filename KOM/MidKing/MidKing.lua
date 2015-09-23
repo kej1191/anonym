@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.19
+local VERSION = 1.21
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -1550,11 +1550,11 @@ function Karthus:Farm()
 				local PredHelth = HP:PredictHealth(minion, self.Q.Delay)
 				if count == 0 then
 					if getDmg("Q", minion, player) > PredHelth then
-						CastSpell(_Q, bestpos.x, bestpos.z)
+						CastSpell(_Q, minion.x, minion.z)
 					end
 				elseif count > 0 then
 					if getDmg("Q", minion, player)*0.5 > PredHelth then
-						CastSpell(_Q, bestpos.x, bestpos.z)
+						CastSpell(_Q, minion.x, minion.z)
 					end
 				end
 			end
