@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.18
+local VERSION = 1.19
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -1156,19 +1156,19 @@ end
 function Xerath:Draw()
 	if myHero.dead then return end
 	if self.Q.IsReady() and self.Config.Draw.DrawQ then
-		DrawCircle(player.x, player.y, player.z, self.Q.MaxRange, TARGB(self.Config.Draw.DrawQColor))
+		DrawCircles(player.x, player.y, player.z, self.Q.MaxRange, TARGB(self.Config.Draw.DrawQColor))
 	end
 
 	if self.W.IsReady() and self.Config.Draw.DrawW then
-		DrawCircle(player.x, player.y, player.z, self.W.Range, TARGB(self.Config.Draw.DrawWColor))
+		DrawCircles(player.x, player.y, player.z, self.W.Range, TARGB(self.Config.Draw.DrawWColor))
 	end
 
 	if self.E.IsReady() and self.Config.Draw.DrawE then
-		DrawCircle(player.x, player.y, player.z, self.Config.Combo.Erange, TARGB(self.Config.Draw.DrawEColor))
+		DrawCircles(player.x, player.y, player.z, self.Config.Combo.Erange, TARGB(self.Config.Draw.DrawEColor))
 	end
 
 	if self.R.IsReady() and self.Config.Draw.DrawR then
-		DrawCircle(player.x, player.y, player.z, self.R.Range(), TARGB(self.Config.Draw.DrawRColor))
+		DrawCircles(player.x, player.y, player.z, self.R.Range(), TARGB(self.Config.Draw.DrawRColor))
 	end
 	
 	if self.Config.RSnipe.Alerter.Alert and myHero:GetSpellData(_R).level > 0 then
@@ -1184,7 +1184,7 @@ function Xerath:Draw()
 		DrawCircle3D(mousePos.x, mousePos.y, mousePos.z, 500, 1, ARGB(255, 0, 0, 255), 30)
 	end
 	if self.R.IsCasting and self.R.Target then
-		DrawCircle(self.R.Target.x, self.R.Target.y, self.R.Target.z, 100, Colors.Blue)
+		DrawCircles(self.R.Target.x, self.R.Target.y, self.R.Target.z, 100, Colors.Blue)
 	end
 	
 	if self.QHitChance ~= nil then
@@ -1638,15 +1638,15 @@ end
 function Karthus:Draw()
 	if myHero.dead then return end
 	if self.Q.IsReady() and self.Config.Draw.DrawQ then
-		DrawCircle(player.x, player.y, player.z, self.Q.Range, TARGB(self.Config.Draw.DrawQColor))
+		DrawCircles(player.x, player.y, player.z, self.Q.Range, TARGB(self.Config.Draw.DrawQColor))
 	end
 
 	if self.W.IsReady() and self.Config.Draw.DrawW then
-		DrawCircle(player.x, player.y, player.z, self.W.Range, TARGB(self.Config.Draw.DrawWColor))
+		DrawCircles(player.x, player.y, player.z, self.W.Range, TARGB(self.Config.Draw.DrawWColor))
 	end
 
 	if self.E.IsReady() and self.Config.Draw.DrawE then
-		DrawCircle(player.x, player.y, player.z, self.E.Range, TARGB(self.Config.Draw.DrawEColor))
+		DrawCircles(player.x, player.y, player.z, self.E.Range, TARGB(self.Config.Draw.DrawEColor))
 	end
 
 	if self.QHitChance ~= nil then
@@ -1972,15 +1972,15 @@ end
 function MissFortune:Draw()
 	if myHero.dead then return end
 	if self.Q.IsReady() and self.Config.Draw.DrawQ then
-		DrawCircle(player.x, player.y, player.z, self.Q.Range, TARGB(self.Config.Draw.DrawQColor))
+		DrawCircles(player.x, player.y, player.z, self.Q.Range, TARGB(self.Config.Draw.DrawQColor))
 	end
 
 	if self.E.IsReady() and self.Config.Draw.DrawE then
-		DrawCircle(player.x, player.y, player.z, self.E.Range, TARGB(self.Config.Draw.DrawEColor))
+		DrawCircles(player.x, player.y, player.z, self.E.Range, TARGB(self.Config.Draw.DrawEColor))
 	end
 
 	if self.R.IsReady() and self.Config.Draw.DrawR then
-		DrawCircle(player.x, player.y, player.z, self.R.Range, TARGB(self.Config.Draw.DrawRColor))
+		DrawCircles(player.x, player.y, player.z, self.R.Range, TARGB(self.Config.Draw.DrawRColor))
 	end
 	
 		if self.EHitChance ~= nil then
@@ -2489,3 +2489,31 @@ function Awareness:WardTrackerDraw()
 		end
 	end
 end
+
+function DrawCircleNextLvl(x, y, z, radius, width, color, chordlength)
+    radius = radius or 300
+    quality = math.max(8,math.floor(180/math.deg((math.asin((chordlength/(2*radius)))))))
+    quality = 2 * math.pi / quality
+    radius = radius*.92
+    local points = {}
+    for theta = 0, 2 * math.pi + quality, quality do
+        local c = WorldToScreen(D3DXVECTOR3(x + radius * math.cos(theta), y, z - radius * math.sin(theta)))
+        points[#points + 1] = D3DXVECTOR2(c.x, c.y)
+    end
+    DrawLines2(points, width or 1, color or 4294967295)
+end
+
+function DrawCircle2(x, y, z, radius, color)
+    local vPos1 = Vector(x, y, z)
+    local vPos2 = Vector(cameraPos.x, cameraPos.y, cameraPos.z)
+    local tPos = vPos1 - (vPos1 - vPos2):normalized() * radius
+    local sPos = WorldToScreen(D3DXVECTOR3(tPos.x, tPos.y, tPos.z))
+    if OnScreen({ x = sPos.x, y = sPos.y }, { x = sPos.x, y = sPos.y })  then
+        DrawCircleNextLvl(x, y, z, radius, 1, color, 75)
+    end
+end
+
+function DrawCircles(x,y,z,radius, color)
+    DrawCircle2(x, y, z, radius, color)
+end
+
