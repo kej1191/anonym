@@ -3,7 +3,17 @@ _G.OnYourVersion = 1.11
 
 local PredictedDamage = {}
 local RefreshTime = 0.4
-
+function DamageItems(unit)
+    local dmg = 0
+    if ValidTarget(unit) then
+        for _, item in pairs(CastableItems) do
+            if item.IsReady() then
+                dmg = dmg + item.Damage(unit)
+            end
+        end
+    end
+    return dmg
+end
 local CastableItems = {
     Tiamat      = { Range = 400 , Slot   = function() return FindItemSlot("TiamatCleave") end,  reqTarget = false,  IsReady                             = function() return (FindItemSlot("TiamatCleave") ~= nil and myHero:CanUseSpell(FindItemSlot("TiamatCleave")) == READY) end, Damage = function(target) return getDmg("TIAMAT", target, myHero) end},
     Bork        = { Range = 450 , Slot   = function() return FindItemSlot("SwordOfFeastAndFamine") end,  reqTarget = true,  IsReady                     = function() return (FindItemSlot("SwordOfFeastAndFamine") ~= nil and myHero:CanUseSpell(FindItemSlot("SwordOfFeastAndFamine")) == READY) end, Damage = function(target) return getDmg("RUINEDKING", target, myHero) end},
