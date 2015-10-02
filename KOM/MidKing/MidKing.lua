@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.21
+local VERSION = 1.23
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -2474,7 +2474,7 @@ function Awareness:WardTrackerDraw()
 		if (currentMana <= 0) then
 			table.remove(self.wards, index)
 		else
-			LagFreeDrawCircle(ward.x, ward.y, ward.z, 100, RGBA(127, 255, 0, 255))
+			DrawCircle3D(ward.x, ward.y, ward.z, 100,5, RGBA(127, 255, 0, 255), 20)
 			DrawText3D(tostring(currentMana), ward.x, ward.y, ward.z, 20, RGBA(127, 255, 0, 255), true)
 		end
 	end
@@ -2484,7 +2484,7 @@ function Awareness:WardTrackerDraw()
 		if (currentMana <= 0) then
 			table.remove(self.wards, index)
 		else
-			LagFreeDrawCircle(ward.x, ward.y, ward.z, 100, Colors.Red)
+			DrawCircle3D(ward.x, ward.y, ward.z, 100,5, Colors.Red, 20)
 			DrawText3D(tostring(currentMana), ward.x, ward.y, ward.z, 20, Colors.Red, true)
 		end
 	end
