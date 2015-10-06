@@ -8,7 +8,7 @@ if champions[myHero.charName] == nil then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>MidKing:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 1.23
+local VERSION = 1.25
 
 class("ScriptUpdate")
 function ScriptUpdate:__init(LocalVersion,UseHttps, Host, VersionPath, ScriptPath, SavePath, CallbackUpdate, CallbackNoUpdate, CallbackNewVersion,CallbackError)
@@ -1463,7 +1463,7 @@ function Karthus:Tick()
 			unit.color = Colors.Red
 		elseif getDmg("R", unit.unit, myHero) < unit.unit.health and not unit.unit.dead then
 			unit.statu = "Can't"
-			unit.color = Colors.Red
+			unit.color = Colors.Green
 		elseif unit.unit.dead then
 			unit.statu = "Dead"
 			unit.color = Colors.Red
@@ -2516,4 +2516,3 @@ end
 function DrawCircles(x,y,z,radius, color)
     DrawCircle2(x, y, z, radius, color)
 end
-
