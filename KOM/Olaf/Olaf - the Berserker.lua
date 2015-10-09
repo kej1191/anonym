@@ -337,7 +337,7 @@ function kao:IsComboPressed()
     return false
 end
 
-function ako:IsHarassPressed()
+function kao:IsHarassPressed()
 	if SacLoad then
 		if _G.AutoCarry.Keys.MixedMode then
 			return true
