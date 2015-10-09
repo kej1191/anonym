@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.02
+VERSION = 1.03
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -39,7 +39,7 @@ function kao:__init()
 	ToUpdate = {}
 	ToUpdate.Host = "raw.githubusercontent.com"
 	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.version"
-	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/Olaf/Olaf - the Berserker.lua"
+	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.lua"
 	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
 	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". </b></font>") end
 	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker </b></font> <font color=\"#FFFFFF\">You have lastest version ("..OldVersion..")</b></font>") end
@@ -200,7 +200,7 @@ function kao:Tick()
 				self:JungleClear()
 			end
 		end
-		if GetDistance(self.MoveTo, mousePos) < 500 then
+		if self.MoveTo and GetDistance(self.MoveTo, mousePos) < 500 then
 			if self.Movement then
 				self:DisableAttacks()
 				self:DisableMovement()
@@ -486,7 +486,7 @@ end
 function ScriptUpdate:OnDraw()
 
   if self.DownloadStatus ~= 'Downloading Script (100%)' and self.DownloadStatus ~= 'Downloading VersionInfo (100%)'then
-	DrawText3D('No Vayne No Gain',myHero.x,myHero.y,myHero.z+70, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
+	DrawText3D('Olaf - the Berserker',myHero.x,myHero.y,myHero.z+70, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
     DrawText3D('Download Status: '..(self.DownloadStatus or 'Unknown'),myHero.x,myHero.y,myHero.z+50, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
   end
   
@@ -747,3 +747,4 @@ function ScriptUpdate:DownloadUpdate()
   end
   
 end
+
