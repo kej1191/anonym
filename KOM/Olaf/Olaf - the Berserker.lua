@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.01
+VERSION = 1.04
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -39,7 +39,7 @@ function kao:__init()
 	ToUpdate = {}
 	ToUpdate.Host = "raw.githubusercontent.com"
 	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.version"
-	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/Olaf/Olaf - the Berserker.lua"
+	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.lua"
 	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
 	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". </b></font>") end
 	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker </b></font> <font color=\"#FFFFFF\">You have lastest version ("..OldVersion..")</b></font>") end
@@ -200,16 +200,31 @@ function kao:Tick()
 				self:JungleClear()
 			end
 		end
-		if self.Movement then
-			myHero:MoveTo(self.MoveTo.x, self.MoveTo.z)
+		if self.MoveTo and GetDistance(self.MoveTo, mousePos) < 500 then
+			if self.Movement then
+				self:OrbwalkToPosition(self.MoveTo)
+			else
+				self:OrbwalkToPosition(mousePos)
+			end
+		else
+			self:OrbwalkToPosition(mousePos)
+		end
+	end
+end
+function kao:OrbwalkToPosition(position)
+	if position ~= nil then
+		if _G.MMA_Loaded then
+			_G.moveToCursor(position.x, position.z)
+		elseif _G.AutoCarry and _G.AutoCarry.Orbwalker then
+			_G.AutoCarry.Orbwalker:OverrideOrbwalkLocation(position)
+		elseif SxOLoad then
+			SxO:ForcePoint(position.x, position.z)
 		end
 	end
 end
 function OnCreateObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
 		if champ.Config.Skill.Q.Geto then
-			champ:DisableAttacks()
-			champ:DisableMovement()
 			champ.Movement = true
 			champ.MoveTo = Vector(obj)
 		end
@@ -217,8 +232,6 @@ function OnCreateObj(obj)
 end
 function OnDeleteObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
-		champ:EnableAttacks()
-		champ:EnableMovement()
 		champ.Movement = false
 	end
 end
@@ -295,25 +308,25 @@ function kao:JungleClear()
 	end
 end
 function kao:CastQ(target)
-	if Prediction[self.Config.Pred.QPred] == "HPrediction" then
+	if self.Prediction[self.Config.Pred.QPred] == "HPrediction" then
 		self.QPos, self.QHitChance = HP:GetPredict(self.HP_Q, target, myHero)
 		self.QPos = self:GetExtraRange(self.QPos)
 		if self.QPos and self.QHitChance >= self.Config.Pred.QHit then
 			CastSpell(_Q, self.QPos.x, self.QPos.z)
 		end
-	elseif Prediction[self.Config.Pred.QPred] == "VPrediction" then
+	elseif self.Prediction[self.Config.Pred.QPred] == "VPrediction" then
 		self.QPos, self.QHitChance = VP:GetLineAOECastPosition(target, self.Q.Delay, self.Q.Width, self.Q.Range, self.Q.Speed, myHero)
 		self.QPos = self:GetExtraRange(self.QPos)
 		if self.QPos and self.QHitChance >= self.Config.Pred.QHit then
 			CastSpell(_Q, self.QPos.x, self.QPos.z)
 		end
-	elseif Prediction[self.Config.Pred.QPred] == "SPrediction" then
+	elseif self.Prediction[self.Config.Pred.QPred] == "SPrediction" then
 		self.QPos, self.QHitChance, self.PredPos = SP:Predict(target, self.Q.Range, self.Q.Speed, self.Q.Delay, self.Q.Width*2, false, myHero)
 		self.QPos = self:GetExtraRange(self.QPos)
 		if self.QPos and self.QHitChance >= self.Config.Pred.QHit then
 			CastSpell(_Q, self.QPos.x, self.QPos.z)
 		end
-	elseif Prediction[self.Config.Pred.QPred] == "DivinePred" then
+	elseif self.Prediction[self.Config.Pred.QPred] == "DivinePred" then
 		local Target = DPTarget(target)
 		self.QState, self.QPos, self.QPerc = dp:predict("DivineQ", Target)
 		self.QPos = self:GetExtraRange(self.QPos)
@@ -479,7 +492,7 @@ end
 function ScriptUpdate:OnDraw()
 
   if self.DownloadStatus ~= 'Downloading Script (100%)' and self.DownloadStatus ~= 'Downloading VersionInfo (100%)'then
-	DrawText3D('No Vayne No Gain',myHero.x,myHero.y,myHero.z+70, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
+	DrawText3D('Olaf - the Berserker',myHero.x,myHero.y,myHero.z+70, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
     DrawText3D('Download Status: '..(self.DownloadStatus or 'Unknown'),myHero.x,myHero.y,myHero.z+50, 18,ARGB(0xFF,0xFF,0xFF,0xFF))
   end
   
@@ -740,3 +753,4 @@ function ScriptUpdate:DownloadUpdate()
   end
   
 end
+
