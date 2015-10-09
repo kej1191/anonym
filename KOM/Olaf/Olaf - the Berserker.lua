@@ -261,7 +261,7 @@ function kao:LineClear()
 	end
 	if self.Config.LineClear.useE and self.W.IsReady() then
 		for _, minion in pairs(self.EnemyMinions.objects) do
-			if #self.EnemyMinions.objects > 0 and GetDistance(minion) < self.E.Range and not minion.dead and getDmg("E", minion, myHero)*0.5 < minion.health then
+			if #self.EnemyMinions.objects > 0 and GetDistance(minion) < self.E.Range and not minion.dead and getDmg("E", minion, myHero) > minion.health then
 				CastSpell(_E, minion)
 			end
 		end
