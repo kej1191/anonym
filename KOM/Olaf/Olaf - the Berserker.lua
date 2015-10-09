@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.03
+VERSION = 1.04
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -202,21 +202,29 @@ function kao:Tick()
 		end
 		if self.MoveTo and GetDistance(self.MoveTo, mousePos) < 500 then
 			if self.Movement then
-				self:DisableAttacks()
-				self:DisableMovement()
-				myHero:MoveTo(self.MoveTo.x, self.MoveTo.z)
+				self:OrbwalkToPosition(self.MoveTo)
+			else
+				self:OrbwalkToPosition(mousePos)
 			end
 		else
-			self:EnableAttacks()
-			self:EnableMovement()
+			self:OrbwalkToPosition(mousePos)
+		end
+	end
+end
+function kao:OrbwalkToPosition(position)
+	if position ~= nil then
+		if _G.MMA_Loaded then
+			_G.moveToCursor(position.x, position.z)
+		elseif _G.AutoCarry and _G.AutoCarry.Orbwalker then
+			_G.AutoCarry.Orbwalker:OverrideOrbwalkLocation(position)
+		elseif SxOLoad then
+			SxO:ForcePoint(position.x, position.z)
 		end
 	end
 end
 function OnCreateObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
 		if champ.Config.Skill.Q.Geto then
-			champ:DisableAttacks()
-			champ:DisableMovement()
 			champ.Movement = true
 			champ.MoveTo = Vector(obj)
 		end
@@ -224,8 +232,6 @@ function OnCreateObj(obj)
 end
 function OnDeleteObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
-		champ:EnableAttacks()
-		champ:EnableMovement()
 		champ.Movement = false
 	end
 end
