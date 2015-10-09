@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.01
+VERSION = 1.02
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -200,8 +200,15 @@ function kao:Tick()
 				self:JungleClear()
 			end
 		end
-		if self.Movement then
-			myHero:MoveTo(self.MoveTo.x, self.MoveTo.z)
+		if GetDistance(self.MoveTo, mousePos) < 500 then
+			if self.Movement then
+				self:DisableAttacks()
+				self:DisableMovement()
+				myHero:MoveTo(self.MoveTo.x, self.MoveTo.z)
+			end
+		else
+			self:EnableAttacks()
+			self:EnableMovement()
 		end
 	end
 end
@@ -295,25 +302,25 @@ function kao:JungleClear()
 	end
 end
 function kao:CastQ(target)
-	if Prediction[self.Config.Pred.QPred] == "HPrediction" then
+	if self.Prediction[self.Config.Pred.QPred] == "HPrediction" then
 		self.QPos, self.QHitChance = HP:GetPredict(self.HP_Q, target, myHero)
 		self.QPos = self:GetExtraRange(self.QPos)
 		if self.QPos and self.QHitChance >= self.Config.Pred.QHit then
 			CastSpell(_Q, self.QPos.x, self.QPos.z)
 		end
-	elseif Prediction[self.Config.Pred.QPred] == "VPrediction" then
+	elseif self.Prediction[self.Config.Pred.QPred] == "VPrediction" then
 		self.QPos, self.QHitChance = VP:GetLineAOECastPosition(target, self.Q.Delay, self.Q.Width, self.Q.Range, self.Q.Speed, myHero)
 		self.QPos = self:GetExtraRange(self.QPos)
 		if self.QPos and self.QHitChance >= self.Config.Pred.QHit then
 			CastSpell(_Q, self.QPos.x, self.QPos.z)
 		end
-	elseif Prediction[self.Config.Pred.QPred] == "SPrediction" then
+	elseif self.Prediction[self.Config.Pred.QPred] == "SPrediction" then
 		self.QPos, self.QHitChance, self.PredPos = SP:Predict(target, self.Q.Range, self.Q.Speed, self.Q.Delay, self.Q.Width*2, false, myHero)
 		self.QPos = self:GetExtraRange(self.QPos)
 		if self.QPos and self.QHitChance >= self.Config.Pred.QHit then
 			CastSpell(_Q, self.QPos.x, self.QPos.z)
 		end
-	elseif Prediction[self.Config.Pred.QPred] == "DivinePred" then
+	elseif self.Prediction[self.Config.Pred.QPred] == "DivinePred" then
 		local Target = DPTarget(target)
 		self.QState, self.QPos, self.QPerc = dp:predict("DivineQ", Target)
 		self.QPos = self:GetExtraRange(self.QPos)
