@@ -62,6 +62,8 @@ function kao:__init()
 	self.axePos = nil
 	self.Move = true
 	self.Attack = true
+	self.Movement = false
+	self.MoveTo = nil
 	--HP
 	
 	self.comboQMaxRange = 0
@@ -154,7 +156,6 @@ function kao:LoadMenu()
 	
 	AddTickCallback(function() self:Tick() end)
 	AddDrawCallback(function() self:Draw() end)
-	AddProcessSpellCallback(function(unit, spell) self:ProcessSpell(unit, spell) end)
 	AddAnimationCallback(function(unit, animation) self:OnAnimation(unit, animation) end)
 end
 function kao:OnAnimation(unit, anim)
@@ -195,6 +196,9 @@ function kao:Tick()
 				self:JungleClear()
 			end
 		end
+		if self.Movement then
+			myHero:MoveTo(self.MoveTo.x, self.MoveTo.z)
+		end
 	end
 end
 function OnCreateObj(obj)
@@ -202,7 +206,8 @@ function OnCreateObj(obj)
 		if champ.Config.Skill.Q.Geto then
 			champ:DisableAttacks()
 			champ:DisableMovement()
-			myHero:MoveTo(obj.x, obj.z)
+			champ.Movement = true
+			champ.MoveTo = Vector(obj)
 		end
 	end
 end
@@ -210,6 +215,7 @@ function OnDeleteObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
 		champ:EnableAttacks()
 		champ:EnableMovement()
+		champ.Movement = false
 	end
 end
 function kao:Combo(target)
