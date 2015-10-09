@@ -1,9 +1,7 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.00
+VERSION = 1.01
 class("ScriptUpdate")
-
-local Prediction = {}
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
 	local _from = from or myHero
@@ -37,7 +35,7 @@ function OnLoad()
 end
 class('kao')
 function kao:__init()
-	--https://raw.githubusercontent.com/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.version
+	self.Prediction = {}
 	ToUpdate = {}
 	ToUpdate.Host = "raw.githubusercontent.com"
 	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.version"
@@ -56,7 +54,6 @@ function kao:__init()
 	self.TS = TargetSelector(TARGET_LESS_CAST, self.Q.Range, DAMAGE_MAGIC, false)
 	self.TS.name = "Your mather"
 	self:OnOrbLoad()
-	self:LoadMenu()
 	self.EnemyMinions = minionManager(MINION_ENEMY, 1100, myHero, MINION_SORT_MAXHEALTH_DEC)
 	self.jungleTable = minionManager(MINION_JUNGLE, 1100, myHero, MINION_SORT_MAXHEALTH_DEC)
 	self.axePos = nil
@@ -72,26 +69,27 @@ function kao:__init()
 	if FileExist(LIB_PATH .. "SPrediction.lua") then
 		require("SPrediction")
 		SP = SPrediction()
-		table.insert(Prediction, "SPrediction")
+		table.insert(self.Prediction, "SPrediction")
     end
     if FileExist(LIB_PATH .. "VPrediction.lua") then
 		require("VPrediction")
 		VP = VPrediction()
-		table.insert(Prediction, "VPrediction")
+		table.insert(self.Prediction, "VPrediction")
     end
     if VIP_USER and FileExist(LIB_PATH.."DivinePred.lua") and FileExist(LIB_PATH.."DivinePred.luac") then
 		require "DivinePred"
 		dp = DivinePred()
-		table.insert(Prediction, "DivinePred")
+		table.insert(self.Prediction, "DivinePred")
 		self.DivineQ = LineSS(self.Q.Speed, self.Q.Range, self.Q.Width, self.Q.Delay * 1000, math.huge)
 		self.DivineQ = dp:bindSS("DivineQ", self.DivineQ, 1)
     end
     if FileExist(LIB_PATH .. "HPrediction.lua") then
 		require("HPrediction")
 		HP = HPrediction()
-		table.insert(Prediction, "HPrediction")
+		table.insert(self.Prediction, "HPrediction")
 		self.HP_Q = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, speed = self.Q.Speed, width = self.Q.Width, range = self.Q.Range, delay = self.Q.Delay})
     end
+	self:LoadMenu()
 end
 function kao:OnOrbLoad()
 	if _G.MMA_LOADED then
@@ -127,25 +125,31 @@ function kao:LoadMenu()
 			self.Config.Combo:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Combo:addParam("useE", "Use E", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Combo:addParam("QMaxRange", "Q Max Range", SCRIPT_PARAM_SLICE, 1000, 0, 1000, 0)
+			
 		self.Config:addSubMenu(myHero.charName.." - Harass Settings", "Harass")
 			self.Config.Harass:addParam("useQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Harass:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, false)
 			self.Config.Harass:addParam("useE", "Use E", SCRIPT_PARAM_ONOFF, false)
 			self.Config.Harass:addParam("QMaxRange", "Q Max Range", SCRIPT_PARAM_SLICE, 1000, 0, 1000, 0)
+			
 		self.Config:addSubMenu(myHero.charName.." - LineClear Settings", "LineClear")
 			self.Config.LineClear:addParam("useQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 			self.Config.LineClear:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, false)
 			self.Config.LineClear:addParam("useE", "Use E", SCRIPT_PARAM_ONOFF, false)
+			
 		self.Config:addSubMenu(myHero.charName.." - Combo Settings", "JungleClear")
 			self.Config.JungleClear:addParam("useQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 			self.Config.JungleClear:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, true)
 			self.Config.JungleClear:addParam("useE", "Use E", SCRIPT_PARAM_ONOFF, true)
+			
 		self.Config:addSubMenu(myHero.charName.." - Prediction Settiongs", "Pred")
 			self.Config.Pred:addParam("QHit", "Q HitChance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
-			self.Config.Pred:addParam("QPred", "Q Prediction settings", SCRIPT_PARAM_LIST, 1, Prediction)
-		self.Config:addSubMenu(myHero.charName.." - Draw", "Draw")
+			self.Config.Pred:addParam("QPred", "Q Prediction settings", SCRIPT_PARAM_LIST, 1, self.Prediction)
+			
+		self.Config:addSubMenu(myHero.charName.." - Draw Settings", "Draw")
 			self.Config.Draw:addParam("DrawQ", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Draw:addParam("DrawQColor", "Draw Q Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
+			
 		self.Config:addSubMenu(myHero.charName.." - Skill Settings", "Skill")
 			self.Config.Skill:addSubMenu("Q Settings", "Q")
 				self.Config.Skill.Q:addParam("extraRange", "Q extra range", SCRIPT_PARAM_SLICE, 100, 0, 200)
