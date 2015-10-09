@@ -1,6 +1,10 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+<<<<<<< HEAD
 VERSION = 1.04
+=======
+VERSION = 1.03
+>>>>>>> origin/master
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -202,6 +206,7 @@ function kao:Tick()
 		end
 		if self.MoveTo and GetDistance(self.MoveTo, mousePos) < 500 then
 			if self.Movement then
+<<<<<<< HEAD
 				self:OrbwalkToPosition(self.MoveTo)
 			else
 				self:OrbwalkToPosition(mousePos)
@@ -219,6 +224,15 @@ function kao:OrbwalkToPosition(position)
 			_G.AutoCarry.Orbwalker:OverrideOrbwalkLocation(position)
 		elseif SxOLoad then
 			SxO:ForcePoint(position.x, position.z)
+=======
+				self:DisableAttacks()
+				self:DisableMovement()
+				myHero:MoveTo(self.MoveTo.x, self.MoveTo.z)
+			end
+		else
+			self:EnableAttacks()
+			self:EnableMovement()
+>>>>>>> origin/master
 		end
 	end
 end
