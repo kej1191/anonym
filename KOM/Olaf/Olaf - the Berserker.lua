@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-
+VERSION = 1.00
 class("ScriptUpdate")
 
 local Prediction = {}
@@ -37,9 +37,10 @@ function OnLoad()
 end
 class('kao')
 function kao:__init()
+	--https://raw.githubusercontent.com/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.version
 	ToUpdate = {}
 	ToUpdate.Host = "raw.githubusercontent.com"
-	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/Olaf/Olaf - the Berserker.version"
+	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/Olaf/Olaf%20-%20the%20Berserker.version"
 	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/Olaf/Olaf - the Berserker.lua"
 	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
 	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker </b></font> <font color=\"#FFFFFF\">Updated to "..NewVersion..". </b></font>") end
@@ -92,25 +93,10 @@ function kao:__init()
 end
 function kao:OnOrbLoad()
 	if _G.MMA_LOADED then
-		AutoupdaterMsg("MMA LOAD")
-		--self.Config.SOWorb:addParam("", "MMA Detected", SCRIPT_PARAM_INFO, "")
 		MMALoad = true
 		orbload = true
-	elseif _G.AutoCarry then
-		if _G.AutoCarry.Helper then
-			AutoupdaterMsg("SIDA AUTO CARRY: REBORN LOAD")
-			--self.Config.SOWorb:addParam("", "SAC Detected", SCRIPT_PARAM_INFO, "")
-			RebornLoad = true
-			orbload = true
-		else
-			AutoupdaterMsg("SIDA AUTO CARRY: REVAMPED LOAD")
-			--self.Config.SOWorb:addParam("", "SAC Detected", SCRIPT_PARAM_INFO, "")
-			RevampedLoaded = true
-			orbload = true
-		end
 	elseif _G.Reborn_Loaded then
 		SacLoad = true
-		DelayAction(OnOrbLoad, 1)
 	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
 		AutoupdaterMsg("SxOrbWalk Load")
 		require 'SxOrbWalk'
@@ -188,24 +174,35 @@ function kao:Tick()
 		self.comboQMaxRange = self.Config.Combo.QMaxRange
 		self.harassQMaxRange = self.Config.Harass.QMaxRange
 		self.QextraRange = self.Config.Skill.Q.extraRange
-		if self.Config.General.Combo then
-			self:Combo(self.TS.target)
-		elseif self.Config.General.Harass then
-			self:Harass(self.TS.target)
-		elseif self.Config.General.LineClear then
-			self:LineClear()
-		elseif self.Config.General.JungleClear then
-			self:JungleClear()
+		if self.Config.General.OnOrbWalkerKey then
+			if self.Config.General.Combo then
+				self:Combo(self.TS.target)
+			elseif self.Config.General.Harass then
+				self:Harass(self.TS.target)
+			elseif self.Config.General.LineClear then
+				self:LineClear()
+			elseif self.Config.General.JungleClear then
+				self:JungleClear()
+			end
+		else
+			if self:IsComboPressed() then
+				self:Combo(self.TS.target)
+			elseif self:IsHarassPressed() then
+				self:Harass(self.TS.target)
+			elseif self:IsClearPressed() then
+				self:LineClear()
+			elseif self:IsClearPressed() then
+				self:JungleClear()
+			end
 		end
 	end
 end
-function kao:ProcessSpell(unit, spell)
-	if unit and spell and unit.isMe and spell.name == "OlafAxeThrowCast" then
-		if self.Config.Skill.Q.Geto then
-			self:DisableAttacks()
-			self:DisableMovement()
-			self.axePos = spell.endPos
-			myHero:MoveTo(self.axePos.x, self.axePos.z)
+function OnCreateObj(obj)
+	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
+		if champ.Config.Skill.Q.Geto then
+			champ:DisableAttacks()
+			champ:DisableMovement()
+			myHero:MoveTo(obj.x, obj.z)
 		end
 	end
 end
@@ -323,7 +320,73 @@ function TARGB(colorTable)
     assert(colorTable and type(colorTable) == "table" and #colorTable == 4, "TARGB: colorTable is invalid!")
     return ARGB(colorTable[1], colorTable[2], colorTable[3], colorTable[4])
 end
+function kao:IsComboPressed()
+	if SacLoad then
+		if _G.AutoCarry.Keys.AutoCarry then
+			return true
+		end
+	elseif SxOLoad then
+		if _G.SxOrb.isFight then
+			return true
+		end
+	elseif MMALoad then
+		if _G.MMA_IsOrbwalking() then
+			return true
+		end
+	end
+    return false
+end
 
+function ako:IsHarassPressed()
+	if SacLoad then
+		if _G.AutoCarry.Keys.MixedMode then
+			return true
+		end
+	elseif SxOLoad then
+		if _G.SxOrb.isHarass then
+			return true
+		end
+	elseif MMALoad then
+		if _G.MMA_IsDualCarrying() then
+			return true
+		end
+	end
+    return false
+end
+
+function kao:IsClearPressed()
+	if SacLoad then
+		if _G.AutoCarry.Keys.LaneClear then
+			return true
+		end
+	elseif SxOLoad then
+		if _G.SxOrb.isLaneClear then
+			return true
+		end
+	elseif MMALoad then
+		if _G.MMA_IsLaneClearing() then
+			return true
+		end
+	end
+    return false
+end
+
+function kao:IsLastHitPressed()
+	if SacLoad then
+		if _G.AutoCarry.Keys.LastHit then
+			return true
+		end
+	elseif SxOLoad then
+		if _G.SxOrb.isLastHit then
+			return true
+		end
+	elseif MMALoad then
+		if _G.MMA_IsLastHitting() then
+			return true
+		end
+	end
+    return false
+end
 function kao:DisableMovement()
     if self.Move then
         if SacLoad then
