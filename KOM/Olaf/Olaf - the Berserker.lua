@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.04
+VERSION = 1.05
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -250,13 +250,13 @@ function kao:Combo(target)
 end
 function kao:Harass(target)
 	if target ~= nil then
-		if self.Q.IsReady() and self.Config.Combo.useQ and GetDistance(target, myHero) < self.harassQMaxRange then
+		if self.Q.IsReady() and self.Config.Harass.useQ and GetDistance(target, myHero) < self.harassQMaxRange then
 			self:CastQ(target)
 		end
-		if self.W.IsReady() and self.Config.Combo.useW and GetDistance(target, myHero) < self.W.Range and myHero.health/myHero.maxHealth * 100 < self.Config.Skill.W.MinHP then
+		if self.W.IsReady() and self.Config.Harass.useW and GetDistance(target, myHero) < self.W.Range and myHero.health/myHero.maxHealth * 100 < self.Config.Skill.W.MinHP then
 			CastSpell(_W)
 		end
-		if self.E.IsReady() and self.Config.Combo.useE and GetDistance(target, myHero) < self.E.Range then
+		if self.E.IsReady() and self.Config.Harass.useE and GetDistance(target, myHero) < self.E.Range then
 			CastSpell(_E, target)
 		end
 	end
