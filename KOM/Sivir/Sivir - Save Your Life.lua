@@ -1,7 +1,9 @@
+if myHero.charName ~= "Sivir" then return end
+local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Sivir - Save Your Life:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 --require 'HPrediction'
 --require 'SPrediction'
 --require 'VPrediction'
-VERSION = 1.00
+VERSION = 1.01
 local SupPred = {"H Prediction", "V Prediction", "S Prediction"}
 local SCRIPT_LIBS = {
 	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua",
@@ -1561,7 +1563,7 @@ function ScriptUpdate:GetOnlineVersion()
         AddTickCallback(function() self:DownloadUpdate() end)
       else
         
-        if self.CallbackNoUpdate and type(self.CallbackNoUpdate) == 'function' then
+        if self.CallbackNoUpdate then
           self.CallbackNoUpdate(self.LocalVersion)
         end
         
