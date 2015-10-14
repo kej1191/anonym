@@ -69,7 +69,25 @@ function GetBestLineFarmPosition(range, width, objects, from)
     end
     return BestPos, BestHit, BestObj
 end
-
+local function GetCustomTarget()
+	local T
+	if MMALoad then T = _G.MMA_Target end
+	if RebornLoad then T = _G.AutoCarry.Crosshair.Attack_Crosshair.target end
+	if RevampedLoaded then T = _G.AutoCarry.Orbwalker.target end
+	if SxOLoad then T = SxO:GetTarget() end
+	if SOWLoaded then T = SOW:GetTarget() end
+	if T and T.type == player.type then
+		return T
+	end
+end
+function FindSummonerSlot(name)
+    for slot = SUMMONER_1,SUMMONER_2 do
+        if myHero:GetSpellData(slot).name:lower():find(name:lower()) then
+            return slot
+        end
+    end
+    return nil
+end
 function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
     local n = 0
     for i, object in ipairs(objects) do
