@@ -1544,7 +1544,7 @@ function ScriptUpdate:GetOnlineVersion()
     
     if not ContentStart or not ContentEnd then
     
-      if self.CallbackError and type(self.CallbackError) == 'function' then
+      if self.CallbackError then
         self.CallbackError()
       end
       
@@ -1554,7 +1554,7 @@ function ScriptUpdate:GetOnlineVersion()
       
       if self.OnlineVersion > self.LocalVersion then
       
-        if self.CallbackNewVersion and type(self.CallbackNewVersion) == 'function' then
+        if self.CallbackNewVersion then
           self.CallbackNewVersion(self.OnlineVersion,self.LocalVersion)
         end
         
