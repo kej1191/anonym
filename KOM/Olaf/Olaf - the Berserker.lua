@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.06
+VERSION = 1.08
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -401,7 +401,7 @@ function kao:CastQ(target)
 end
 function kao:GetExtraRange(endP)
 	local asdasd = GetDistance(endP)
-	if (GetDistance(Vector(myHero) + ( Vector(endP) - Vector(myHero) ):normalized() * (self.QextraRange + asdasd)) < GetDistance(self.Q.Range)) then
+	if (GetDistance(Vector(myHero) + ( Vector(endP) - Vector(myHero) ):normalized() * (self.QextraRange + asdasd)) < self.Q.Range) then
 		return Vector(myHero) + ( Vector(endP) - Vector(myHero) ):normalized() * (self.QextraRange + asdasd) 
 	else
 		return endP
