@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.05
+VERSION = 1.06
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -61,6 +61,9 @@ function kao:__init()
 	self.Attack = true
 	self.Movement = false
 	self.MoveTo = nil
+	self.boostbuffname=nil
+	self.boostbufftype=nil
+	self.boostbufftime=nil
 	--HP
 	
 	self.comboQMaxRange = 0
@@ -107,7 +110,7 @@ function kao:OnOrbLoad()
 end
 function kao:LoadMenu()
 	self.Config = scriptConfig("Olaf - The Berserker", "Olaf")
-		self.Config:addSubMenu(myHero.charName.." - Orbwalker", "SOWorb")
+		self.Config:addSubMenu(myHero.charName.." - Orbwalker Settings", "SOWorb")
 			if SxOLoad then SxO:LoadToMenu(self.Config.SOWorb) 
 			elseif SacLoad then self.Config.SOWorb:addParam("", "SAC DETECTED", SCRIPT_PARAM_INFO, "")
 			elseif MMALoad then self.Config.SOWorb:addParam("", "MMA DETECTED", SCRIPT_PARAM_INFO, "")
@@ -120,6 +123,7 @@ function kao:LoadMenu()
 			self.Config.General:addParam("Harass",	 	"Harass HotKey : ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 			self.Config.General:addParam("LineClear", 	"LineClear HotKey : ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 			self.Config.General:addParam("JungleClear", "JungleClear HotKey: ", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+			
 		self.Config:addSubMenu(myHero.charName.." - Combo Settings", "Combo")
 			self.Config.Combo:addParam("useQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Combo:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, true)
@@ -137,7 +141,7 @@ function kao:LoadMenu()
 			self.Config.LineClear:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, false)
 			self.Config.LineClear:addParam("useE", "Use E", SCRIPT_PARAM_ONOFF, false)
 			
-		self.Config:addSubMenu(myHero.charName.." - Combo Settings", "JungleClear")
+		self.Config:addSubMenu(myHero.charName.." - JungleClear Settings", "JungleClear")
 			self.Config.JungleClear:addParam("useQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 			self.Config.JungleClear:addParam("useW", "Use W", SCRIPT_PARAM_ONOFF, true)
 			self.Config.JungleClear:addParam("useE", "Use E", SCRIPT_PARAM_ONOFF, true)
@@ -145,15 +149,25 @@ function kao:LoadMenu()
 		self.Config:addSubMenu(myHero.charName.." - Prediction Settiongs", "Pred")
 			self.Config.Pred:addParam("QHit", "Q HitChance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
 			self.Config.Pred:addParam("QPred", "Q Prediction settings", SCRIPT_PARAM_LIST, 1, self.Prediction)
-			
+		
+		self.Config:addSubMenu(myHero.charName.." - Auto Axe Catch Settings", "AutoC")
+			self.Config.AutoC:addParam("Enable", "Auto axe catch enable", SCRIPT_PARAM_ONOFF, true)
+			self.Config.AutoC:addParam("CatchRange", "Auto axe catch range", SCRIPT_PARAM_SLICE, 500, 0, 1000, 0)
+			self.Config.AutoC:addParam("CatchFrom", "Auto axe catch range to :", SCRIPT_PARAM_LIST, 1, {"Mouse", "my Hero"})
+			--self.Config.AutoC:addParam("Tower", "auto axe catch in tower", SCRIPT_PARAM_ONKEYTOGGLE, true, string.byte("G"))
+		
+		self.Config:addSubMenu(myHero.charName.." - Auto R Settings", "AutoR")
+			self.Config.AutoR:addParam("Enable", "auto R enable", SCRIPT_PARAM_ONOFF, true)
+			self.Config.AutoR:addParam("stun", "auto r when stun my hero", SCRIPT_PARAM_ONOFF, true)
+		
 		self.Config:addSubMenu(myHero.charName.." - Draw Settings", "Draw")
 			self.Config.Draw:addParam("DrawQ", "Draw Q Range", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Draw:addParam("DrawQColor", "Draw Q Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
+			self.Config.Draw:addParam("DrawAutoCatchRange", "Draw auto axe cath range", SCRIPT_PARAM_ONOFF, true)
 			
 		self.Config:addSubMenu(myHero.charName.." - Skill Settings", "Skill")
 			self.Config.Skill:addSubMenu("Q Settings", "Q")
 				self.Config.Skill.Q:addParam("extraRange", "Q extra range", SCRIPT_PARAM_SLICE, 100, 0, 200)
-				self.Config.Skill.Q:addParam("Geto", "Get axe", SCRIPT_PARAM_ONOFF, true)
 			self.Config.Skill:addSubMenu("W Settings", "W")
 				self.Config.Skill.W:addParam("MinHP", "use Q HP <", SCRIPT_PARAM_SLICE, 80, 0, 100)
 			self.Config.Skill:addSubMenu("E Settings", "E")
@@ -161,6 +175,17 @@ function kao:LoadMenu()
 	AddTickCallback(function() self:Tick() end)
 	AddDrawCallback(function() self:Draw() end)
 	AddAnimationCallback(function(unit, animation) self:OnAnimation(unit, animation) end)
+	AddApplyBuffCallback(function(unit,sorce,buff) self:OnApplyBuff(unit,sorce,buff) end)
+end
+local BuffTypes = {
+    [5] = true, --stun
+}
+function kao:OnApplyBuff(unit,sorce,buff)
+	if not unit.isMe and sorce.isMe and BuffTypes[buff.type] then
+		self.boostbuffname=buff.name
+		self.boostbufftype=buff.type
+		self.boostbufftime=os.clock()		
+	end	
 end
 function kao:OnAnimation(unit, anim)
 	if unit.isMe then
@@ -172,18 +197,46 @@ function kao:Draw()
 	if self.Q.IsReady() and self.Config.Draw.DrawQ then
 		DrawCircle(player.x, player.y, player.z, self.Q.Range, TARGB(self.Config.Draw.DrawQColor))
 	end
+	if self.Config.Draw.DrawAutoCatchRange then
+		if self.Config.AutoC.CatchFrom == 1then
+			DrawCircle(mousePos.x, mousePos.y, mousePos.z, self.Config.AutoC.CatchRange, TARGB({100, 255, 0, 0}))
+		else
+			DrawCircle(myHero.x, myHero.y, myHero.z, self.Config.AutoC.CatchRange, TARGB({100, 255, 0, 0}))
+		end
+	end
+	if self.QHitChance ~= nil then
+		if self.QHitChance < 1 then
+			self.Qcolor = ARGB(0xFF, 0xFF, 0x00, 0x00)
+		elseif self.QHitChance == 3 then
+			self.Qcolor = ARGB(0xFF, 0x00, 0x54, 0xFF)
+		elseif self.QHitChance >= 2 then
+			self.Qcolor = ARGB(0xFF, 0x1D, 0xDB, 0x16)
+		elseif self.QHitChance >= 1 then
+			self.Qcolor = ARGB(0xFF, 0xFF, 0xE4, 0x00)
+		end
+	end
+	if self.QPos and self.Qcolor and self.Q.IsReady() then
+		DrawCircle(self.QPos.x, self.QPos.y, self.QPos.z, self.Q.Width/2, self.Qcolor)
+		if self.Config.Draw.Line then
+			DrawLine3D(myHero.x, myHero.y, myHero.z, self.QPos.x, self.QPos.y, self.QPos.z, 2, self.Qcolor)
+		end
+    
+		self.QPos = nil
+	end
 end
 function kao:Tick()
 	if self.Config.General.On then
 		self.TS:update()
+		self.Target = GetTarget() or self.TS.target
 		self.comboQMaxRange = self.Config.Combo.QMaxRange
 		self.harassQMaxRange = self.Config.Harass.QMaxRange
 		self.QextraRange = self.Config.Skill.Q.extraRange
+		self:autor()
 		if self.Config.General.OnOrbWalkerKey then
 			if self.Config.General.Combo then
-				self:Combo(self.TS.target)
+				self:Combo(self.Target)
 			elseif self.Config.General.Harass then
-				self:Harass(self.TS.target)
+				self:Harass(self.Target)
 			elseif self.Config.General.LineClear then
 				self:LineClear()
 			elseif self.Config.General.JungleClear then
@@ -191,17 +244,17 @@ function kao:Tick()
 			end
 		else
 			if self:IsComboPressed() then
-				self:Combo(self.TS.target)
+				self:Combo(self.Target)
 			elseif self:IsHarassPressed() then
-				self:Harass(self.TS.target)
+				self:Harass(self.Target)
 			elseif self:IsClearPressed() then
 				self:LineClear()
 			elseif self:IsClearPressed() then
 				self:JungleClear()
 			end
 		end
-		if self.MoveTo and GetDistance(self.MoveTo, mousePos) < 500 then
-			if self.Movement then
+		if self.MoveTo and self:DoCatch(self.MoveTo) then
+			if self.Movement and self.Config.AutoC.Enable then
 				self:OrbwalkToPosition(self.MoveTo)
 			else
 				self:OrbwalkToPosition(mousePos)
@@ -209,6 +262,18 @@ function kao:Tick()
 		else
 			self:OrbwalkToPosition(mousePos)
 		end
+	end
+end
+function kao:autor()
+	if self.R.IsReady() and self.Config.AutoR.Enable and self.boostbufftype then
+		CastSpell(_R)
+	end
+end
+function kao:DoCatch(Pos)
+	if self.Config.AutoC.CatchFrom == 1 then
+		return GetDistance(Pos, mousePos) < self.Config.AutoC.CatchRange
+	elseif self.Config.AutoC.CatchFrom == 2 then
+		return GetDistance(Pos, myHero) < self.Config.AutoC.CatchRange
 	end
 end
 function kao:OrbwalkToPosition(position)
@@ -224,15 +289,14 @@ function kao:OrbwalkToPosition(position)
 end
 function OnCreateObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
-		if champ.Config.Skill.Q.Geto then
-			champ.Movement = true
-			champ.MoveTo = Vector(obj)
-		end
+		champ.Movement = true
+		champ.MoveTo = Vector(obj)
 	end
 end
 function OnDeleteObj(obj)
 	if obj and obj.name == "olaf_axe_totem_team_id_green.troy" then
 		champ.Movement = false
+		champ.MoveTo = nil
 	end
 end
 function kao:Combo(target)
@@ -337,7 +401,11 @@ function kao:CastQ(target)
 end
 function kao:GetExtraRange(endP)
 	local asdasd = GetDistance(endP)
-	return Vector(myHero) + ( Vector(endP) - Vector(myHero) ):normalized() * (self.QextraRange + asdasd)
+	if (Vector(myHero) + ( Vector(endP) - Vector(myHero) ):normalized() * (self.QextraRange + asdasd) < self.Q.Range) then
+		return Vector(myHero) + ( Vector(endP) - Vector(myHero) ):normalized() * (self.QextraRange + asdasd) 
+	else
+		return endP
+	end
 end
 function TARGB(colorTable)
     assert(colorTable and type(colorTable) == "table" and #colorTable == 4, "TARGB: colorTable is invalid!")
