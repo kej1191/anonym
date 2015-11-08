@@ -1,6 +1,6 @@
 if myHero.charName ~= "Olaf" then return end
 local function AutoupdaterMsg(msg) print("<font color=\"##7D26CD\"><b>Olaf - the Berserker:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
-VERSION = 1.08
+VERSION = 1.09
 class("ScriptUpdate")
 function GetBestLineFarmPosition(range, width, objects, from)
     local BestPos 
@@ -231,7 +231,7 @@ function kao:Tick()
 		self.comboQMaxRange = self.Config.Combo.QMaxRange
 		self.harassQMaxRange = self.Config.Harass.QMaxRange
 		self.QextraRange = self.Config.Skill.Q.extraRange
-		self:autor()
+		--self:autor()
 		if self.Config.General.OnOrbWalkerKey then
 			if self.Config.General.Combo then
 				self:Combo(self.Target)
