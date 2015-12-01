@@ -23,9 +23,28 @@
 		Limit R until enemys in r range as much as you want
 ]]
 
-require 'SourceLib_Fix'
-local VERSION = 0.01
+if myHero.charName:lower() ~= "illaoi" then return end
+
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+
+local VERSION = 0.01
+
+SimpleUpdater("Allahoi", VERSION, "raw.github.com" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.version" ):CheckUpdate()
+
+if FileExist(LIB_PATH .. "SourceLibk.lua") then
+	require 'SourceLibk'
+else
+	AutoupdaterMsg("plz download SourceLibk in post")
+	AutoupdaterMsg("plz download SourceLibk in post")
+	AutoupdaterMsg("plz download SourceLibk in post")
+	AutoupdaterMsg("plz download SourceLibk in post")
+	AutoupdaterMsg("plz download SourceLibk in post")
+end
+
+
+
+local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+
 
 function OnLoad()
 	champ= Allah()
@@ -75,30 +94,15 @@ end
 
 class('Allah')
 function Allah:__init()
-	--Updater
-	--[[
-	
-	ToUpdate = {}
-	ToUpdate.Host = "raw.githubusercontent.com"
-	ToUpdate.VersionPath = "/kej1191/anonym/master/KOM/MidKing/MidKing.version"
-	ToUpdate.ScriptPath =  "/kej1191/anonym/master/KOM/MidKing/MidKing.lua"
-	ToUpdate.SavePath = SCRIPT_PATH .. GetCurrentEnv().FILE_NAME
-	ToUpdate.CallbackUpdate = function(NewVersion, OldVersion) print("<font color=\"#00FA9A\"><b>[Allahoi] </b></font> <font color=\"#6699ff\">Updated to "..NewVersion..". </b></font>") end
-	ToUpdate.CallbackNoUpdate = function(OldVersion) print("<font color=\"#00FA9A\"><b>[Allahoi] </b></font> <font color=\"#6699ff\">You have lastest version ("..OldVersion..")</b></font>") end
-	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#00FA9A\"><b>[Allahoi] </b></font> <font color=\"#6699ff\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
-	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#00FA9A\"><b>[Allahoi] </b></font> <font color=\"#6699ff\">Error while Downloading. Please try again.</b></font>") end
-	self.updater = SourceUpdater(VERSION, true, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
-	
 
-	]]
 	--InitializeComponent
-	self.STS = SimpleTS()
+	self.STS = SimpleTS(STS_NEARMOUSE)
 	OnOrbLoad()
 	
 	
-	self.Q = {Range = 800, Width = 100, Speed = 1500, Delay = 0.251, Collision = false}
+	self.Q = {Range = 800, Width = 105, Speed = 1500, Delay = 0.733, Collision = false}
 	self.W = {Range = 400}
-	self.E = {Range = 949, Width = 50, Speed = 1841, Delay = 0.267, Collision = false}
+	self.E = {Range = 949, Width = 52.5, Speed = 1841, Delay = 0.267, Collision = false}
 	self.R = {Range = 400}
 
 	self.minionTable =  minionManager(MINION_ENEMY, self.Q.Range, myHero, MINION_SORT_MAXHEALTH_DEC)
@@ -163,13 +167,11 @@ function Allah:__init()
 			self.Config.Draw:addParam("DrawRColor", "Draw R Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
 	--Skillshot settings
 	self.QSpell = Spell(_Q, self.Config.Settings.Q, SKILLSHOT_LINEAR, self.Q.Range, self.Q.Width, self.Q.Delay, self.Q.Speed, true)
-	self.QSpell:SetAOE(true)
+	--self.QSpell:SetAOE(true)
 	
 	self.WSpell = Spell(_W, self.Config.Settings.W, SKILLSHOT_OTHER, self.W.Range)
-	self.Config.Settings.W:addParam("limit", "use w tentacle in range >= ", SCRIPT_PARAM_SLICE, 1, 0, 3)
 	
-	self.ESpell = Spell(_E, self.Config.Settings.E, SKILLSHOT_LINEAR, self.E.Range, self.E.Width, self.E.Delay, self.E.Speed, false)
-	self.ESpell:SetAOE(true)
+	self.ESpell = Spell(_E, self.Config.Settings.E, SKILLSHOT_LINEAR, self.E.Range, self.E.Width, self.E.Delay, self.E.Speed, true)
 	
 	self.RSpell = Spell(_R, self.Config.Settings.R, SKILLSHOT_OTHER, self.R.Range)
 	self.Config.Settings.R:addParam("limit", "use R enemy in range >= ", SCRIPT_PARAM_SLICE, 2, 0, 5)
@@ -280,7 +282,6 @@ function Allah:OnCreateObj(object)
 	if myHero.dead then return end
 	if object and object.name and object.name:lower():find("bot") then
 		data = {name = object.name, pos = Vector(object)}
-		print(data.name)
 		table.insert(self.ghost, data)
 	end
 end
@@ -289,7 +290,7 @@ function Allah:OnDeleteObj(object)
 	if myHero.dead then return end
 	if object and object.name and object.name:lower():find("bot") then
 		for i = 1, #self.ghost, 1 do
-			if bot[i].name == object.name then
+			if self.ghost[i].name == object.name then
 				table.remove(self.ghost, i)
 			end
 		end
@@ -299,16 +300,16 @@ end
 function Allah:Combo(target)
 	if target ~= nil then
 		if self.Config.Combo.UseQ then
-			self.QSpell:Cast(target.x, target.z)
+			self.QSpell:Cast(target)
 		end
-		if self.Config.Combo.UseW and GetDistance(target) < self.W.Range then
+		if self.Config.Combo.UseW then
 			self.WSpell:Cast()
 			self:ResetAA()
 		end
 		if self.Config.Combo.UseE then
-			self.ESpell:Cast(target.x, target.z)
+			self.ESpell:Cast(target)
 		end
-		if self.Config.Combo.UseR and GetDistance(target) < self.R.Range and CountEnemyHeroInRange(self.R.Range) <= self.Config.Skillshot.R.limit then
+		if self.Config.Combo.UseR and CountEnemyHeroInRange(self.R.Range) <= self.Config.Settings.R.limit then
 			self.RSpell:Cast()
 		end
 	end
@@ -328,23 +329,23 @@ function Allah:Harass(target)
 			end
 			return
 		end
-		if self.Config.Harass.UseE then
-			self.ESpell:Cast(target.x, target.z)
+		if self.Config.Harass.UseE and GetDistance(target) < self.E.Range then
+			self.ESpell:Cast(target)
 		end
 		if self:GetCustemBotTarget() ~= nil and GetDistance(Vector(target)) > 400 then
-			target = Vector(self:GetCustemBotTarget())
-			if self.Config.Harass.UseQ then
-				CastSpell(_Q,target.x, target.z)
+			targetPos = self:GetCustemBotTarget()
+			if self.Config.Harass.UseQ and GetDistance(targetPos) < self.Q.Range then
+				self.QSpell:Cast(targetPos.x, targetPos.z)
 			end
-			if self.Config.Harass.UseW then
+			if self.Config.Harass.UseW and GetDistance(targetPos) < self.W.Range then
 				CastSpell(_W)
 				self:ResetAA()
 			end
 		else
-			if self.Config.Harass.UseQ then
-				self.QSpell:Cast(target.x, target.z)
+			if self.Config.Harass.UseQ and GetDistance(target) < self.Q.Range then
+				self.QSpell:Cast(target)
 			end
-			if self.Config.Harass.UseW then
+			if self.Config.Harass.UseW and GetDistance(target) < self.W.Range then
 				self.WSpell:Cast()
 				self:ResetAA()
 			end
@@ -385,15 +386,8 @@ function Allah:JungleClear()
 end 
 
 function Allah:GetCustemBotTarget(n)
-	local bots = {}
-	for i = 1, objManager.iCount, 1 do
-        local obj = objManager:getObject(i)
-        if obj and obj.name ~= nil and obj.name:lower():find("bot") then
-			table.insert(bots, obj)
-		end
-	end
-	table.sort(bots, function(a, b) return GetDistance(Vector(a)) < GetDistance(Vector(b)) end)
-	return bots[n or 1]
+	table.sort(self.ghost, function(a, b) return GetDistance(Vector(a)) < GetDistance(Vector(b)) end)
+	return self.ghost[n or 1]
 end
 --[[
 	check mana low

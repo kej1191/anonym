@@ -57,6 +57,8 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
+_G.srcLib.version = 0.1
+local autoUpdate = true
 
 --[[
 
@@ -128,6 +130,116 @@ function Require:Check()
     return self
 end
 
+--[[
+
+.|'''|                          '||`           '||   ||`             ||`           ||                  
+||       ''                      ||             ||   ||              ||            ||                  
+`|'''|,  ||  '||),,(|,  '||''|,  ||  .|''|,     ||   ||  '||''|, .|''||   '''|.  ''||''  .|''|, '||''| 
+ .   ||  ||   || || ||   ||  ||  ||  ||..||     ||   ||   ||  || ||  ||  .|''||    ||    ||..||  ||    
+ |...|' .||. .||    ||.  ||..|' .||. `|...      `|...|'   ||..|' `|..||. `|..||.   `|..' `|...  .||.   
+                         ||                               ||                                           
+                        .||                              .||                                           
+						
+
+    SimpleUpdater - a simple updater class
+
+    Introduction:
+        Scripts that want to use this class need to have a version field at the beginning of the script, like this:
+            local version = YOUR_VERSION (YOUR_VERSION can either be a string a a numeric value!)
+        It does not need to be exactly at the beginning, like in this script, but it has to be within the first 100
+        chars of the file, otherwise the webresult won't see the field, as it gathers only about 100 chars
+
+    Functions:
+        SimpleUpdater(scriptName, version, host, updatePath, filePath, versionPath)
+
+    Members:
+        SimpleUpdater.silent | bool | Defines wheather to print notifications or not
+
+    Methods:
+        SimpleUpdater:SetSilent(silent)
+        SimpleUpdater:CheckUpdate()
+
+]]
+class('SimpleUpdater')
+--[[
+    Create a new instance of SimpleUpdater
+
+    @param scriptName  | string        | Name of the script which should be used when printed in chat
+    @param version     | float/string  | Current version of the script
+    @param host        | string        | Host, for example "bitbucket.org" or "raw.github.com"
+    @param updatePath  | string        | Raw path to the script which should be updated
+    @param filePath    | string        | Path to the file which should be replaced when updating the script
+    @param versionPath | string        | (optional) Path to a version file to check against. The version file may only contain the version.
+]]
+function SimpleUpdater:__init(scriptName, version, host, updatePath, filePath, versionPath)
+
+    self.printMessage = function(message) if not self.silent then print("<font color=\"#6699ff\"><b>" .. self.UPDATE_SCRIPT_NAME .. ":</b></font> <font color=\"#FFFFFF\">" .. message .. "</font>") end end
+    self.getVersion = function(version) return tonumber(string.match(version or "", "%d+%.?%d*")) end
+
+    self.UPDATE_SCRIPT_NAME = scriptName
+    self.UPDATE_HOST = host
+    self.UPDATE_PATH = updatePath .. "?rand="..math.random(1,10000)
+    self.UPDATE_URL = "https://"..self.UPDATE_HOST..self.UPDATE_PATH
+
+    -- Used for version files
+    self.VERSION_PATH = versionPath and versionPath .. "?rand="..math.random(1,10000)
+    self.VERSION_URL = versionPath and "https://"..self.UPDATE_HOST..self.VERSION_PATH
+
+    self.UPDATE_FILE_PATH = filePath
+
+    self.FILE_VERSION = self.getVersion(version)
+    self.SERVER_VERSION = nil
+
+    self.silent = false
+
+end
+
+--[[
+    Allows or disallows the updater to print info about updating
+
+    @param  | bool   | Message output or not
+    @return | class  | The current instance
+]]
+function SimpleUpdater:SetSilent(silent)
+
+    self.silent = silent
+    return self
+
+end
+
+--[[
+    Check for an update and downloads it when available
+]]
+function SimpleUpdater:CheckUpdate()
+
+    local webResult = GetWebResult(self.UPDATE_HOST, self.VERSION_PATH or self.UPDATE_PATH)
+    if webResult then
+        if self.VERSION_PATH then
+            self.SERVER_VERSION = webResult
+        else
+            self.SERVER_VERSION = string.match(webResult, "%s*local%s+version%s+=%s+.*%d+%.%d+")
+        end
+        if self.SERVER_VERSION then
+            self.SERVER_VERSION = self.getVersion(self.SERVER_VERSION)
+            if not self.SERVER_VERSION then
+                print("SourceLib: Please contact the developer of the script \"" .. (GetCurrentEnv().FILE_NAME or "DerpScript") .. "\", since the auto updater returned an invalid version.")
+                return
+            end
+            if self.FILE_VERSION < self.SERVER_VERSION then
+                self.printMessage("New version available: v" .. self.SERVER_VERSION)
+                self.printMessage("Updating, please don't press F9")
+                DelayAction(function () DownloadFile(self.UPDATE_URL, self.UPDATE_FILE_PATH, function () self.printMessage("Successfully updated, please reload!") end) end, 2)
+            else
+                self.printMessage("You've got the latest version: v" .. self.SERVER_VERSION)
+            end
+        else
+            self.printMessage("Something went wrong! Please manually update the script!")
+        end
+    else
+        self.printMessage("Error downloading version info!")
+    end
+
+end
 
 --[[
 
@@ -510,37 +622,37 @@ local spellNum = 1
 ]]
 function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, collision)
 	assert(spellId ~= nil and range ~= nil and type(spellId) == "number" and type(range) == "number", "Spell: Can't initialize Spell without valid arguments.")
-	self.Prediction = {}
-	if(_G.srcLib.Prediction == nil and _G.srcLib.Spell == nil) then
-		DelayAction(function(menu)
-			if (_G.srcLib.Prediction == nil and _G.srcLib.Spell == nil) then
-				if FileExist(LIB_PATH .. "SPrediction.lua") then
-					require("SPrediction")
-					_G.srcLib.SP = SPrediction()
-					table.insert(self.Prediction, "SPrediction")
-				end
-				if FileExist(LIB_PATH .. "VPrediction.lua") then
-					require("VPrediction")
-					_G.srcLib.VP = VPrediction()
-					table.insert(self.Prediction, "VPrediction")
-				end
-				if FileExist(LIB_PATH.."DivinePred.lua") and FileExist(LIB_PATH.."DivinePred.luac") then
-					require "DivinePred"
-					_G.srcLib.dp = DivinePred()
-					table.insert(self.Prediction, "DivinePred")
-				end
-			elseif (_G.srcLib.Prediction) then
-				self.Prediction = _G.srcLib.Prediction
+	DelayAction(function(menu)
+		if (_G.srcLib.Prediction == nil) then
+			_G.srcLib.Prediction = {}
+			if FileExist(LIB_PATH .. "SPrediction.lua") and _G.srcLib.SP == nil then
+				require("SPrediction")
+				_G.srcLib.SP = SPrediction()
+				table.insert(_G.srcLib.Prediction, "SPrediction")
 			end
-			DelayAction(function(menu)
-				menu = menu or scriptConfig("[SourceLib] SpellClass", "srcSpellClass")
-					menu:addParam("predictionType", "Prediction Type", SCRIPT_PARAM_LIST, 1, self.Prediction)
-					menu:addParam("packetCast", "Packet Cast", SCRIPT_PARAM_ONOFF, false)
-					menu:addParam("Hitchance", "Hitchance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
-					_G.srcLib.Prediction = self.Prediction
-			end, 1, {menu})
-		end, 3, {menu})
-	end
+			if FileExist(LIB_PATH .. "VPrediction.lua") and _G.srcLib.VP == nil then
+				require("VPrediction")
+				_G.srcLib.VP = VPrediction()
+				table.insert(_G.srcLib.Prediction, "VPrediction")
+			end
+			if FileExist(LIB_PATH .. "HPrediction.lua") and _G.srcLib.HP == nil then
+				require("HPrediction")
+				_G.srcLib.HP = HPrediction()
+				table.insert(_G.srcLib.Prediction, "HPrediction")
+			end
+			if FileExist(LIB_PATH.."DivinePred.lua") and FileExist(LIB_PATH.."DivinePred.luac") and _G.srcLib.dp == nil then
+				require "DivinePred"
+				_G.srcLib.dp = DivinePred()
+				table.insert(_G.srcLib.Prediction, "DivinePred")
+			end
+		end
+		DelayAction(function(menu)
+			menu = menu or scriptConfig("[SourceLib] SpellClass", "srcSpellClass")
+				menu:addParam("predictionType", "Prediction Type", SCRIPT_PARAM_LIST, 1, _G.srcLib.Prediction)
+				menu:addParam("packetCast", "Packet Cast", SCRIPT_PARAM_ONOFF, false)
+				menu:addParam("Hitchance", "Hitchance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
+		end, 1, {menu})
+	end, 1, {menu})
 	self.spellId = spellId
 	self.packetCast = packetCast or false
 	
@@ -655,7 +767,7 @@ function Spell:HPSettings()
 					self.HPSS = HPSkillshot({type = "DelayLine", range = self.range, speed = self.speed, width = 2*self.width, delay = self.delay})
 				end
 			else
-				self.HPSS = HPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay})
+				self.HPSS = HPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay, collisionM = self.collision, collisionH = self.collision })
 			end
 		elseif self.skillshotType == SKILLSHOT_CIRCULAR then
 			if self.speed ~= math.huge then 
@@ -671,7 +783,7 @@ function Spell:HPSettings()
 					self.HPSS = HPSkillshot({type = "DelayLine", range = self.range, speed = self.speed, width = 2*self.width, delay = self.delay})
 				end
 			else
-				self.HPSS = HPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay})
+				self.HPSS = HPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay, collisionM = self.collision, collisionH = self.collision})
 			end
 			-- not yet serport in sourcelib
 			if self.delay == 0 then
@@ -719,21 +831,24 @@ end
     @rerurn              | class | The current instance
 ]]
 function Spell:SetAOE(useAoe, radius, minTargetsAoe)
-    self.useAoe = useAoe or false
+	-- couse error
+	--[[    self.useAoe = useAoe or false
     self.radius = radius or self.width
     self.minTargetsAoe = minTargetsAoe or 0
     return self
+	]]
 end
 --[[
     Define this spell as charged spell
 
     @param spellName      | string   | Name of the spell, example: VarusQ
     @param chargeDuration | float    | Seconds of the spell to charge, after the time the charge expires
-    @param maxRage        | float    | Max range the spell will have after fully charging
+	@param minRange       | float    | Min range the spell will have start charging
+    @param maxRange       | float    | Max range the spell will have after fully charging
     @param timeToMaxRange | float    | Time in seconds to reach max range after casting the spell
     @param abortCondition | function | (optional) A function which returns true when the charge process should be stopped.
 ]]
-function Spell:SetCharged(spellName, chargeDuration, maxRange, timeToMaxRange, abortCondition)
+function Spell:SetCharged(spellName, chargeDuration, minRange, maxRange, timeToMaxRange, abortCondition)
     assert(self.skillshotType, "Spell:SetCharged(): Only skillshots can be defined as charged spells!")
     assert(spellName and type(spellName) == "string" and chargeDuration and type(chargeDuration) == "number", "Spell:SetCharged(): Some or all arguments are invalid!")
     assert(self.__charged == nil, "Spell:SetCharged(): Already marked as charged spell!")
@@ -741,6 +856,7 @@ function Spell:SetCharged(spellName, chargeDuration, maxRange, timeToMaxRange, a
     self.__charged_aborted   = true
     self.__charged_spellName = spellName
     self.__charged_duration  = chargeDuration
+	self.__charged_initialRange = minRange
     self.__charged_maxRange       = maxRange
     self.__charged_chargeTime     = timeToMaxRange
     self.__charged_abortCondition = abortCondition or function () return false end
@@ -810,14 +926,14 @@ function Spell:ValidTarget(target, range)
     return ValidTarget(target, range or self.range)
 end
 --[[
-    Returns the prediction results from VPrediction/Prodiction in a VPrediction result layout
+    Returns the prediction results from VPrediction/Prodiction/SPrediction/HPrediction/DPrediction
 
-    @return | various data | Prediction result in VPrediction layout
+    @return | various data | Prediction information
 ]]
 function Spell:GetPrediction(target)
-    if self.skillshotType ~= nil and self.Prediction ~= nil then
+    if self.skillshotType ~= nil and _G.srcLib.Prediction ~= nil then
         -- VPrediction
-        if self.Prediction[self.predictionType] == "VPrediction" then -- self.Prediction[self.predictionType] == "HPrediction"
+        if _G.srcLib.Prediction[self.predictionType] == "VPrediction" then -- self.Prediction[self.predictionType] == "HPrediction"
             if self.skillshotType == SKILLSHOT_LINEAR then
                 if self.useAoe then
                     return _G.srcLib.VP:GetLineAOECastPosition(target, self.delay, self.radius, self.range, self.speed, self.sourcePosition)
@@ -838,7 +954,7 @@ function Spell:GetPrediction(target)
                 end
             end
         -- Prodiction
-        elseif self.Prediction[self.predictionType] == "Prediction" then
+        elseif _G.srcLib.Prediction[self.predictionType] == "Prediction" then
             if self.useAoe then
                 if self.skillshotType == SKILLSHOT_LINEAR then
                     local pos, info, objects = Prodiction.GetLineAOEPrediction(target, self.range, self.speed, self.delay, self.radius, self.sourcePosition)
@@ -888,7 +1004,7 @@ function Spell:GetPrediction(target)
             end
             ]]
 		--SPrediction <Someday rework after SP all done>
-		elseif self.Prediction[self.predictionType] == "SPrediction" then
+		elseif _G.srcLib.Prediction[self.predictionType] == "SPrediction" then
 			if self.skillshotType == SKILLSHOT_LINEAR then
                 return _G.srcLib.SP:Predict(target, self.range, self.speed, self.delay, self.width, self.collision, self.sourcePosition)
             elseif self.skillshotType == SKILLSHOT_CIRCULAR then
@@ -905,14 +1021,14 @@ function Spell:GetPrediction(target)
                 end
             end
 		--HPrediction <HTTF>
-		elseif self.Prediction[self.predictionType] == "HPrediction" then
+		elseif _G.srcLib.Prediction[self.predictionType] == "HPrediction" then
 			if self.useAoe then
 				return _G.srcLib.HP:GetPredict(self.HPSS, target, self.sourcePosition, true)
 			else
 				return _G.srcLib.HP:GetPredict(self.HPSS, target, self.sourcePosition)
 			end
 		--DivinePred <Divine>
-		elseif self.Prediction[self.predictionType] == "DivinePred" then
+		elseif _G.srcLib.Prediction[self.predictionType] == "DivinePred" then
 			local Target = DPTarget(target)
 			local fuck, the, divine = _G.srcLib.dp:predict(SpellToString(self.spellId), Target, self.sourcePosition)
 			local you = -1
@@ -1010,6 +1126,7 @@ end
     @param return | int            | SpellState of the current spell
 ]]
 function Spell:Cast(param1, param2)
+	local castPosition, hitChance, position, nTargets = nil, nil, nil, nil
     if self.skillshotType ~= nil and param1 ~= nil and param2 == nil then
         -- Don't calculate stuff when target is invalid
         if not ValidTarget(param1) then 
@@ -1018,21 +1135,24 @@ function Spell:Cast(param1, param2)
 			end
 			return SPELLSTATE_INVALID_TARGET 
 		end
-		-- Not ready
-		if not self:IsReady() then
+		-- Is ready
+		--[[
+		
+		if self:IsReady() then
 			if _G.srcLib.Menu.Spell.Debug then
 				print("SPELLSTATE_IS_READY")
 			end
 			return SPELLSTATE_IS_READY 
 		end
-        local castPosition, hitChance, position, nTargets
+		
+		]]
         if self.skillshotType == SKILLSHOT_LINEAR or self.skillshotType == SKILLSHOT_CONE then
             if self.useAoe then
                 castPosition, hitChance, nTargets = self:GetPrediction(param1)
             else
                 castPosition, hitChance, position = self:GetPrediction(param1)
                 -- Out of range
-                if self.range < GetDistance(self.sourceRange, position) then 
+                if self.range < GetDistance(self.sourceRange, castPosition) then
 					if _G.srcLib.Menu.Spell.Debug then
 						print("SPELLSTATE_OUT_OF_RANGE")
 					end
@@ -1045,7 +1165,7 @@ function Spell:Cast(param1, param2)
             else
                 castPosition, hitChance, position = self:GetPrediction(param1)
                 -- Out of range
-                if math.pow(self.range + self.width + GetDistance(param1.minBBox) , 2) < _GetDistanceSqr(self.sourceRange, position) then 
+                if self.range + self.width + GetDistance(param1.minBBox) < GetDistance(self.sourceRange, castPosition) then 
 					if _G.srcLib.Menu.Spell.Debug then
 						print("SPELLSTATE_OUT_OF_RANGE")
 					end
@@ -1068,20 +1188,11 @@ function Spell:Cast(param1, param2)
 			return SPELLSTATE_NOT_ENOUGH_TARGETS 
 		end
         -- Collision detected
-        if hitChance <= 0 then 
+        if self.collision and hitChance < 0 then 
 			if _G.srcLib.Menu.Spell.Debug then
 				print("SPELLSTATE_COLLISION")
 			end
 			return SPELLSTATE_COLLISION 
-		end
-		if self.collision then
-			c = Collision(self.range, self.speed, self.delay, self.width*2)
-			if c:GetCollision(self.sourcePosition, position) then
-				if _G.srcLib.Menu.Spell.Debug then
-					print("SPELLSTATE_COLLISION")
-				end
-				return SPELLSTATE_COLLISION 
-			end
 		end
         -- Hitchance too low
         if hitChance and hitChance < self.hitChance then 
@@ -1092,18 +1203,21 @@ function Spell:Cast(param1, param2)
 			return SPELLSTATE_LOWER_HITCHANCE 
 		end
         -- Out of range
-        if self.range < GetDistance(self.sourceRange, castPosition) then 
+		
+		if self.range < GetDistance(self.sourceRange, castPosition) then 
 			if _G.srcLib.Menu.Spell.Debug then
 				print("SPELLSTATE_OUT_OF_RANGE")
 			end
 			return SPELLSTATE_OUT_OF_RANGE 
 		end
+		
         param1 = castPosition.x
         param2 = castPosition.z
     end
     -- Cast charged spell
     if castPosition ~= nil and self.__charged and self:IsCharging() then
-		if self.range ~= self.__charged_maxRange and GetDistanceSqr(castPosition) < (self.rangeSqr - 200)^2 or self.range == self.__charged_maxRange and GetDistanceSqr(castPosition) < (self.rangeSqr)^2 then
+		print(tostring(GetDistance(castPosition) < (self.range)) .. " " .. tostring(GetDistance(castPosition) < (self.range)))
+		if self.range ~= self.__charged_maxRange and GetDistance(castPosition) < (self.range) or self.range == self.__charged_maxRange and GetDistance(castPosition) < (self.range) then
 			local d3vector = D3DXVECTOR3(castPosition.x, castPosition.y, castPosition.z)
 			CastSpell2(self.spellId, d3vector)
 		end
@@ -1337,7 +1451,6 @@ function Spell:OnProcessSpell(unit, spell)
         if self.__charged and self.__charged_spellName:lower() == spell.name:lower() then
             self.__charged_active       = true
             self.__charged_aborted      = false
-            self.__charged_initialRange = self.range
             self.__charged_castTime     = os.clock()
             self.__charged_count        = self.__charged_count and self.__charged_count + 1 or 1
             DelayAction(function(chargeCount)
@@ -1791,7 +1904,7 @@ end
 ]]
 function SimpleTS:GetTarget(range, n, forcemode)
     assert(range, "SimpleTS: range can't be nil")
-    range = range * range
+    range = range
     local PosibleTargets = {}
     local selected = self:SelectedTarget()
 
@@ -3064,6 +3177,20 @@ function TableDeepCopy(orig)
     end
     return copy
 
+end
+
+--[[
+
+'||'           ||    .    ||          '||   ||                    .    ||                   
+ ||  .. ...   ...  .||.  ...   ....    ||  ...  ......   ....   .||.  ...    ...   .. ...   
+ ||   ||  ||   ||   ||    ||  '' .||   ||   ||  '  .|'  '' .||   ||    ||  .|  '|.  ||  ||  
+ ||   ||  ||   ||   ||    ||  .|' ||   ||   ||   .|'    .|' ||   ||    ||  ||   ||  ||  ||  
+.||. .||. ||. .||.  '|.' .||. '|..'|' .||. .||. ||....| '|..'|'  '|.' .||.  '|..|' .||. ||. 
+
+]]
+--(scriptName, version, host, updatePath, filePath, versionPath)
+if autoUpdate then
+	SimpleUpdater("[SourceLib temp fix]", _G.srcLib.version, "raw.github.com" , "/kej1191/anonym/master/Common/SourceLibk.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/Common/version/SoureLibk.version" ):CheckUpdate()
 end
 
 
