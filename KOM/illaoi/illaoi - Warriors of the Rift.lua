@@ -1,11 +1,12 @@
 --[[
-	 /.\      '||` '||`         '||                 
-	// \\      ||   ||           ||             ''  
-   //...\\     ||   ||   '''|.   ||''|, .|''|,  ||  
-  //     \\    ||   ||  .|''||   ||  || ||  ||  ||  
-.//       \\. .||. .||. `|..||. .||  || `|..|' .||. 
+     '||` '||`                               '||      ||`                                                           .|';      ||    '||               '||'''|,       .|';   ||    
+ ''   ||   ||                  ''             ||      ||                         ''                                 ||        ||     ||                ||   ||  ''   ||     ||    
+ ||   ||   ||   '''|.  .|''|,  ||     ---     ||  /\  ||   '''|.  '||''| '||''|  ||  .|''|, '||''| (''''    .|''|, '||'     ''||''   ||''|, .|''|,     ||...|'  ||  '||'  ''||''  
+ ||   ||   ||  .|''||  ||  ||  ||              \\//\\//   .|''||   ||     ||     ||  ||  ||  ||     `'')    ||  ||  ||        ||     ||  || ||..||     || \\    ||   ||     ||    
+.||. .||. .||. `|..||. `|..|' .||.              \/  \/    `|..||. .||.   .||.   .||. `|..|' .||.   `...'    `|..|' .||.       `|..' .||  || `|...     .||  \\. .||. .||.    `|..' 
+                                                                                                                                                                                  
 	
-	Allahoi - Allahu Akbar by kaokaoni
+	illaoi - Warriors of the Rift by kaokaoni
 	
 	
 	Introduction:
@@ -29,7 +30,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b
 
 local VERSION = 0.01
 
-SimpleUpdater("Allahoi", VERSION, "raw.github.com" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.version" ):CheckUpdate()
+SimpleUpdater("illaoi - Warriors of the Rift", VERSION, "raw.github.com" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.version" ):CheckUpdate()
 
 if FileExist(LIB_PATH .. "SourceLibk.lua") then
 	require 'SourceLibk'
@@ -47,7 +48,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b
 
 
 function OnLoad()
-	champ= Allah()
+	champ= illaoi()
 end
 
 function OnCreateObj(obj)
@@ -92,8 +93,8 @@ function CountObjectsOnLineSegment(StartPos, EndPos, width, objects)
     return n
 end
 
-class('Allah')
-function Allah:__init()
+class('illaoi')
+function illaoi:__init()
 
 	--InitializeComponent
 	self.STS = SimpleTS(STS_NEARMOUSE)
@@ -111,7 +112,7 @@ function Allah:__init()
 	self.ghost = {}
 	
 	--Menu settings
-	self.Config = scriptConfig("Allahoi", "Illaoi")
+	self.Config = scriptConfig("illaoioi", "Illaoi")
 		if SxOLoad then
 			self.Config:addSubMenu("Orbwalking", "Orbwalking")
 				SxO:LoadToMenu(self.Config.Orbwalking, Orbwalking)
@@ -218,7 +219,7 @@ local function OrbTarget()
 		return T
 	end
 end
-function Allah:Tick()
+function illaoi:Tick()
 	if myHero.dead then return end
 	if self.Config.General.On and orbload ~= nil then
 		self.Target = self.STS:GetTarget(self.E.Range)
@@ -253,7 +254,7 @@ function Allah:Tick()
 	end
 end
 
-function Allah:Draw()
+function illaoi:Draw()
 	if myHero.dead then return end
 
 	if self.QSpell:IsReady() and self.Config.Draw.DrawQ then
@@ -278,7 +279,7 @@ function Allah:Draw()
 	end
 end
 
-function Allah:OnCreateObj(object)
+function illaoi:OnCreateObj(object)
 	if myHero.dead then return end
 	if object and object.name and object.name:lower():find("bot") then
 		data = {name = object.name, pos = Vector(object)}
@@ -286,7 +287,7 @@ function Allah:OnCreateObj(object)
 	end
 end
 
-function Allah:OnDeleteObj(object)
+function illaoi:OnDeleteObj(object)
 	if myHero.dead then return end
 	if object and object.name and object.name:lower():find("bot") then
 		for i = 1, #self.ghost, 1 do
@@ -297,7 +298,7 @@ function Allah:OnDeleteObj(object)
 	end
 end
 
-function Allah:Combo(target)
+function illaoi:Combo(target)
 	if target ~= nil then
 		if self.Config.Combo.UseQ then
 			self.QSpell:Cast(target)
@@ -315,17 +316,17 @@ function Allah:Combo(target)
 	end
 end
 
-function Allah:Harass(target)
+function illaoi:Harass(target)
 	if target ~= nil then
 		if self:IsManalow() then
 			if self.Config.General.Debug then
-				print("Allah : Harass() : Low mana")
+				print("illaoi : Harass() : Low mana")
 			end
 			return
 		end
 		if GetDistance(target) > self.E.Range then
 			if self.Config.General.Debug then
-				print("Allah : Harass() : Target is out of range")
+				print("illaoi : Harass() : Target is out of range")
 			end
 			return
 		end
@@ -352,12 +353,12 @@ function Allah:Harass(target)
 		end
 	else
 		if self.Config.General.Debug then
-			print("Allah : Harass() : Target is nil")
+			print("illaoi : Harass() : Target is nil")
 		end
 	end
 end
 
-function Allah:LineClear()
+function illaoi:LineClear()
 	self.minionTable:update()
 	if self.Config.linec.UseQ and self.QSpell:IsReady() and #self.minionTable.objects ~= 0 then
 		local BestPos, BestHit, BestObj = GetBestLineFarmPosition(self.Q.Range, self.Q.Width, self.minionTable.objects)
@@ -371,7 +372,7 @@ function Allah:LineClear()
 	end
 end
 
-function Allah:JungleClear()
+function illaoi:JungleClear()
 	self.jungleTable:update()
 	if self.Config.Junglec.UseQ and self.QSpell:IsReady() then
 		local BestPos, BestHit, BestObj = GetBestLineFarmPosition(self.Q.Range, self.Q.Width, self.jungleTable.objects)
@@ -385,7 +386,7 @@ function Allah:JungleClear()
 	end
 end 
 
-function Allah:GetCustemBotTarget(n)
+function illaoi:GetCustemBotTarget(n)
 	table.sort(self.ghost, function(a, b) return GetDistance(Vector(a)) < GetDistance(Vector(b)) end)
 	return self.ghost[n or 1]
 end
@@ -395,19 +396,19 @@ end
 	@param mode | string  | combo or harass
 	@return		| boolean | mana is more than setting per or not
 ]]
-function Allah:IsManalow(mode)
+function illaoi:IsManalow(mode)
 	local mode = mode or "harass"
 	if(mode == "combo") then
 		return true
 	elseif mode == "harass" then
 		return ((myHero.mana / myHero.maxMana * 100) <= self.Config.Harass.ManaCheck)
 	else
-		print ("Allahoi : IsManalow(mode) : mode is invalid (not combo or harass)")
+		print ("illaoioi : IsManalow(mode) : mode is invalid (not combo or harass)")
 		return false
 	end
 end
 
-function Allah:IsComboPressed()
+function illaoi:IsComboPressed()
 	if SacLoad then
 		if _G.AutoCarry.Keys.AutoCarry then
 			return true
@@ -424,7 +425,7 @@ function Allah:IsComboPressed()
     return false
 end
 
-function Allah:IsHarassPressed()
+function illaoi:IsHarassPressed()
 	if SacLoad then
 		if _G.AutoCarry.Keys.MixedMode then
 			return true
@@ -441,7 +442,7 @@ function Allah:IsHarassPressed()
     return false
 end
 
-function Allah:IsClearPressed()
+function illaoi:IsClearPressed()
 	if SacLoad then
 		if _G.AutoCarry.Keys.LaneClear then
 			return true
@@ -458,7 +459,7 @@ function Allah:IsClearPressed()
     return false
 end
 
-function Allah:IsLastHitPressed()
+function illaoi:IsLastHitPressed()
 	if SacLoad then
 		if _G.AutoCarry.Keys.LastHit then
 			return true
@@ -475,7 +476,7 @@ function Allah:IsLastHitPressed()
     return false
 end
 
-function Allah:ResetAA()
+function illaoi:ResetAA()
     if SacLoad then
         _G.AutoCarry.Orbwalker:ResetAttackTimer()
     elseif SxOLoad then

@@ -32,11 +32,11 @@ end
 
 
 local Author = "KaoKaoNi"
-local Version = "1.8"
+local Version = "1.9"
 
 local SCRIPT_INFO = {
 	["Name"] = "APLD KogMaw",
-	["Version"] = 1.8,
+	["Version"] = 1.9,
 	["Author"] = {
 		["KaoKaoNi"] = "http://forum.botoflegends.com/user/145247-"
 	},
@@ -49,8 +49,7 @@ local SCRIPT_UPDATER = {
 	["URL_VERSION"] = "/kej1191/anonym/master/APLD/APLD KogMaw/version/APLD KogMaw.version"
 }
 local SCRIPT_LIBS = {
-	["SourceLib"] = "https://raw.github.com/LegendBot/Scripts/master/Common/SourceLib.lua",
-	["HPrediction"] = "https://raw.githubusercontent.com/BolHTTF/BoL/master/HTTF/Common/HPrediction.lua"
+	["SourceLibk"] = "https://raw.githubusercontent.com/kej1191/anonym/master/Common/SourceLibk.lua",
 }
 
 --{ Initiate Script (Checks for updates)
@@ -97,7 +96,6 @@ local Next_Cast_time = 0;
 
 local RMana = 0;
 local _RMana = {"40", "80", "120", "160", "200", "240", "280", "320", "360", "400"}
-local Prediction = {"HPrediction"}
 
 local STS;
 
@@ -199,6 +197,7 @@ local function OrbLoad()
 		ScriptMsg("Cant Fine OrbWalker")
 	end
 end
+
 local function OrbReset()
 	if MMALoaded then
 		--print("ReSet")
@@ -213,18 +212,6 @@ local function OrbReset()
 		--print("ReSet")
 		SOW:resetAA()
 	end
-end
-
-function OrbwalkCanMove()
- 	if RebornLoaded then
-    	return _G.AutoCarry.Orbwalker:CanMove()
- 	elseif MMALoaded then
-	    return _G.MMA_AbleToMove
-	 elseif SxOLoaded then
- 	   return SxO:CanMove()
-	elseif SOWLoaded then
-	   return SOW:CanMove()
-	 end
 end
 
 local function OrbTarget(range)
@@ -250,9 +237,15 @@ function OnLoad()
 	
 	OnMenuLoad();
 	
+	QSpell = Spell(_Q, Config.SS.Q, SKILLSHOT_LINEAR, Q.Range, Q.Width, Q.Delay, Q.Speed, false)
+	ESpell = Spell(_E, Config.SS.E, SKILLSHOT_LINEAR, E.Range, E.Width, E.Delay, E.Speed, true)
+	RSpell = Spell(_R, Config.SS.R, SKILLSHOT_CIRCULAR, R.Range, R.Width, R.Delay, R.Speed, false)
+	
+	--[[
 	HP_Q = HPSkillshot({type = "DelayLine", range = Q.Range, delay = Q.Delay, width = Q.Width*2, speed = Q.Speed})
 	HP_E = HPSkillshot({type = "DelayLine", collisionM = false, collisionH = false, range = E.Range, delay = E.Delay, width = E.Width*2, speed = E.Speed})
 	HP_R = HPSkillshot({type = "PromptCircle", range = R.Range, delay = R.Delay, radius = R.Width, IsVeryLowAccuracy = true})
+	]]
 	--[[
 		-- Q
 	Spell_Q.delay['KogMaw'] = Q.Delay;
@@ -286,16 +279,6 @@ function OnLoad()
 	enemyMinions = minionManager(MINION_ENEMY, R.Range+R.Width, player, MINION_SORT_MAXHEALTH_DEC)
 
 end
--- Language
-
-local _Combo = {"Combo", "콤보", "组合", "Комбо"}
-local _Harass = {"Harass", "괴롭히기", "骚扰", "изводить"}
-local _LineClear = {"LineClear", "라인클리어", "线清晰", "линия Ясно"}
-
-local UseQ = {"Use Q", "Q 사용", "用 Q", "Использование Q"}
-local UseW = {"Use W", "W 사용", "用 W", "Использование W"}
-local UseE = {"Use E", "E 사용", "用 E", "Использование E"}
-local UseR = {"Use R", "R 사용", "用 R", "Использование R"}
 
 -- End Language
 
@@ -305,43 +288,35 @@ function OnMenuLoad()
 	Config:addSubMenu("TargetSelector", "TargetSelector")
 	STS:AddToMenu(Config.TargetSelector)
 	
-	Config:addSubMenu("Language", "Language")
-		Config.Language:addParam("Language", "Language", SCRIPT_PARAM_LIST, 1, {"English", "한국어", "中國語", "русский"})
-	
 	local _Lg = Config.Language.Language
 	
 	Config:addSubMenu("HotKey", "HotKey");
-		Config.HotKey:addParam("Combo",_Combo[_Lg] ,SCRIPT_PARAM_ONKEYDOWN, false, 32);
-		Config.HotKey:addParam("Harass",_Harass[_Lg], SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"));
-		Config.HotKey:addParam("LineClear",_LineClear[_Lg] ,SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"));
+		Config.HotKey:addParam("Combo","Combo" ,SCRIPT_PARAM_ONKEYDOWN, false, 32);
+		Config.HotKey:addParam("Harass","Harass", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"));
+		Config.HotKey:addParam("LineClear","LineClear" ,SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"));
 		
-	Config:addSubMenu(_Combo[_Lg], "Combo");
-		Config.Combo:addParam("UseQ",UseQ[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Combo:addParam("UseW",UseW[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Combo:addParam("UseE",UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Combo:addParam("UseR",UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
+	Config:addSubMenu("Combo", "Combo");
+		Config.Combo:addParam("UseQ","UseQ", SCRIPT_PARAM_ONOFF, true);
+		Config.Combo:addParam("UseW","UseW", SCRIPT_PARAM_ONOFF, true);
+		Config.Combo:addParam("UseE","UseE", SCRIPT_PARAM_ONOFF, true);
+		Config.Combo:addParam("UseR","UseR", SCRIPT_PARAM_ONOFF, true);
 	
-	Config:addSubMenu(_Harass[_Lg], "Harass")
-		Config.Harass:addParam("UseQ", UseQ[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Harass:addParam("UseW",UseW[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Harass:addParam("UseE", UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Harass:addParam("UseR", UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
+	Config:addSubMenu("Harass", "Harass")
+		Config.Harass:addParam("UseQ", "UseQ", SCRIPT_PARAM_ONOFF, true);
+		Config.Harass:addParam("UseW","UseW", SCRIPT_PARAM_ONOFF, true);
+		Config.Harass:addParam("UseE", "UseE", SCRIPT_PARAM_ONOFF, true);
+		Config.Harass:addParam("UseR", "UseR", SCRIPT_PARAM_ONOFF, true);
 		
-	Config:addSubMenu(_LineClear[_Lg], "Clear")
-		Config.Clear:addParam("UseQ",UseQ[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Clear:addParam("UseW", UseW[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Clear:addParam("UseE", UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.Clear:addParam("UseR",UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
+	Config:addSubMenu("Clear", "Clear")
+		Config.Clear:addParam("UseQ","UseQ", SCRIPT_PARAM_ONOFF, true);
+		Config.Clear:addParam("UseW", "UseW", SCRIPT_PARAM_ONOFF, true);
+		Config.Clear:addParam("UseE", "UseE", SCRIPT_PARAM_ONOFF, true);
+		Config.Clear:addParam("UseR","UseR", SCRIPT_PARAM_ONOFF, true);
 		
 	Config:addSubMenu("KillSteal", "KillSteal")
-		Config.KillSteal:addParam("UseE", UseE[_Lg], SCRIPT_PARAM_ONOFF, true);
-		Config.KillSteal:addParam("UseR", UseR[_Lg], SCRIPT_PARAM_ONOFF, true);
+		Config.KillSteal:addParam("UseE", "UseE", SCRIPT_PARAM_ONOFF, true);
+		Config.KillSteal:addParam("UseR", "UseR", SCRIPT_PARAM_ONOFF, true);
 		
-	Config:addSubMenu("Prediction", "pred")
-		Config.pred:addSubMenu("HPSetting", "HPSetting")
-			Config.pred.HPSetting:addParam("QHitChance", "QHitChance", SCRIPT_PARAM_SLICE, 1, 0, 3.0, 0);
-			Config.pred.HPSetting:addParam("EHitChance", "EHitChance", SCRIPT_PARAM_SLICE, 1, 0, 3.0, 0);
-			Config.pred.HPSetting:addParam("RHitChance", "RHitChance", SCRIPT_PARAM_SLICE, 1.4, 0, 3.0, 0);
 
 	Config:addSubMenu("ETC", "ETC")
 		--Config.ETC:addParam("DamageManager", "DamageManager", SCRIPT_PARAM_ONOFF, true);
@@ -357,7 +332,11 @@ function OnMenuLoad()
 		Config.Draw:addParam("DrawEColor", "Draw E Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
 		Config.Draw:addParam("DrawR", "Draw R Range", SCRIPT_PARAM_ONOFF, true)
 		Config.Draw:addParam("DrawRColor", "Draw R Color", SCRIPT_PARAM_COLOR, {100, 255, 0, 0})
-		
+	
+	Config:addSubMenu("Spell Settings", "SS")
+		Config.SS:addSubMenu("Q", "Q")
+		Config.SS:addSubMenu("W", "W")
+		Config.SS:addSubMenu("R", "R")
 			
 	Config:addSubMenu("WSetting", "WSetting")
 		Config.WSetting:addParam("WAdvance","Use W in AARange",SCRIPT_PARAM_ONOFF, false);
@@ -514,12 +493,7 @@ end
 
 function CastQ( target )
 	if Q.IsReady() then
-		if GetDistance(player, target) <= Q.Range then
-			local Pos, HitChance = HPred:GetPredict(HP_Q, target, player)
-			if HitChance >= Config.pred.HPSetting.QHitChance  then
-				CastSpell(_Q, Pos.x, Pos.z)
-			end
-		end
+		QSpell:Cast(target)
 	end
 end
 
@@ -539,12 +513,7 @@ end
 
 function CastE( target )
 	if E.IsReady() then
-		if GetDistance(player, target) <= E.Range then
-			local Pos, HitChance = HPred:GetPredict(HP_E, target, player)
-			if HitChance >= Config.pred.HPSetting.EHitChance  then
-				CastSpell(_E, Pos.x, Pos.z)
-			end
-		end
+		ESpell:Cast(target)
 	end
 end
 
@@ -567,12 +536,7 @@ end
 
 function CastRTwo( target )
 	if not R.IsReady() then return end
-	if GetDistance(target, player) < R.Range then
-		local Pos, HitChance = HPred:GetPredict(HP_R, target, player)
-		if HitChance >= Config.pred.HPSetting.RHitChance  then
-			CastSpell(_R, Pos.x, Pos.z)
-		end
-	end
+	RSpell:Cast(target)
 end
 
 ---------------------------------
