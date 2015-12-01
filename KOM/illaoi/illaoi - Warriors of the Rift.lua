@@ -30,7 +30,7 @@ local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b
 
 local VERSION = 0.01
 
-SimpleUpdater("illaoi - Warriors of the Rift", VERSION, "raw.github.com" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/KOM/Allahoi/Allahoi.version" ):CheckUpdate()
+SimpleUpdater("illaoi - Warriors of the Rift", VERSION, "raw.github.com" , "kej1191/anonym/master/KOM/illaoi/illaoi%20-%20Warriors%20of%20the%20Rift.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "kej1191/anonym/master/KOM/illaoi/version.version" ):CheckUpdate()
 
 if FileExist(LIB_PATH .. "SourceLibk.lua") then
 	require 'SourceLibk'
