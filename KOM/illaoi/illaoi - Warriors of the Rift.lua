@@ -26,9 +26,9 @@
 
 if myHero.charName:lower() ~= "illaoi" then return end
 
-local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>illaoi - Warriors of the Rift:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 0.01
+local VERSION = 0.02
 
 SimpleUpdater("illaoi - Warriors of the Rift", VERSION, "raw.github.com" , "kej1191/anonym/master/KOM/illaoi/illaoi%20-%20Warriors%20of%20the%20Rift.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "kej1191/anonym/master/KOM/illaoi/version.version" ):CheckUpdate()
 
@@ -41,10 +41,6 @@ else
 	AutoupdaterMsg("plz download SourceLibk in post")
 	AutoupdaterMsg("plz download SourceLibk in post")
 end
-
-
-
-local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>Allahoi:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
 
 function OnLoad()
