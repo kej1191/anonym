@@ -38,6 +38,7 @@
 		Spell			-- Add Prediction, bug fix
 		Interrupter		-- documented
 		AntiGapCloser	-- documented
+		STS				-- Bug Fix
 		
 		
     Contents:
@@ -52,12 +53,11 @@
 	
 	removed:
 		MenuWrapper		-- No more use
-		//STS
 ]]
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.1
+_G.srcLib.version = 0.2
 local autoUpdate = true
 
 --[[
@@ -557,7 +557,7 @@ end
         Spell:SetSkillshot(skillshotType, width, delay, speed, collision)
         Spell:SetAOE(useAoe, radius, minTargetsAoe)
 
-        Spell:SetCharged(spellName, chargeDuration, maxRange, timeToMaxRange, abortCondition)
+        Spell:SetCharged(spellName, chargeDuration, minRange, maxRange, timeToMaxRange, abortCondition)
         Spell:IsCharging()
         Spell:Charge()
 
@@ -1501,6 +1501,394 @@ end
 
 --[[
 
+'||''|.                               '||    ||'                                                  
+ ||   ||  ... ..   ....   ... ... ...  |||  |||   ....   .. ...    ....     ... .   ....  ... ..  
+ ||    ||  ||' '' '' .||   ||  ||  |   |'|..'||  '' .||   ||  ||  '' .||   || ||  .|...||  ||' '' 
+ ||    ||  ||     .|' ||    ||| |||    | '|' ||  .|' ||   ||  ||  .|' ||    |''   ||       ||     
+.||...|'  .||.    '|..'|'    |   |    .|. | .||. '|..'|' .||. ||. '|..'|'  '||||.  '|...' .||.    
+                                                                          .|....'                 
+
+    DrawManager - Tired of having to draw everything over and over again? Then use this!
+
+    Functions:
+        DrawManager()
+
+    Methods:
+        DrawManager:AddCircle(circle)
+        DrawManager:RemoveCircle(circle)
+        DrawManager:CreateCircle(position, radius, width, color)
+        DrawManager:OnDraw()
+
+]]
+class 'DrawManager'
+
+--[[
+    New instance of DrawManager
+]]
+function DrawManager:__init()
+
+    self.objects = {}
+
+    AddDrawCallback(function() self:OnDraw() end)
+
+end
+
+--[[
+    Add an existing circle to the draw manager
+
+    @param circle | class | _Circle instance
+]]
+function DrawManager:AddCircle(circle)
+
+    assert(circle, "DrawManager: circle is invalid!")
+
+    for _, object in ipairs(self.objects) do
+        assert(object ~= circle, "DrawManager: object was already in DrawManager")
+    end
+
+    table.insert(self.objects, circle)
+
+end
+
+--[[
+    Removes a circle from the draw manager
+
+    @param circle | class | _Circle instance
+]]
+function DrawManager:RemoveCircle(circle)
+
+    assert(circle, "DrawManager:RemoveCircle(): circle is invalid!")
+
+    for index, object in ipairs(self.objects) do
+        if object == circle then
+            table.remove(self.objects, index)
+        end
+    end
+
+end
+
+--[[
+    Create a new circle and add it aswell to the DrawManager instance
+
+    @param position | vector | Center of the circle
+    @param radius   | float  | Radius of the circle
+    @param width    | int    | Width of the circle outline
+    @param color    | table  | Color of the circle in a tale format { a, r, g, b }
+    @return         | class  | Instance of the newly create Circle class
+]]
+function DrawManager:CreateCircle(position, radius, width, color)
+
+    local circle = _Circle(position, radius, width, color)
+    self:AddCircle(circle)
+    return circle
+
+end
+
+--[[
+    DO NOT CALL THIS MANUALLY! This will be called automatically.
+]]
+function DrawManager:OnDraw()
+    for _, object in ipairs(self.objects) do
+        if object.enabled then
+            object:Draw()
+        end
+    end
+end
+
+--[[
+
+                  ..|'''.|  ||                  '||          
+                .|'     '  ...  ... ..    ....   ||    ....  
+                ||          ||   ||' '' .|   ''  ||  .|...|| 
+                '|.      .  ||   ||     ||       ||  ||      
+                 ''|....'  .||. .||.     '|...' .||.  '|...' 
+
+    Functions:
+        _Circle(position, radius, width, color)
+
+    Members:
+        _Circle.enabled  | bool   | Enable or diable the circle (displayed)
+        _Circle.mode     | int    | See circle modes below
+        _Circle.position | vector | Center of the circle
+        _Circle.radius   | float  | Radius of the circle
+        -- These are not changeable when a menu is set
+        _Circle.width    | int    | Width of the circle outline
+        _Circle.color    | table  | Color of the circle in a tale format { a, r, g, b }
+        _Circle.quality  | float  | Quality of the circle, the higher the smoother the circle
+
+    Methods:
+        _Circle:AddToMenu(menu, paramText, addColor, addWidth, addQuality)
+        _Circle:SetEnabled(enabled)
+        _Circle:Set2D()
+        _Circle:Set3D()
+        _Circle:SetMinimap()
+        _Circle:SetQuality(qualtiy)
+        _Circle:SetDrawCondition(condition)
+        _Circle:LinkWithSpell(spell, drawWhenReady)
+        _Circle:Draw()
+]]
+class '_Circle'
+
+-- Circle modes
+CIRCLE_2D      = 0
+CIRCLE_3D      = 1
+CIRCLE_MINIMAP = 2
+
+-- Number of currently created circles
+local circleCount = 1
+
+--[[
+    New instance of Circle
+
+    @param position | vector | Center of the circle
+    @param radius   | float  | Radius of the circle
+    @param width    | int    | Width of the circle outline
+    @param color    | table  | Color of the circle in a tale format { a, r, g, b }
+]]
+function _Circle:__init(position, radius, width, color)
+
+    assert(position and position.x and (position.y and position.z or position.y), "_Circle: position is invalid!")
+    assert(radius and type(radius) == "number", "_Circle: radius is invalid!")
+    assert(not color or color and type(color) == "table" and #color == 4, "_Circle: color is invalid!")
+
+    self.enabled   = true
+    self.condition = nil
+
+    self.menu        = nil
+    self.menuEnabled = nil
+    self.menuColor   = nil
+    self.menuWidth   = nil
+    self.menuQuality = nil
+
+    self.mode = CIRCLE_3D
+
+    self.position = position
+    self.radius   = radius
+    self.width    = width or 1
+    self.color    = color or { 255, 255, 255, 255 }
+    self.quality  = radius / 5
+
+    self._circleId  = "circle" .. circleCount
+    self._circleNum = circleCount
+
+    circleCount = circleCount + 1
+
+end
+
+--[[
+    Adds this circle to a given menu
+
+    @param menu       | scriptConfig | Instance of script config to add this circle to
+    @param paramText  | string       | Text for the menu entry
+    @param addColor   | bool         | Add color option
+    @param addWidth   | bool         | Add width option
+    @param addQuality | bool         | Add quality option
+    @return           | class        | The current instance
+]]
+function _Circle:AddToMenu(menu, paramText, addColor, addWidth, addQuality)
+
+    assert(menu, "_Circle: menu is invalid!")
+    assert(self.menu == nil, "_Circle: Already bound to a menu!")
+
+    menu:addSubMenu(paramText or "Circle " .. self._circleNum, self._circleId)
+    self.menu = menu[self._circleId]
+
+    -- Enabled
+    local paramId = self._circleId .. "enabled"
+    self.menu:addParam(paramId, "Enabled", SCRIPT_PARAM_ONOFF, self.enabled)
+    self.menuEnabled = self.menu._param[#self.menu._param]
+
+    if addColor or addWidth or addQuality then
+
+        -- Color
+        if addColor then
+            paramId = self._circleId .. "color"
+            self.menu:addParam(paramId, "Color", SCRIPT_PARAM_COLOR, self.color)
+            self.menuColor = self.menu._param[#self.menu._param]
+        end
+
+        -- Width
+        if addWidth then
+            paramId = self._circleId .. "width"
+            self.menu:addParam(paramId, "Width", SCRIPT_PARAM_SLICE, self.width, 1, 5)
+            self.menuWidth = self.menu._param[#self.menu._param]
+        end
+
+        -- Quality
+        if addQuality then
+            paramId = self._circleId .. "quality"
+            self.menu:addParam(paramId, "Quality", SCRIPT_PARAM_SLICE, math.round(self.quality), 10, math.round(self.radius / 5))
+            self.menuQuality = self.menu._param[#self.menu._param]
+        end
+
+    end
+
+    return self
+
+end
+
+--[[
+    Set the enable status of the circle
+
+    @param enabled | bool  | Enable state of this circle
+    @return        | class | The current instance
+]]
+function _Circle:SetEnabled(enabled)
+
+    self.enabled = enabled
+    return self
+
+end
+
+--[[
+    Set this circle to be displayed 2D
+
+    @return | class | The current instance
+]]
+function _Circle:Set2D()
+
+    self.mode = CIRCLE_2D
+    return self
+
+end
+
+--[[
+    Set this circle to be displayed 3D
+
+    @return | class | The current instance
+]]
+function _Circle:Set3D()
+
+    self.mode = CIRCLE_3D
+    return self
+
+end
+
+--[[
+    Set this circle to be displayed on the minimap
+
+    @return | class | The current instance
+]]
+function _Circle:SetMinimap()
+
+    self.mode = CIRCLE_MINIMAP
+    return self
+
+end
+
+--[[
+    Set the display quality of this circle
+
+    @return | class | The current instance
+]]
+function _Circle:SetQuality(qualtiy)
+
+    assert(qualtiy and type(qualtiy) == "number", "_Circle: quality is invalid!")
+    self.quality = quality
+    return self
+
+end
+
+--[[
+    Set the display width of this circle
+
+    @return | class | The current instance
+]]
+function _Circle:SetWidth(width)
+
+    assert(width and type(width) == "number", "_Circle: quality is invalid!")
+    self.width = width
+    return self
+
+end
+
+--[[
+    Set the draw condition of this circle
+
+    @return | class | The current instance
+]]
+function _Circle:SetDrawCondition(condition)
+
+    assert(condition and type(condition) == "function", "_Circle: condition is invalid!")
+    self.condition = condition
+    return self
+
+end
+
+--[[
+    Links the spell range with the circle radius
+
+    @param spell         | class | Instance of Spell class
+    @param drawWhenReady | bool  | Decides whether to draw the circle when the spell is ready or not
+    @return              | class | The current instance
+]]
+function _Circle:LinkWithSpell(spell, drawWhenReady)
+
+    assert(spell, "_Circle:LinkWithSpell(): spell is invalid")
+    self._linkedSpell = spell
+    self._linkedSpellReady = drawWhenReady or false
+    return self
+
+end
+
+--[[
+    Draw this circle, should only be called from OnDraw()
+]]
+function _Circle:Draw()
+
+    -- Don't draw if condition is not met
+    if self.condition ~= nil and self.condition() == false then return end
+
+    -- Update values if linked spell is given
+    if self._linkedSpell then
+        if self._linkedSpellReady and not self._linkedSpell:IsReady() then return end
+        -- Update the radius with the spell range
+        self.radius = self._linkedSpell.range
+    end
+
+    -- Menu found
+    if self.menu then 
+        if self.menuEnabled ~= nil then
+            if not self.menu[self.menuEnabled.var] then return end
+        end
+        if self.menuColor ~= nil then
+            self.color = self.menu[self.menuColor.var]
+        end
+        if self.menuWidth ~= nil then
+            self.width = self.menu[self.menuWidth.var]
+        end
+        if self.menuQuality ~= nil then
+            self.quality = self.menu[self.menuQuality.var]
+        end
+    end
+
+    local center = WorldToScreen(D3DXVECTOR3(self.position.x, self.position.y, self.position.z))
+    if not self:PointOnScreen(center.x, center.y) and self.mode ~= CIRCLE_MINIMAP then
+        return
+    end
+
+    if self.mode == CIRCLE_2D then
+        DrawCircle2D(self.position.x, self.position.y, self.radius, self.width, TARGB(self.color), self.quality)
+    elseif self.mode == CIRCLE_3D then
+        DrawCircle3D(self.position.x, self.position.y, self.position.z, self.radius, self.width, TARGB(self.color), self.quality)
+    elseif self.mode == CIRCLE_MINIMAP then
+        DrawCircleMinimap(self.position.x, self.position.y, self.position.z, self.radius, self.width, TARGB(self.color), self.quality)
+    else
+        print("Circle: Something is wrong with the circle.mode!")
+    end
+
+end
+
+function _Circle:PointOnScreen(x, y)
+    return x <= WINDOW_W and x >= 0 and y >= 0 and y <= WINDOW_H
+end
+
+function _Circle:__eq(other)
+    return other._circleId and other._circleId == self._circleId or false
+end
+
+--[[
+
 '||''|.                                              '||'       ||  '||      
  ||   ||   ....   .. .. ..    ....     ... .   ....   ||       ...   || ...  
  ||    || '' .||   || || ||  '' .||   || ||  .|...||  ||        ||   ||'  || 
@@ -1572,8 +1960,8 @@ function DamageLib:__init(source)
 
     -- Most common damage sources
     self:RegisterDamageSource(_IGNITE, _TRUE, 0, 0, _TRUE, _AP, 0, function() return _IGNITE and (self.source:CanUseSpell(_IGNITE) == READY) end, function() return (50 + 20 * self.source.level) end)
-    self:RegisterDamageSource(ItemManager:GetItem("DFG"):GetId(), _MAGIC, 0, 0, _MAGIC, _AP, 0, function() return ItemManager:GetItem("DFG"):GetSlot() and (self.source:CanUseSpell(ItemManager:GetItem("DFG"):GetSlot()) == READY) end, function(target) return 0.15 * target.maxHealth end)
-    self:RegisterDamageSource(ItemManager:GetItem("BOTRK"):GetId(), _MAGIC, 0, 0, _MAGIC, _AP, 0, function() return ItemManager:GetItem("BOTRK"):GetSlot() and (self.source:CanUseSpell(ItemManager:GetItem("BOTRK"):GetSlot()) == READY) end, function(target) return 0.15 * target.maxHealth end)
+    self:RegisterDamageSource(ItemManagement:GetItem("DFG"):GetId(), _MAGIC, 0, 0, _MAGIC, _AP, 0, function() return ItemManagement:GetItem("DFG"):GetSlot() and (self.source:CanUseSpell(ItemManagement:GetItem("DFG"):GetSlot()) == READY) end, function(target) return 0.15 * target.maxHealth end)
+    self:RegisterDamageSource(ItemManagement:GetItem("BOTRK"):GetId(), _MAGIC, 0, 0, _MAGIC, _AP, 0, function() return ItemManagement:GetItem("BOTRK"):GetSlot() and (self.source:CanUseSpell(ItemManagement:GetItem("BOTRK"):GetSlot()) == READY) end, function(target) return 0.15 * target.maxHealth end)
     self:RegisterDamageSource(_AA, _PHYSICAL, 0, 0, _PHYSICAL, _AD, 1)
 
 end
@@ -1690,7 +2078,7 @@ function DamageLib:CalcComboDamage(target, combo)
     local totaldamage = 0
 
     for i, spell in ipairs(combo) do
-        if spell == ItemManager:GetItem("DFG"):GetId() and ItemManager:GetItem("DFG"):IsReady() then
+        if spell == ItemManagement:GetItem("DFG"):GetId() and ItemManagement:GetItem("DFG"):IsReady() then
             self.Magic_damage_m = 1.2
         end
     end
@@ -2163,7 +2551,7 @@ function _ItemManager:GetItem(name)
 end
 
 -- Make a global ItemManager instance. This means you don't need to make an instance for yourself.
-ItemManager = _ItemManager()
+ItemManagement = _ItemManager()
 
 
 --[[
@@ -2597,12 +2985,128 @@ end
 	OrbWalkManager - Simle orbwalker controler
 ]]
 class('OrbWalkManager')
-function OrbWalkManager:__init(m)
+function OrbWalkManager:__init(ScriptName, m)
+	self.ScriptName = ScriptName or "[SourceLib] OrbWalkManager"
+	self.MMALoad = false
+	self.SacLoad = false
+	self.orbload = false
+	self.SxOLoad = false
+	self.RebornLoad = false
+	self.RevampedLoaded = false
 	
+	self.LoadOrbwalk = "Not Detected"
+	self.SxO = nil
+	
+	if _G.MMA_LOADED then
+		self:print("MMA LOAD")
+		self.MMALoad = true
+		self.orbload = true
+		self.LoadOrbwalk = "MMA"
+	elseif _G.AutoCarry then
+		if _G.AutoCarry.Helper then
+			self:print("SIDA AUTO CARRY: REBORN LOAD")
+			self.RebornLoad = true
+			self.orbload = true
+		else
+			self:print("SIDA AUTO CARRY: REVAMPED LOAD")
+			self.RevampedLoaded = true
+			self.orbload = true
+		end
+	elseif _G.Reborn_Loaded then
+		self.SacLoad = true
+		self.LoadOrbwalk = "SAC"
+		DelayAction(OnOrbLoad, 1)
+	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
+		self:print("SxOrbWalk Load")
+		require 'SxOrbWalk'
+		self.SxO = SxOrbWalk()
+		self.LoadOrbwalk = "SxO"
+		self.SxOLoad = true
+		self.orbload = true
+	end
+	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
+		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
+end
+function OrbWalkManager:print(msg)
+	print("<font color=\"#6699ff\"><b>" .. self.ScriptName .. ":</b></font> <font color=\"#FFFFFF\">"..msg..".</font>")
 end
 
 function OrbWalkManager:IsComboMode()
-	return false
+	if self.SacLoad then
+		if _G.AutoCarry.Keys.AutoCarry then
+			return true
+		end
+	elseif self.SxOLoad then
+		if _G.SxOrb.isFight then
+			return true
+		end
+	elseif self.MMALoad then
+		if _G.MMA_IsOrbwalking() then
+			return true
+		end
+	end
+    return false
+end
+
+function OrbWalkManager:IsHarassMode()
+	if self.SacLoad then
+		if _G.AutoCarry.Keys.MixedMode then
+			return true
+		end
+	elseif self.SxOLoad then
+		if _G.SxOrb.isHarass then
+			return true
+		end
+	elseif self.MMALoad then
+		if _G.MMA_IsDualCarrying() then
+			return true
+		end
+	end
+    return false
+end
+
+function OrbWalkManager:IsClearMode()
+	if self.SacLoad then
+		if _G.AutoCarry.Keys.LaneClear then
+			return true
+		end
+	elseif self.SxOLoad then
+		if _G.SxOrb.isLaneClear then
+			return true
+		end
+	elseif self.MMALoad then
+		if _G.MMA_IsLaneClearing() then
+			return true
+		end
+	end
+    return false
+end
+
+function OrbWalkManager:IsLastHitPressed()
+	if self.SacLoad then
+		if _G.AutoCarry.Keys.LastHit then
+			return true
+		end
+	elseif self.SxOLoad then
+		if _G.SxOrb.isLastHit then
+			return true
+		end
+	elseif self.MMALoad then
+		if _G.MMA_IsLastHitting() then
+			return true
+		end
+	end
+    return false
+end
+
+function OrbWalkManager:ResetAA()
+    if self.SacLoad then
+        _G.AutoCarry.Orbwalker:ResetAttackTimer()
+    elseif self.SxOLoad then
+        _G.SxOrb:ResetAA()
+    elseif self.MMALoad then
+        _G.MMA_ResetAutoAttack()
+    end
 end
 
 --[[
@@ -2876,6 +3380,87 @@ end
 function getHitBoxRadius(target)
 	return GetDistance(target, target.minBBox)/2
 end
+
+--[[
+.|'''',         '||` '||` '||'''|,                '||         '||\   /||`                                               
+||               ||   ||   ||   ||                 ||          ||\\.//||                                                
+||       '''|.   ||   ||   ||;;;;    '''|.  .|'',  || //`      ||     ||   '''|.  `||''|,   '''|.  .|''|, .|''|, '||''| 
+||      .|''||   ||   ||   ||   ||  .|''||  ||     ||<<        ||     ||  .|''||   ||  ||  .|''||  ||  || ||..||  ||    
+`|....' `|..||. .||. .||. .||...|'  `|..||. `|..' .|| \\.     .||     ||. `|..||. .||  ||. `|..||. `|..|| `|...  .||.   
+                                                                                                       ||               
+                                                                                                    `..|'               
+
+	CallBackManager -- handle callback better now
+		
+	Function:
+		CallBackManager()
+	
+	Methods:
+		CallBackManager:Tick(func)
+		CallBackManager:Draw(func)
+		CallBackManager:ApplyBuff(func)
+		CallBackManager:UpdateBuff(func)
+		CallBackManager:RemoveBuff(func)
+		CallBackManager:CreateObj(func)
+		CallBackManager:RemoveObj(func)
+		CallBackManager:Msg(func)
+		CallBackManager:ProcessSpell(func)
+		CallBackManager:CastSpell(func)
+]]
+class 'CallBackManager'
+function CallBackManager:__init()
+end
+
+function CallBackManager:Tick(func)
+	assert(func and type(func) == "function", "CallBackManager() : Tick(func) : function is invalid (not function)" )
+	AddTickCallback(func)
+end
+
+function CallBackManager:Draw(func)
+	assert(func and type(func) == "function", "CallBackManager() : Draw(func) : function is invalid (not function)" )
+	AddDrawCallback(func)
+end
+
+function CallBackManager:ApplyBuff(func)
+	assert(func and type(func) == "function", "CallBackManager() : ApplyBuff(func) : function is invalid (not function)" )
+	AddApplyBuffCallback(func)
+end
+
+function CallBackManager:UpdateBuff(func)
+	assert(func and type(func) == "function", "CallBackManager() : UpdateBuff(func) : function is invalid (not function)" )
+	AddUpdateBuffCallback(func)
+end
+
+function CallBackManager:RemoveBuff(func)
+	assert(func and type(func) == "function", "CallBackManager() : RemoveBuff(func) : function is invalid (not function)" )
+	AddRemoveBuffCallback(func)
+end
+
+function CallBackManager:CreateObj(func)
+	assert(func and type(func) == "function", "CallBackManager() : CreateObj(func) : function is invalid (not function)" )
+	AddCreateObjCallback(func)
+end
+
+function CallBackManager:RemoveObj(func)
+	assert(func and type(func) == "function", "CallBackManager() : RemoveObj(func) : function is invalid (not function)" )
+	AddDeleteObjCallback(func)
+end
+
+function CallBackManager:Msg(func)
+	assert(func and type(func) == "function", "CallBackManager() : Msg(func) : function is invalid (not function)" )
+	AddMsgObjCallback(func)
+end
+
+function CallBackManager:ProcessSpell(func)
+	assert(func and type(func) == "function", "CallBackManager() : ProcessSpell(func) : function is invalid (not function)" )
+	AddProcessSpellCallback(func)
+end
+
+function CallBackManager:CastSpell(func)
+	assert(func and type(func) == "function", "CallBackManager() : CastSpell(func) : function is invalid (not function)" )
+	AddCastSpellCallback(func)
+end
+
 --[[
 
 '||'  '|'   .    ||  '||  

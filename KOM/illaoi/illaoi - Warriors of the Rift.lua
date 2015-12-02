@@ -28,9 +28,8 @@ if myHero.charName:lower() ~= "illaoi" then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>illaoi - Warriors of the Rift:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 0.02
+local VERSION = 0.03
 
-SimpleUpdater("illaoi - Warriors of the Rift", VERSION, "raw.github.com" , "kej1191/anonym/master/KOM/illaoi/illaoi%20-%20Warriors%20of%20the%20Rift.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "kej1191/anonym/master/KOM/illaoi/version.version" ):CheckUpdate()
 
 if FileExist(LIB_PATH .. "SourceLibk.lua") then
 	require 'SourceLibk'
@@ -40,7 +39,9 @@ else
 	AutoupdaterMsg("plz download SourceLibk in post")
 	AutoupdaterMsg("plz download SourceLibk in post")
 	AutoupdaterMsg("plz download SourceLibk in post")
+	return
 end
+updater = SimpleUpdater("illaoi - Warriors of the Rift", VERSION, "raw.github.com" , "/kej1191/anonym/master/KOM/illaoi/illaoi%20-%20Warriors%20of%20the%20Rift.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/KOM/illaoi/version.version" ):CheckUpdate()
 
 
 function OnLoad()
@@ -94,6 +95,7 @@ function illaoi:__init()
 
 	--InitializeComponent
 	self.STS = SimpleTS(STS_NEARMOUSE)
+	self.CBM = CallBackManager()
 	OnOrbLoad()
 	
 	
@@ -108,7 +110,7 @@ function illaoi:__init()
 	self.ghost = {}
 	
 	--Menu settings
-	self.Config = scriptConfig("illaoioi", "Illaoi")
+	self.Config = scriptConfig("illaoi", "Illaoi")
 		if SxOLoad then
 			self.Config:addSubMenu("Orbwalking", "Orbwalking")
 				SxO:LoadToMenu(self.Config.Orbwalking, Orbwalking)
@@ -174,8 +176,10 @@ function illaoi:__init()
 	self.Config.Settings.R:addParam("limit", "use R enemy in range >= ", SCRIPT_PARAM_SLICE, 2, 0, 5)
 	
 	--Callback settings
-	AddTickCallback(function() self:Tick() end)
-	AddDrawCallback(function() self:Draw() end)
+	self.CBM:Tick(function() self:Tick() end)
+	self.CBM:Draw(function() self:Draw() end)
+	--AddTickCallback(function() self:Tick() end)
+	--AddDrawCallback(function() self:Draw() end)
 end
 
 function OnOrbLoad()
