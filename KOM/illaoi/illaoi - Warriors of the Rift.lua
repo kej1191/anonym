@@ -28,7 +28,7 @@ if myHero.charName:lower() ~= "illaoi" then return end
 
 local function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>illaoi - Warriors of the Rift:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
-local VERSION = 0.03
+local VERSION = 0.04
 
 
 if FileExist(LIB_PATH .. "SourceLibk.lua") then
@@ -273,10 +273,14 @@ function illaoi:Draw()
 		DrawCircle(myHero.x, myHero.y, myHero.z, self.R.Range, TARGB(self.Config.Draw.DrawRColor))
 	end
 	
-	local target = Vector(self:GetCustemBotTarget(1))
+	--[[
+	
+		local target = Vector(self:GetCustemBotTarget(1))
 	if (target ~= nil) then
 		DrawCircle(target.x, target.y, target.z, 100, 0xffff0000)
 	end
+	
+	]]
 end
 
 function illaoi:OnCreateObj(object)
@@ -414,7 +418,7 @@ function illaoi:IsComboPressed()
 			return true
 		end
 	elseif SxOLoad then
-		if _G.SxOrb.isFight then
+		if SxO.isFight then
 			return true
 		end
 	elseif MMALoad then
@@ -431,7 +435,7 @@ function illaoi:IsHarassPressed()
 			return true
 		end
 	elseif SxOLoad then
-		if _G.SxOrb.isHarass then
+		if SxO.isHarass then
 			return true
 		end
 	elseif MMALoad then
@@ -448,7 +452,7 @@ function illaoi:IsClearPressed()
 			return true
 		end
 	elseif SxOLoad then
-		if _G.SxOrb.isLaneClear then
+		if SxO.isLaneClear then
 			return true
 		end
 	elseif MMALoad then
@@ -465,7 +469,7 @@ function illaoi:IsLastHitPressed()
 			return true
 		end
 	elseif SxOLoad then
-		if _G.SxOrb.isLastHit then
+		if SxO.isLastHit then
 			return true
 		end
 	elseif MMALoad then
@@ -480,13 +484,24 @@ function illaoi:ResetAA()
     if SacLoad then
         _G.AutoCarry.Orbwalker:ResetAttackTimer()
     elseif SxOLoad then
-        _G.SxOrb:ResetAA()
+        SxO:ResetAA()
     elseif MMALoad then
         _G.MMA_ResetAutoAttack()
     end
 end
 
-
+function CountEnemyHeroInRange(range, object)
+    object = object or myHero
+    range = range or myHero.range
+    local enemyInRange = 0
+    for i = 1, heroManager.iCount, 1 do
+        local hero = heroManager:getHero(i)
+        if ValidTarget(hero) and GetDistance(object, hero) <= range then
+            enemyInRange = enemyInRange + 1
+        end
+    end
+    return enemyInRange
+end
 
 
 
