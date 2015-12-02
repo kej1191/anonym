@@ -65,7 +65,7 @@ function Initiate()
 	end
 	if DOWNLOADING_LIBS then return true end
 	if SCRIPT_UPDATER["Activate"] then
-		SourceUpdater("<font color=\"#00A300\">"..SCRIPT_INFO["Name"].."</font>", SCRIPT_INFO["Version"], SCRIPT_UPDATER["URL_HOST"], SCRIPT_UPDATER["URL_PATH"], SCRIPT_UPDATER["Script"], SCRIPT_UPDATER["URL_VERSION"]):CheckUpdate()
+		SimpleUpdater("<font color=\"#00A300\">"..SCRIPT_INFO["Name"].."</font>", SCRIPT_INFO["Version"], SCRIPT_UPDATER["URL_HOST"], SCRIPT_UPDATER["URL_PATH"], SCRIPT_UPDATER["Script"], SCRIPT_UPDATER["URL_VERSION"]):CheckUpdate()
 	end
 end
 if Initiate() then return end
@@ -84,7 +84,7 @@ local DefultRRange = 0;
 local MyminBBox = GetDistance(myHero.minBBox)/2;
 local DefultAARange = myHero.range+MyminBBox;
 
-local Q = {Range = 975, Width = 70, Delay = 0.25, Speed = 1200, IsReady = function() return player:CanUseSpell(_Q) == READY end,};
+local Q = {Range = 1200, Width = 70, Delay = 0.267, Speed = 1630, IsReady = function() return player:CanUseSpell(_Q) == READY end,};
 local W = {Range = DefultAARange+(110+20*player:GetSpellData(_W).level), IsReady = function() return player:CanUseSpell(_W) == READY end,};
 local E = {Range = 1200, Width = 120, Delay = 0.25, Speed = 1200, IsReady = function() return player:CanUseSpell(_E) == READY end,};
 local R = {Range = 900+(300*player:GetSpellData(_R).level), Delay = 1.1, Width = 225, Speed = math.huge, IsReady = function() return player:CanUseSpell(_R) == READY end, };
@@ -95,7 +95,7 @@ local VPload , DPLoad, HPLoad = false, false, false;
 local Next_Cast_time = 0;
 
 local RMana = 0;
-local _RMana = {"40", "80", "120", "160", "200", "240", "280", "320", "360", "400"}
+local _RMana = {"50", "100", "150", "200", "250", "300", "350", "400", "450", "500"}
 
 local STS;
 
@@ -231,14 +231,13 @@ end
 
 
 function OnLoad()
-	HPred = HPrediction()
 	STS = SimpleTS();
 	OrbLoad();
 	
 	OnMenuLoad();
 	
-	QSpell = Spell(_Q, Config.SS.Q, SKILLSHOT_LINEAR, Q.Range, Q.Width, Q.Delay, Q.Speed, false)
-	ESpell = Spell(_E, Config.SS.E, SKILLSHOT_LINEAR, E.Range, E.Width, E.Delay, E.Speed, true)
+	QSpell = Spell(_Q, Config.SS.Q, SKILLSHOT_LINEAR, Q.Range, Q.Width, Q.Delay, Q.Speed, true)
+	ESpell = Spell(_E, Config.SS.E, SKILLSHOT_LINEAR, E.Range, E.Width, E.Delay, E.Speed, false)
 	RSpell = Spell(_R, Config.SS.R, SKILLSHOT_CIRCULAR, R.Range, R.Width, R.Delay, R.Speed, false)
 	
 	--[[
@@ -286,9 +285,8 @@ function OnMenuLoad()
 	Config = scriptConfig("APLD KogMaw", "APLD KogMaw");
 	
 	Config:addSubMenu("TargetSelector", "TargetSelector")
-	STS:AddToMenu(Config.TargetSelector)
+		STS:AddToMenu(Config.TargetSelector)
 	
-	local _Lg = Config.Language.Language
 	
 	Config:addSubMenu("HotKey", "HotKey");
 		Config.HotKey:addParam("Combo","Combo" ,SCRIPT_PARAM_ONKEYDOWN, false, 32);
@@ -335,7 +333,7 @@ function OnMenuLoad()
 	
 	Config:addSubMenu("Spell Settings", "SS")
 		Config.SS:addSubMenu("Q", "Q")
-		Config.SS:addSubMenu("W", "W")
+		Config.SS:addSubMenu("E", "E")
 		Config.SS:addSubMenu("R", "R")
 			
 	Config:addSubMenu("WSetting", "WSetting")
@@ -378,7 +376,7 @@ function OnTick()
 		end
 	end
 	
-	if tostring(KogMawRStack.LastCastTime+6.5) < tostring(os.clock()) then
+	if tostring(KogMawRStack.LastCastTime+10) < tostring(os.clock()) then
 		KogMawRStack.Stack = 1;
 		KogMawRStack.LastCastTime = 0;
 	end
@@ -536,6 +534,7 @@ end
 
 function CastRTwo( target )
 	if not R.IsReady() then return end
+	if GetDistance(target) > R.Range then return end
 	RSpell:Cast(target)
 end
 
