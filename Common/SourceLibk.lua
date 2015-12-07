@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.2
+_G.srcLib.version = 0.3
 local autoUpdate = true
 
 --[[
@@ -622,6 +622,7 @@ local spellNum = 1
 ]]
 function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, collision)
 	assert(spellId ~= nil and range ~= nil and type(spellId) == "number" and type(range) == "number", "Spell: Can't initialize Spell without valid arguments.")
+	self.menuload = false
 	DelayAction(function(menu)
 		if (_G.srcLib.Prediction == nil) then
 			_G.srcLib.Prediction = {}
@@ -647,44 +648,45 @@ function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, 
 			end
 		end
 		DelayAction(function(menu)
+			if type(menu) == "number" then return end
 			menu = menu or scriptConfig("[SourceLib] SpellClass", "srcSpellClass")
 				menu:addParam("predictionType", "Prediction Type", SCRIPT_PARAM_LIST, 1, _G.srcLib.Prediction)
 				menu:addParam("packetCast", "Packet Cast", SCRIPT_PARAM_ONOFF, false)
 				menu:addParam("Hitchance", "Hitchance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
-		end, 1, {menu})
-	end, 1, {menu})
-	self.spellId = spellId
-	self.packetCast = packetCast or false
-	
-	if (not _G.srcLib.Menu.Spell) then
-		_G.srcLib.Menu:addSubMenu("Spell dev menu", "Spell")
-			_G.srcLib.Menu.Spell:addParam("Debug", "dev debug", SCRIPT_PARAM_ONOFF, false)
-	end
+			self.menuload = true
+		end, 1, {menu, self.menuload})
+		self.packetCast = packetCast or false
+		
+		if (not _G.srcLib.Menu.Spell) then
+			_G.srcLib.Menu:addSubMenu("Spell dev menu", "Spell")
+				_G.srcLib.Menu.Spell:addParam("Debug", "dev debug", SCRIPT_PARAM_ONOFF, false)
+		end
 
-	width = width or 0
-	delay = delay or 0
-	speed = speed or 0
-	collision = collision or false
-	
+		width = width or 0
+		delay = delay or 0
+		speed = speed or 0
+		collision = collision or false
+
+		self:SetSkillshot(skillshotType, width, delay, speed, collision)
+		
+		self._automations = {}
+		self._spellNum = spellNum
+		spellNum = spellNum+1
+		self.predictionType = 1
+		
+		AddTickCallback(function()
+			-- Prodiction found, apply value
+			if _G.srcLib.Menu.Spell ~= nil and self.menuload then
+				self:SetPredictionType(menu.predictionType)
+				self:SetPacketCast(menu.packetCast)
+				self:SetHitChance(menu.Hitchance)
+			end
+		end)
+	end, 1, {menu, self.menuload})
+	self.spellId = spellId
 	self:SetRange(range)
 	self:SetSource(myHero)
 	self:SetSkillshot(skillshotType, width, delay, speed, collision)
-	
-	self._automations = {}
-	self._spellNum = spellNum
-	spellNum = spellNum+1
-	self.predictionType = 1
-	
-	
-	
-	AddTickCallback(function()
-        -- Prodiction found, apply value
-        if _G.srcLib.spellMenu ~= nil then
-            self:SetPredictionType(_G.srcLib.spellMenu.predictionType)
-			self:SetPacketCast(_G.srcLib.spellMenu.packetCast)
-			self.hitChance = _G.srcLib.spellMenu.Hitchance
-        end
-    end)
 end
 --[[
     Update the spell range with the new given value
@@ -758,7 +760,7 @@ function Spell:SetSkillshot(skillshotType, width, delay, speed, collision)
 end
 
 function Spell:HPSettings()
-	if self.HP ~= nil then
+	if _G.srcLib.HP ~= nil then
 		if self.skillshotType == SKILLSHOT_LINEAR then
 			if self.speed ~= math.huge then 
 				if self.collision then
@@ -796,15 +798,15 @@ function Spell:HPSettings()
 end
 --[[
 ]]
-function Spell:DPSettings(skillshotType, range, width, delay, speed, collision)
-	if self.dp ~= nil then
-		local col = collision and ((myHero.charName=="Lux" or myHero.charName=="Veigar") and 1 or 0) or math.huge
+function Spell:DPSettings()
+	if _G.srcLib.dp ~= nil then
+		local col = self.collision and ((myHero.charName=="Lux" or myHero.charName=="Veigar") and 1 or 0) or math.huge
 		if self.skillshotType == SKILLSHOT_LINEAR then
-			Spell = LineSS(spell.speed, spell.range, spell.width, spell.delay * 1000, col)
+			Spell = LineSS(self.speed, self.range, self.width, self.delay * 1000, col)
 		elseif self.skillshotType == SKILLSHOT_CIRCULAR then
-			Spell = CircleSS(spell.speed, spell.range, spell.width, spell.delay * 1000, col)
-		elseif self.skillshotType == SKILLSHOT_CONE then
-			Spell = coneSS(spell.speed, spell.range, spell.width, spell.delay * 1000, col)
+			Spell = CircleSS(self.speed, self.range, self.width, self.delay * 1000, col)
+		elseif self.skillshotType == SKILLSHOT_CONE then --why small c
+			Spell = coneSS(self.speed, self.range, self.width, self.delay * 1000, col)
 		end
 		_G.srcLib.dp:bindSS(SpellToString(self.spellId), Spell, 1)
 	end
@@ -903,7 +905,7 @@ function Spell:_AbortCharge()
     if self.__charged and self.__charged_active then
         self.__charged_aborted = true
         self.__charged_active  = false
-        self:SetRange(self.__charged_initialRange)
+        self:SetRange(self.__charged_maxRange)
     end
 end
 --[[
@@ -913,7 +915,7 @@ end
     @rerurn          | class | The current instance
 ]]
 function Spell:SetHitChance(hitChance)
-    self.hitChance = hitChance or 2
+    self.hitChance = hitChance or 1.4
     return self
 end
 --[[
@@ -1027,10 +1029,10 @@ function Spell:GetPrediction(target)
 			else
 				return _G.srcLib.HP:GetPredict(self.HPSS, target, self.sourcePosition)
 			end
-		--DivinePred <Divine>
+		--DivinePred <Divine> so hard to use that
 		elseif _G.srcLib.Prediction[self.predictionType] == "DivinePred" then
 			local Target = DPTarget(target)
-			local fuck, the, divine = _G.srcLib.dp:predict(SpellToString(self.spellId), Target, self.sourcePosition)
+			local fuck, the, divine = _G.srcLib.dp:predict(SpellToString(self.spellId), Target, Vector(self.sourcePosition))
 			local you = -1
 			if fuck == SkillShot.STATUS.SUCCESS_HIT then
 				you = 3
@@ -1154,7 +1156,7 @@ function Spell:Cast(param1, param2)
                 -- Out of range
                 if self.range < GetDistance(self.sourceRange, castPosition) then
 					if _G.srcLib.Menu.Spell.Debug then
-						print("SPELLSTATE_OUT_OF_RANGE")
+						print("SPELLSTATE_OUT_OF_RANGE".." "..self.range)
 					end
 					return SPELLSTATE_OUT_OF_RANGE 
 				end
@@ -1195,7 +1197,7 @@ function Spell:Cast(param1, param2)
 			return SPELLSTATE_COLLISION 
 		end
         -- Hitchance too low
-        if hitChance and hitChance < self.hitChance then 
+        if (hitChance and hitChance < self.hitChance) or hitChance == nil then 
 			if _G.srcLib.Menu.Spell.Debug then
 				print(hitChance .." "..self.hitChance)
 				print("SPELLSTATE_LOWER_HITCHANCE")
@@ -1321,19 +1323,29 @@ function Spell:TrackCasting(spellName)
     end
     return self
 end
+
+function Spell:WillHit(target)
+	local castPosition, hitChance, position = self:GetPrediction(target)
+	if hitChance > self.hitChance then
+		return true
+	end
+	return false
+end
+
 --[[
     When the spell is casted and about to hit a target, this will return the following
 	
-	@param name  | string      | Name of the object
-	@param width | int		   | Width of the object
-	@param type  | string	   | Type of the object
-    @return		 | CUnit,float | The target unit, the remaining time in seconds it will take to hit the target, otherwise nil
+	@param pName  | string      | Name of the object
+	@param pWidth | int		   | Width of the object
+	@param pType  | string	   | Type of the object
+    @return		  | CUnit,float | The target unit, the remaining time in seconds it will take to hit the target, otherwise nil
 ]]
-function Spell:WillHitTarget(name, width, _type)
-	local _type = _type or "missileclient"
+function Spell:WillHitTarget(pName, pWidth, pType)
+	local _type = pWidth or "missileclient"
+	local width = pWidth or self.width
     for i = 1, objManager.iCount, 1 do
         local obj = objManager:getObject(i)
-        if obj ~= nil and obj.spellName == name and obj.type == _type then
+        if obj ~= nil and obj.spellName == pName and obj.type == _type then
 			local Pos = Vector(obj);
 			for index, hero in GetEnemyHeroes() do
 				if hero and GetDistanceSqr(hero, Pos) < width then
@@ -1448,7 +1460,7 @@ function Spell:OnProcessSpell(unit, spell)
             end
         end
         -- Charged spells
-        if self.__charged and self.__charged_spellName:lower() == spell.name:lower() then
+        if self.__charged and self.__charged_spellName[1]:lower() == spell.name:lower() then
             self.__charged_active       = true
             self.__charged_aborted      = false
             self.__charged_castTime     = os.clock()
@@ -2201,7 +2213,9 @@ STS_LESS_CAST_MAGIC               = {id = 2, name = "Less cast (magic)", sortfun
 STS_LESS_CAST_PHYSICAL            = {id = 3, name = "Less cast (physical)", sortfunc = function(a, b) return (player:CalcDamage(a, 100) / a.health) > (player:CalcDamage(b, 100) / b.health) end}
 STS_PRIORITY_LESS_CAST_MAGIC      = {id = 4, name = "Less cast priority (magic)", sortfunc = function(a, b) return STS_GET_PRIORITY(a) * (player:CalcMagicDamage(a, 100) / a.health) > STS_GET_PRIORITY(b) * (player:CalcMagicDamage(b, 100) / b.health) end}
 STS_PRIORITY_LESS_CAST_PHYSICAL   = {id = 5, name = "Less cast priority (physical)", sortfunc = function(a, b) return STS_GET_PRIORITY(a) * (player:CalcDamage(a, 100) / a.health) > STS_GET_PRIORITY(b) * (player:CalcDamage(b, 100) / b.health) end}
-STS_AVAILABLE_MODES = {STS_NEARMOUSE, STS_LESS_CAST_MAGIC, STS_LESS_CAST_PHYSICAL, STS_PRIORITY_LESS_CAST_MAGIC, STS_PRIORITY_LESS_CAST_PHYSICAL}
+STS_CLOSEST					  	  = {id = 6, name = "Near myHero", sortfunc = function(a, b) return GetDistance(a) < GetDistance(b) end}
+STS_LOW_HP_PRIORITY               = {id = 7, name = "Low HP priority", sortfunc = function(a, b) return a.health < b.health end }
+STS_AVAILABLE_MODES = {STS_NEARMOUSE, STS_LESS_CAST_MAGIC, STS_LESS_CAST_PHYSICAL, STS_PRIORITY_LESS_CAST_MAGIC, STS_PRIORITY_LESS_CAST_PHYSICAL, STS_CLOSEST, STS_LOW_HP_PRIORITY}
 --[[
 	Create a new instance of TargetSelector
 	
@@ -2304,7 +2318,7 @@ function SimpleTS:GetTarget(range, n, forcemode)
     end
 
     for i, enemy in ipairs(GetEnemyHeroes()) do
-        if ValidTarget(enemy) and GetDistance(enemy) < range then --self:IsValid(enemy, range) not perfect
+        if ValidTarget(enemy) and GetDistance(enemy) < range and not enemy.dead then --self:IsValid(enemy, range) not perfect
             table.insert(PosibleTargets, enemy)
         end
     end
@@ -2336,7 +2350,7 @@ end
 
     Methods:
         ItemManager:ItemCast(param, param1, param2)
-		ItemManager:GetSlotItem(param, unit)
+		ItemManager:GetItemSlot(param, unit)
 		ItemManager:IsReady(param)
 		ItemManager:InRange(param, target)
 		ItemManager:GetRange(param)
@@ -2354,18 +2368,35 @@ class "ItemManager"
 function ItemManager:__init()
     self.items = {
 			--TARGETING
-            ["DFG"] 				= {id = 3128, range = 650, type = ITEM_TARGETING, name = ""},
-            ["BOTRK"]				= {id = 3153, range = 450, type = ITEM_TARGETING, name = "itemswordoffeastandfamine"},
-			["BilgeWaterCuless"]	= {id = 3144, range = 450, type = ITEM_TARGETING, name = "Bilgewatercutlass"},
+            ["dfg"] 				= {id = 3128, range = 650, type = ITEM_TARGETING, name = ""},
+            ["botrk"]				= {id = 3153, range = 450, type = ITEM_TARGETING, name = "itemswordoffeastandfamine"},
+			["bilgewaterculess"]	= {id = 3144, range = 450, type = ITEM_TARGETING, name = "Bilgewatercutlass"},
 			
 			-- NONTARGETING
 			
 			-- myself
-			["YOUMUUS"] 			= {id = 3142, range = 450, type = ITEM_MYSELF, name = "Youmusblade"},
+			["youmuus"] 			= {id = 3142, range = 450, type = ITEM_MYSELF, name = "Youmusblade"},
 			
 			-- POTIONS
-			["Elixirofwrath"]		= {id = 0001, range = 450, type = ITEM_POTION, name = "Elixirofwrath"},
+			["elixirofwrath"]		= {id = 0001, range = 450, type = ITEM_POTION, name = "Elixirofwrath"},
         }
+	
+	if (not _G.srcLib.Menu.ItemManager) then
+		_G.srcLib.Menu:addSubMenu("ItemManager dev menu", "ItemManager")
+			_G.srcLib.Menu.ItemManager:addParam("Debug", "dev debug", SCRIPT_PARAM_ONOFF, false)
+	end
+end
+--[[
+	Ez command
+	
+	@param param    | int or string    | Item id or name
+    @param param1	| Vector or target | Target x pos or Target unit
+	@parma param2   | Vector           | Target z pos
+	@return ItemManager:ItemCast(param, param1, param2)
+
+]]
+function ItemManager:Cast(param, param1, param2)
+	return self:ItemCast(param, param1, param2)
 end
 --[[
     Casts all known offensive items on the given target
@@ -2373,14 +2404,13 @@ end
 	@param param    | int or string    | Item id or name
     @param param1	| Vector or target | Target x pos or Target unit
 	@parma param2   | Vector           | Target z pos
-	@param name		| String           | Item name 
 ]]
 function ItemManager:ItemCast(param, param1, param2)
 	local slot
 	if (type(param) == "string") then
-		slot = self:GetSlotItem(self.items[param].id)
+		slot = self:GetItemSlot(self.items[param:lower()].id)
 	elseif (type(param) == "number") then
-		slot = self:GetSlotItem(param)
+		slot = self:GetItemSlot(param)
 	else
 		print("ItemManager: ItemCast(param, target) : param is invalid type(not string or number)")
 		return
@@ -2400,18 +2430,14 @@ end
 	@param unit  | Cunit		 | (optional) Searching target
     @return		 | integer		 | Item slot
 ]]
-function ItemManager:GetSlotItem(param, unit)
-
+function ItemManager:GetItemSlot(param, unit)
 	unit 		= unit or myHero
 	
 	if (type(param) == "number") then 
-		if (not self.items[param]) then
-			return ___GetInventorySlotItem(param, unit)
-		end
 		for slot = ITEM_1, ITEM_7 do
 			local item = unit:GetSpellData(slot).name
 			local name = self:GetName(id)
-			if ((#item > 0) and (item:lower() == name:lower())) then
+			if ((#item > 0) and name ~= nil and (item:lower() == name:lower())) then
 				return slot
 			end
 		end
@@ -2419,13 +2445,13 @@ function ItemManager:GetSlotItem(param, unit)
 	elseif(type(param) == "string") then
 		for slot = ITEM_1, ITEM_7 do
 			local item = unit:GetSpellData(slot).name
-			if ((#item > 0) and (item:lower() == param:lower())) then
+			if ((#item > 0) and item ~= nil and (item:lower() == self.items[param:lower()].name:lower())) then
 				return slot
 			end
 		end
 		return nil
 	else
-		print("ItemManager: GetSlotItem(param, unit) : param is invalid type(not string or number)")
+		print("ItemManager: GetItemSlot(param, unit) : param is invalid type(not string or number)")
 	end
 end
 
@@ -2437,9 +2463,9 @@ end
 ]]
 function ItemManager:IsReady(param)
 	if (type(param) == "string") then
-		return self:GetSlotItem(param) and (player:CanUseSpell(self:GetSlotItem(param)) == READY)
+		return self:GetItemSlot(param) and (player:CanUseSpell(self:GetItemSlot(param)) == READY)
 	elseif (type(param) == "number") then
-		return self:GetSlotItem(param) and (player:CanUseSpell(self:GetSlotItem(param)) == READY)
+		return self:GetItemSlot(param) and (player:CanUseSpell(self:GetItemSlot(param)) == READY)
 	else
 		print("ItemManager: IsReady(param) : param is invalid type(not string or number)")
 		return
@@ -2479,7 +2505,7 @@ function ItemManager:GetRange(param)
 	end
 end
 function ItemManager:GetName(id)
-	for index, item in self.items do
+	for index, item in ipairs(self.items) do
 		if item.id == id then
 			return item.name
 		end
@@ -2991,13 +3017,17 @@ function OrbWalkManager:__init(ScriptName, m)
 	self.SacLoad = false
 	self.orbload = false
 	self.SxOLoad = false
+	self.NOLLoad = false
 	self.RebornLoad = false
 	self.RevampedLoaded = false
 	
 	self.LoadOrbwalk = "Not Detected"
 	self.SxO = nil
 	
-	if _G.MMA_LOADED then
+	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
+		
+		
+	if _G.MMA_IsLoaded then
 		self:print("MMA LOAD")
 		self.MMALoad = true
 		self.orbload = true
@@ -3016,15 +3046,22 @@ function OrbWalkManager:__init(ScriptName, m)
 		self.SacLoad = true
 		self.LoadOrbwalk = "SAC"
 		DelayAction(OnOrbLoad, 1)
+	elseif FileExist(LIB_PATH.."Nebelwolfi's Orb Walker.lua") then
+		self:print("Nebelwolfi's OrbWalker Load")
+		require("Nebelwolfi's Orb Walker")
+		self.LoadOrbwalk = "NOW"
+		self.NOL = NebelwolfisOrbWalkerClass(self.Config)
+		self.NOLLoad = true
+		self.orbload = true
 	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
 		self:print("SxOrbWalk Load")
 		require 'SxOrbWalk'
 		self.SxO = SxOrbWalk()
 		self.LoadOrbwalk = "SxO"
+		self.SxO:LoadToMenu(self.Config) 
 		self.SxOLoad = true
 		self.orbload = true
 	end
-	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
 		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
 end
 function OrbWalkManager:print(msg)
@@ -3037,7 +3074,11 @@ function OrbWalkManager:IsComboMode()
 			return true
 		end
 	elseif self.SxOLoad then
-		if _G.SxOrb.isFight then
+		if self.SxO.isFight then
+			return true
+		end
+	elseif self.NOLLoad then
+		if self.NOL.Config.k.Combo then
 			return true
 		end
 	elseif self.MMALoad then
@@ -3054,7 +3095,11 @@ function OrbWalkManager:IsHarassMode()
 			return true
 		end
 	elseif self.SxOLoad then
-		if _G.SxOrb.isHarass then
+		if self.SxO.isHarass then
+			return true
+		end
+	elseif self.NOLLoad then
+		if self.NOL.Config.k.Harass then
 			return true
 		end
 	elseif self.MMALoad then
@@ -3071,7 +3116,11 @@ function OrbWalkManager:IsClearMode()
 			return true
 		end
 	elseif self.SxOLoad then
-		if _G.SxOrb.isLaneClear then
+		if self.SxO.isLaneClear then
+			return true
+		end
+	elseif self.NOLLoad then
+		if self.NOL.Config.k.LaneClear then
 			return true
 		end
 	elseif self.MMALoad then
@@ -3082,13 +3131,17 @@ function OrbWalkManager:IsClearMode()
     return false
 end
 
-function OrbWalkManager:IsLastHitPressed()
+function OrbWalkManager:IsLastHitMode()
 	if self.SacLoad then
 		if _G.AutoCarry.Keys.LastHit then
 			return true
 		end
 	elseif self.SxOLoad then
-		if _G.SxOrb.isLastHit then
+		if self.SxO.isLastHit then
+			return true
+		end
+	elseif self.NOLLoad then
+		if self.NOL.Config.k.LastHit then
 			return true
 		end
 	elseif self.MMALoad then
@@ -3103,7 +3156,9 @@ function OrbWalkManager:ResetAA()
     if self.SacLoad then
         _G.AutoCarry.Orbwalker:ResetAttackTimer()
     elseif self.SxOLoad then
-        _G.SxOrb:ResetAA()
+        self.SxO:ResetAA()
+	elseif self.NOLLoad then
+		self.NOL.orbTable.lastAA = os.clock() - GetLatency() / 2000 - self.NOL.orbTable.animation
     elseif self.MMALoad then
         _G.MMA_ResetAutoAttack()
     end
@@ -3441,7 +3496,7 @@ function CallBackManager:CreateObj(func)
 	AddCreateObjCallback(func)
 end
 
-function CallBackManager:RemoveObj(func)
+function CallBackManager:DeleteObj(func)
 	assert(func and type(func) == "function", "CallBackManager() : RemoveObj(func) : function is invalid (not function)" )
 	AddDeleteObjCallback(func)
 end
