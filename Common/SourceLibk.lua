@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.3
+_G.srcLib.version = 0.4
 local autoUpdate = true
 
 --[[
@@ -1055,8 +1055,9 @@ function Spell:CastIfDashing(target)
 		end
 		return SPELLSTATE_INVALID_TARGET 
 	end
+	if _G.srcLib.VP == nil then return end
     if self.skillshotType ~= nil then
-        local isDashing, canHit, position = self.VP:IsDashing(target, self.delay + 0.07 + GetLatency() / 2000, self.width, self.speed, self.sourcePosition)
+        local isDashing, canHit, position = _G.srcLib.VP:IsDashing(target, self.delay + 0.07 + GetLatency() / 2000, self.width, self.speed, self.sourcePosition)
         -- Out of range
         if self.rangeSqr < _GetDistanceSqr(self.sourceRange, position) then 
 			if _G.srcLib.Menu.Spell.Debug then
@@ -1066,7 +1067,7 @@ function Spell:CastIfDashing(target)
 		end
         if isDashing and canHit then
             -- Collision
-            if not self.collision or self.collision and not self.VP:CheckMinionCollision(target, position, self.delay + 0.07 + GetLatency() / 2000, self.width, self.range, self.speed, self.sourcePosition, false, true) then
+            if not self.collision or self.collision and not _G.srcLib.VP:CheckMinionCollision(target, position, self.delay + 0.07 + GetLatency() / 2000, self.width, self.range, self.speed, self.sourcePosition, false, true) then
                 return self:__Cast(self.spellId, position.x, position.z)
             else
 				if _G.srcLib.Menu.Spell.Debug then
@@ -1077,7 +1078,7 @@ function Spell:CastIfDashing(target)
         elseif not isDashing then return SPELLSTATE_NOT_DASHING
         else return SPELLSTATE_DASHING_CANT_HIT end
     else
-        local isDashing, canHit, position = self.VP:IsDashing(target, 0.25 + 0.07 + GetLatency() / 2000, 1, math.huge, self.sourcePosition)
+        local isDashing, canHit, position = _G.srcLib.VP:IsDashing(target, 0.25 + 0.07 + GetLatency() / 2000, 1, math.huge, self.sourcePosition)
         -- Out of range
         if self.rangeSqr < _GetDistanceSqr(self.sourceRange, position) then return SPELLSTATE_OUT_OF_RANGE end
         if isDashing and canHit then
@@ -1096,20 +1097,21 @@ end
 function Spell:CastIfImmobile(target)
     -- Don't calculate stuff when target is invalid
     if not ValidTarget(target) then return SPELLSTATE_INVALID_TARGET end
+	if _G.srcLib.VP == nil then return end
     if self.skillshotType ~= nil then
-        local isImmobile, position = self.VP:IsImmobile(target, self.delay + 0.07 + GetLatency() / 2000, self.width, self.speed, self.sourcePosition)
+        local isImmobile, position = _G.srcLib.VP:IsImmobile(target, self.delay + 0.07 + GetLatency() / 2000, self.width, self.speed, self.sourcePosition)
         -- Out of range
         if self.rangeSqr < _GetDistanceSqr(self.sourceRange, position) then return SPELLSTATE_OUT_OF_RANGE end
         if isImmobile then
             -- Collision
-            if not self.collision or (self.collision and not self.VP:CheckMinionCollision(target, position, self.delay + 0.07 + GetLatency() / 2000, self.width, self.range, self.speed, self.sourcePosition, false, true)) then
+            if not self.collision or (self.collision and not _G.srcLib.VP:CheckMinionCollision(target, position, self.delay + 0.07 + GetLatency() / 2000, self.width, self.range, self.speed, self.sourcePosition, false, true)) then
                 return self:__Cast(position.x, position.z)
             else
                 return SPELLSTATE_COLLISION
             end
         else return SPELLSTATE_NOT_IMMOBILE end
     else
-        local isImmobile, position = self.VP:IsImmobile(target, 0.25 + 0.07 + GetLatency() / 2000, 1, math.huge, self.sourcePosition)
+        local isImmobile, position = _G.srcLib.VP:IsImmobile(target, 0.25 + 0.07 + GetLatency() / 2000, 1, math.huge, self.sourcePosition)
         -- Out of range
         if self.rangeSqr < _GetDistanceSqr(self.sourceRange, target) then return SPELLSTATE_OUT_OF_RANGE end
         if isImmobile then
