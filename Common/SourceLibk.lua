@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.4
+_G.srcLib.version = 0.5
 local autoUpdate = true
 
 --[[
@@ -772,10 +772,18 @@ function Spell:HPSettings()
 				self.HPSS = HPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay, collisionM = self.collision, collisionH = self.collision })
 			end
 		elseif self.skillshotType == SKILLSHOT_CIRCULAR then
-			if self.speed ~= math.huge then 
-				self.HPSS = HPSkillshot({type = "DelayCircle", range = self.range, speed = self.speed, radius = self.width, delay = self.delay})
+			if self.delay > 1 then
+				if self.speed ~= math.huge then 
+					self.HPSS = HPSkillshot({type = "DelayCircle", range = self.range, speed = self.speed, radius = self.width, delay = self.delay, IsLowAccuracy = true})
+				else
+					self.HPSS = HPSkillshot({type = "PromptCircle", range = self.range, radius = self.width, delay = self.delay, IsLowAccuracy = true})
+				end
 			else
-				self.HPSS = HPSkillshot({type = "PromptCircle", range = self.range, radius = self.width, delay = self.delay})
+				if self.speed ~= math.huge then 
+					self.HPSS = HPSkillshot({type = "DelayCircle", range = self.range, speed = self.speed, radius = self.width, delay = self.delay})
+				else
+					self.HPSS = HPSkillshot({type = "PromptCircle", range = self.range, radius = self.width, delay = self.delay})
+				end
 			end
 		elseif self.skillshotType == SKILLSHOT_CONE then
 			if self.speed ~= math.huge then 
@@ -3834,23 +3842,3 @@ end
 if autoUpdate then
 	SimpleUpdater("[SourceLib temp fix]", _G.srcLib.version, "raw.github.com" , "/kej1191/anonym/master/Common/SourceLibk.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/Common/version/SoureLibk.version" ):CheckUpdate()
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
