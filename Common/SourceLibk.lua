@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.5
+_G.srcLib.version = 0.6
 local autoUpdate = true
 
 --[[
@@ -3034,9 +3034,13 @@ function OrbWalkManager:__init(ScriptName, m)
 	self.LoadOrbwalk = "Not Detected"
 	self.SxO = nil
 	
+	self:OnOrbLoad()
+	
 	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
-		
-		
+		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
+end
+
+function OrbWalkManager:OnOrbLoad()
 	if _G.MMA_IsLoaded then
 		self:print("MMA LOAD")
 		self.MMALoad = true
@@ -3055,7 +3059,7 @@ function OrbWalkManager:__init(ScriptName, m)
 	elseif _G.Reborn_Loaded then
 		self.SacLoad = true
 		self.LoadOrbwalk = "SAC"
-		DelayAction(OnOrbLoad, 1)
+		DelayAction(function() self:OnOrbLoad() end, 1)
 	elseif FileExist(LIB_PATH.."Nebelwolfi's Orb Walker.lua") then
 		self:print("Nebelwolfi's OrbWalker Load")
 		require("Nebelwolfi's Orb Walker")
@@ -3072,13 +3076,14 @@ function OrbWalkManager:__init(ScriptName, m)
 		self.SxOLoad = true
 		self.orbload = true
 	end
-		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
 end
+
 function OrbWalkManager:print(msg)
 	print("<font color=\"#6699ff\"><b>" .. self.ScriptName .. ":</b></font> <font color=\"#FFFFFF\">"..msg..".</font>")
 end
 
 function OrbWalkManager:IsComboMode()
+	if not self.orbload then return end
 	if self.SacLoad then
 		if _G.AutoCarry.Keys.AutoCarry then
 			return true
@@ -3100,6 +3105,7 @@ function OrbWalkManager:IsComboMode()
 end
 
 function OrbWalkManager:IsHarassMode()
+	if not self.orbload then return end
 	if self.SacLoad then
 		if _G.AutoCarry.Keys.MixedMode then
 			return true
@@ -3121,6 +3127,7 @@ function OrbWalkManager:IsHarassMode()
 end
 
 function OrbWalkManager:IsClearMode()
+	if not self.orbload then return end
 	if self.SacLoad then
 		if _G.AutoCarry.Keys.LaneClear then
 			return true
@@ -3142,6 +3149,7 @@ function OrbWalkManager:IsClearMode()
 end
 
 function OrbWalkManager:IsLastHitMode()
+	if not self.orbload then return end
 	if self.SacLoad then
 		if _G.AutoCarry.Keys.LastHit then
 			return true
@@ -3163,6 +3171,7 @@ function OrbWalkManager:IsLastHitMode()
 end
 
 function OrbWalkManager:ResetAA()
+	if not self.orbload then return end
     if self.SacLoad then
         _G.AutoCarry.Orbwalker:ResetAttackTimer()
     elseif self.SxOLoad then
@@ -3842,3 +3851,23 @@ end
 if autoUpdate then
 	SimpleUpdater("[SourceLib temp fix]", _G.srcLib.version, "raw.github.com" , "/kej1191/anonym/master/Common/SourceLibk.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/Common/version/SoureLibk.version" ):CheckUpdate()
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
