@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.6
+_G.srcLib.version = 0.7
 local autoUpdate = true
 
 --[[
@@ -3031,13 +3031,78 @@ function OrbWalkManager:__init(ScriptName, m)
 	self.RebornLoad = false
 	self.RevampedLoaded = false
 	
+	self.BaseWindUpTime = 3
+    self.BaseAnimationTime = 0.665
+	self.DataUpdated = false
+	self.AA = {LastTime = 0, LastTarget = nil, IsAttacking = false, Object = nil}
+	
+	self.NoAttacks = { 
+        jarvanivcataclysmattack = true, 
+        monkeykingdoubleattack = true, 
+        shyvanadoubleattack = true, 
+        shyvanadoubleattackdragon = true, 
+        zyragraspingplantattack = true, 
+        zyragraspingplantattack2 = true, 
+        zyragraspingplantattackfire = true, 
+        zyragraspingplantattack2fire = true, 
+        viktorpowertransfer = true, 
+        sivirwattackbounce = true,
+    }
+    self.Attacks = {
+        caitlynheadshotmissile = true, 
+        frostarrow = true, 
+        garenslash2 = true, 
+        kennenmegaproc = true, 
+        lucianpassiveattack = true, 
+        masteryidoublestrike = true, 
+        quinnwenhanced = true, 
+        renektonexecute = true, 
+        renektonsuperexecute = true, 
+        rengarnewpassivebuffdash = true, 
+        trundleq = true, 
+        xenzhaothrust = true, 
+        xenzhaothrust2 = true, 
+        xenzhaothrust3 = true, 
+        viktorqbuff = true,
+    }
+	
 	self.LoadOrbwalk = "Not Detected"
 	self.SxO = nil
 	
 	self:OnOrbLoad()
 	
 	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
+		self.Config:addParam("Combo", "Combo", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("ComboCustomKey", "Combo custom key", SCRIPT_PARAM_ONKEYDOWN, false, 32)
+		self.Config:addParam("Harass", "Harass", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("HarassCustomKey", "Harass custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+		self.Config:addParam("Clear", "Clear", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("ClearCustomKey", "Clear custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
+	
+	if AddProcessAttackCallback then
+        AddProcessAttackCallback(function(unit, spell) self:OnProcessAttack(unit, spell) end)
+    end
+	
+	AddCreateObjCallback(
+        function(obj)
+            if obj ~= nil and self.AA.Object == nil and tostring(obj.name):lower() == "missile" and self:GetTime() - self.AA.LastTime + self:Latency() < 1.2 * self:WindUpTime() and obj.spellOwner ~= nil and obj.spellName ~= nil and obj.spellOwner.isMe and self:IsAutoAttack(obj.spellName) then
+                self.AA.Object = obj
+            end
+        end
+    )
+
+    AddDeleteObjCallback(
+        function(obj)
+            if obj and self.AA.Object ~= nil and obj.networkID == self.AA.Object.networkID then
+                self.AA.Object = nil
+            end
+        end
+    )
+end
+
+function OrbWalkManager:IsAutoAttack(name)
+    return name and ((tostring(name):lower():find("attack") and not self.NoAttacks[tostring(name):lower()]) or self.Attacks[tostring(name):lower()])
 end
 
 function OrbWalkManager:OnOrbLoad()
@@ -3084,66 +3149,84 @@ end
 
 function OrbWalkManager:IsComboMode()
 	if not self.orbload then return end
-	if self.SacLoad then
-		if _G.AutoCarry.Keys.AutoCarry then
-			return true
+	if(self.Config.Combo == 1) then
+		if self.SacLoad then
+			if _G.AutoCarry.Keys.AutoCarry then
+				return true
+			end
+		elseif self.SxOLoad then
+			if self.SxO.isFight then
+				return true
+			end
+		elseif self.NOLLoad then
+			if self.NOL.Config.k.Combo then
+				return true
+			end
+		elseif self.MMALoad then
+			if _G.MMA_IsOrbwalking() then
+				return true
+			end
 		end
-	elseif self.SxOLoad then
-		if self.SxO.isFight then
-			return true
-		end
-	elseif self.NOLLoad then
-		if self.NOL.Config.k.Combo then
-			return true
-		end
-	elseif self.MMALoad then
-		if _G.MMA_IsOrbwalking() then
-			return true
-		end
+	elseif(self.Config.Combo == 2) then
+		return self.Config.ComboCustomKey
+	else
+		return false
 	end
     return false
 end
 
 function OrbWalkManager:IsHarassMode()
 	if not self.orbload then return end
-	if self.SacLoad then
-		if _G.AutoCarry.Keys.MixedMode then
-			return true
+	if(self.Config.Harass == 1) then
+		if self.SacLoad then
+			if _G.AutoCarry.Keys.MixedMode then
+				return true
+			end
+		elseif self.SxOLoad then
+			if self.SxO.isHarass then
+				return true
+			end
+		elseif self.NOLLoad then
+			if self.NOL.Config.k.Harass then
+				return true
+			end
+		elseif self.MMALoad then
+			if _G.MMA_IsDualCarrying() then
+				return true
+			end
 		end
-	elseif self.SxOLoad then
-		if self.SxO.isHarass then
-			return true
-		end
-	elseif self.NOLLoad then
-		if self.NOL.Config.k.Harass then
-			return true
-		end
-	elseif self.MMALoad then
-		if _G.MMA_IsDualCarrying() then
-			return true
-		end
+	elseif (self.Config.Harass == 2) then
+		return self.Config.HarassCustomKey
+	else
+		return false
 	end
     return false
 end
 
 function OrbWalkManager:IsClearMode()
 	if not self.orbload then return end
-	if self.SacLoad then
-		if _G.AutoCarry.Keys.LaneClear then
-			return true
+	if(self.Config.Clear == 1) then
+		if self.SacLoad then
+			if _G.AutoCarry.Keys.LaneClear then
+				return true
+			end
+		elseif self.SxOLoad then
+			if self.SxO.isLaneClear then
+				return true
+			end
+		elseif self.NOLLoad then
+			if self.NOL.Config.k.LaneClear then
+				return true
+			end
+		elseif self.MMALoad then
+			if _G.MMA_IsLaneClearing() then
+				return true
+			end
 		end
-	elseif self.SxOLoad then
-		if self.SxO.isLaneClear then
-			return true
-		end
-	elseif self.NOLLoad then
-		if self.NOL.Config.k.LaneClear then
-			return true
-		end
-	elseif self.MMALoad then
-		if _G.MMA_IsLaneClearing() then
-			return true
-		end
+	elseif(self.Config.Clear ==2) then
+		return self.Config.ClearCustomKey
+	else
+		return false
 	end
     return false
 end
@@ -3172,6 +3255,7 @@ end
 
 function OrbWalkManager:ResetAA()
 	if not self.orbload then return end
+	self.AA.LastTime = self:GetTime() + self:Latency() - self:AnimationTime()
     if self.SacLoad then
         _G.AutoCarry.Orbwalker:ResetAttackTimer()
     elseif self.SxOLoad then
@@ -3181,6 +3265,55 @@ function OrbWalkManager:ResetAA()
     elseif self.MMALoad then
         _G.MMA_ResetAutoAttack()
     end
+end
+
+function OrbWalkManager:CanAttack()
+	if not self.orbload then return end
+    if self.SacLoad  then
+        return _G.AutoCarry.Orbwalker:CanShoot()
+    elseif self.SxOLoad then
+        return self.SxO:CanAttack()
+    elseif self.MMALoad then
+        return _G.MMA_CanAttack()
+    elseif self.NOLLoad then
+        return self.NOLTimeToAttack()
+    end
+    return self:_CanAttack()
+end
+
+function  OrbWalkManager:_CanAttack()
+    return self:GetTime() - self.AA.LastTime + self:Latency() >= 1 * self:AnimationTime() - 25/1000 and not IsEvading()
+end
+
+function OrbWalkManager:OnProcessAttack(unit, spell)
+    if unit and spell and unit.isMe and spell.name then
+        if self:IsAutoAttack(spell.name) then
+            if not self.DataUpdated then
+                self.BaseAnimationTime = 1 / (spell.animationTime * myHero.attackSpeed)
+                self.BaseWindUpTime = 1 / (spell.windUpTime * myHero.attackSpeed)
+                self.DataUpdated = true
+            end
+            self.AA.LastTarget = spell.target
+            self.AA.IsAttacking = false
+            self.AA.LastTime = self:GetTime() - self:Latency() - self:WindUpTime()
+        end
+    end
+end
+
+function OrbWalkManager:GetTime()
+    return 1 * os.clock()
+end
+
+function OrbWalkManager:Latency()
+    return GetLatency() / 2000
+end
+
+function OrbWalkManager:WindUpTime()
+    return (1 / (myHero.attackSpeed * self.BaseWindUpTime))
+end
+
+function OrbWalkManager:AnimationTime()
+    return (1 / (myHero.attackSpeed * self.BaseAnimationTime))
 end
 
 --[[
@@ -3820,7 +3953,6 @@ end
 
 -- Source: http://lua-users.org/wiki/CopyTable
 function TableDeepCopy(orig)
-
     local orig_type = type(orig)
     local copy
     if orig_type == 'table' then
@@ -3835,7 +3967,10 @@ function TableDeepCopy(orig)
         copy = orig
     end
     return copy
+end
 
+function IsEvading()
+    return _G.evade or _G.Evade
 end
 
 --[[
