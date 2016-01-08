@@ -4000,7 +4000,7 @@ end
 ]]
 --(scriptName, version, host, updatePath, filePath, versionPath)
 if autoUpdate then
-	SimpleUpdater("[SourceLib temp fix]", _G.srcLib.version, "raw.github.com" , "/kej1191/anonym/master/Common/SourceLibk.lua" , LIB_PATH .. "SourceLib_Fix.lua" , "/kej1191/anonym/master/Common/version/SoureLibk.version" ):CheckUpdate()
+	SimpleUpdater("[SourceLib temp fix]", _G.srcLib.version, "raw.github.com" , "/kej1191/anonym/master/Common/SourceLibk.lua" , LIB_PATH .. "SourceLibk.lua" , "/kej1191/anonym/master/Common/version/SoureLibk.version" ):CheckUpdate()
 end
 
 
