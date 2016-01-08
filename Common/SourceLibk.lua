@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.7
+_G.srcLib.version = 0.8
 local autoUpdate = true
 
 --[[
@@ -589,10 +589,11 @@ end
 class 'Spell'
 
 -- Class related constants
-SKILLSHOT_LINEAR   = 0
+SKILLSHOT_LINEAR  = 0
 SKILLSHOT_CIRCULAR = 1
 SKILLSHOT_CONE     = 2
 SKILLSHOT_OTHER    = 3
+SKILLSHOT_TARGETTED= 4
 
 -- Different SpellStates returned when Spell:Cast() is called
 SPELLSTATE_TRIGGERED          = 0
@@ -620,10 +621,10 @@ local spellNum = 1
 	@param speed		 | float 		| Speed of the skillshot
 	@param collision	 | bool			| (optional) Respect unit collision when casting
 ]]
-function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, collision)
+function Spell:__init(spellId, range)
 	assert(spellId ~= nil and range ~= nil and type(spellId) == "number" and type(range) == "number", "Spell: Can't initialize Spell without valid arguments.")
 	self.menuload = false
-	DelayAction(function(menu)
+	DelayAction(function()
 		if (_G.srcLib.Prediction == nil) then
 			_G.srcLib.Prediction = {}
 			if FileExist(LIB_PATH .. "SPrediction.lua") and _G.srcLib.SP == nil then
@@ -647,14 +648,6 @@ function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, 
 				table.insert(_G.srcLib.Prediction, "DivinePred")
 			end
 		end
-		DelayAction(function(menu)
-			if type(menu) == "number" then return end
-			menu = menu or scriptConfig("[SourceLib] SpellClass", "srcSpellClass")
-				menu:addParam("predictionType", "Prediction Type", SCRIPT_PARAM_LIST, 1, _G.srcLib.Prediction)
-				menu:addParam("packetCast", "Packet Cast", SCRIPT_PARAM_ONOFF, false)
-				menu:addParam("Hitchance", "Hitchance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
-			self.menuload = true
-		end, 1, {menu, self.menuload})
 		self.packetCast = packetCast or false
 		
 		if (not _G.srcLib.Menu.Spell) then
@@ -662,18 +655,24 @@ function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, 
 				_G.srcLib.Menu.Spell:addParam("Debug", "dev debug", SCRIPT_PARAM_ONOFF, false)
 		end
 
-		width = width or 0
-		delay = delay or 0
-		speed = speed or 0
-		collision = collision or false
-
-		self:SetSkillshot(skillshotType, width, delay, speed, collision)
-		
 		self._automations = {}
 		self._spellNum = spellNum
 		spellNum = spellNum+1
 		self.predictionType = 1
+	end, 1)
+	self.spellId = spellId
+	self:SetRange(range)
+	self:SetSource(myHero)
+end
+function Spell:AddToMenu(menu)
+	DelayAction(function(menu)
+		if type(menu) == "number" then return end
+		menu = menu or scriptConfig("[SourceLib] SpellClass", "srcSpellClass")
+			menu:addParam("predictionType", "Prediction Type", SCRIPT_PARAM_LIST, 1, _G.srcLib.Prediction)
+			menu:addParam("packetCast", "Packet Cast", SCRIPT_PARAM_ONOFF, false)
+			menu:addParam("Hitchance", "Hitchance", SCRIPT_PARAM_SLICE, 1.4, 0, 3, 1)
 		
+		self.menuload = true
 		AddTickCallback(function()
 			-- Prodiction found, apply value
 			if _G.srcLib.Menu.Spell ~= nil and self.menuload then
@@ -682,11 +681,7 @@ function Spell:__init(spellId, menu, skillshotType, range, width, delay, speed, 
 				self:SetHitChance(menu.Hitchance)
 			end
 		end)
-	end, 1, {menu, self.menuload})
-	self.spellId = spellId
-	self:SetRange(range)
-	self:SetSource(myHero)
-	self:SetSkillshot(skillshotType, width, delay, speed, collision)
+	end, 2, {menu, self.menuload})
 end
 --[[
     Update the spell range with the new given value
@@ -745,18 +740,22 @@ end
     @rerurn              | class | The current instance
 ]]
 function Spell:SetSkillshot(skillshotType, width, delay, speed, collision)
-    assert(skillshotType ~= nil, "Spell: Need at least the skillshot type!")
-    self.skillshotType = skillshotType
-	if (skillshotType ~= SKILLSHOT_OTHER) then
-		self.width = width or 0
-		self.delay = delay or 0
-		self.speed = speed
-		self.collision = collision or false
-		self:HPSettings()
-		self:DPSettings()
+    if(self.menuload) then
+		assert(skillshotType ~= nil, "Spell: Need at least the skillshot type!")
+		self.skillshotType = skillshotType
+		if (skillshotType ~= SKILLSHOT_OTHER) then
+			self.width = width or 0
+			self.delay = delay or 0
+			self.speed = speed
+			self.collision = collision or false
+			self:HPSettings()
+			self:DPSettings()
+		end
+		if not self.hitChance then self.hitChance = 1.4 end
+		return self
+	else
+		DelayAction(function() self:SetSkillshot(skillshotType, width, delay, speed, collision) end, 1)
 	end
-    if not self.hitChance then self.hitChance = 2 end
-    return self
 end
 
 function Spell:HPSettings()
@@ -1139,6 +1138,17 @@ end
 ]]
 function Spell:Cast(param1, param2)
 	local castPosition, hitChance, position, nTargets = nil, nil, nil, nil
+	if self.skillshotType == nil then
+		if param2 == nil and VectorType(param1) then
+			local pos = Vector(param1)
+			self:__Cast(pos.x, pos.z)
+			return
+		elseif param1 ~= nil and param2 ~= nil then
+			assert(type(param1) == "number" and type(param2) == "number", "Spell:Cast(param1, param2) wrong arguments type")
+			self:__Cast(param1, param2)
+			return
+		end
+	end
     if self.skillshotType ~= nil and param1 ~= nil and param2 == nil then
         -- Don't calculate stuff when target is invalid
         if not ValidTarget(param1) then 
@@ -1184,6 +1194,8 @@ function Spell:Cast(param1, param2)
 					return SPELLSTATE_OUT_OF_RANGE 
 				end
             end
+		elseif self.skillshotType == SKILLSHOT_TARGETTED then
+			self:__Cast(param1)
         end
         -- Validation (for Prodiction)
         if not castPosition then 
@@ -3021,7 +3033,7 @@ end
 	OrbWalkManager - Simle orbwalker controler
 ]]
 class('OrbWalkManager')
-function OrbWalkManager:__init(ScriptName, m)
+function OrbWalkManager:__init(ScriptName)
 	self.ScriptName = ScriptName or "[SourceLib] OrbWalkManager"
 	self.MMALoad = false
 	self.SacLoad = false
@@ -3071,15 +3083,7 @@ function OrbWalkManager:__init(ScriptName, m)
 	
 	self:OnOrbLoad()
 	
-	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
-		self.Config:addParam("Combo", "Combo", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
-		self.Config:addParam("ComboCustomKey", "Combo custom key", SCRIPT_PARAM_ONKEYDOWN, false, 32)
-		self.Config:addParam("Harass", "Harass", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
-		self.Config:addParam("HarassCustomKey", "Harass custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
-		self.Config:addParam("Clear", "Clear", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
-		self.Config:addParam("ClearCustomKey", "Clear custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
-		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
-	
+	--[[
 	if AddProcessAttackCallback then
         AddProcessAttackCallback(function(unit, spell) self:OnProcessAttack(unit, spell) end)
     end
@@ -3099,6 +3103,18 @@ function OrbWalkManager:__init(ScriptName, m)
             end
         end
     )
+	]]
+end
+
+function OrbWalkManager:AddToMenu(m)
+	self.Config = m or scriptConfig("[SourceLibk]OrbWalkManager", "srcOrbWalker")
+		self.Config:addParam("Combo", "Combo", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("ComboCustomKey", "Combo custom key", SCRIPT_PARAM_ONKEYDOWN, false, 32)
+		self.Config:addParam("Harass", "Harass", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("HarassCustomKey", "Harass custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+		self.Config:addParam("Clear", "Clear", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("ClearCustomKey", "Clear custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
+		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
 end
 
 function OrbWalkManager:IsAutoAttack(name)
