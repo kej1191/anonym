@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 0.8
+_G.srcLib.version = 1.0
 local autoUpdate = true
 
 --[[
@@ -1436,14 +1436,6 @@ function Spell:GetName()
     return player:GetSpellData(self.spellId).name
 end
 --[[
-    Get the damage of the spell
-
-    @return | string | Name of the the spell
-]]
-function Spell:GetName()
-    return player:GetSpellData(self.spellId).name
-end
---[[
     Internal callback, don't use this!
 ]]
 function Spell:OnTick()
@@ -1552,6 +1544,7 @@ end
         DrawManager:RemoveCircle(circle)
         DrawManager:CreateCircle(position, radius, width, color)
         DrawManager:OnDraw()
+		DrawManager:AddToMenu(menu)
 
 ]]
 class 'DrawManager'
@@ -1563,8 +1556,6 @@ function DrawManager:__init()
 
     self.objects = {}
 
-    AddDrawCallback(function() self:OnDraw() end)
-
 end
 
 --[[
@@ -1572,16 +1563,15 @@ end
 
     @param circle | class | _Circle instance
 ]]
-function DrawManager:AddCircle(circle)
+function DrawManager:AddCircle(_circle, _paramText)
 
-    assert(circle, "DrawManager: circle is invalid!")
+    assert(_circle, "DrawManager: circle is invalid!")
 
     for _, object in ipairs(self.objects) do
-        assert(object ~= circle, "DrawManager: object was already in DrawManager")
+        assert(object ~= _circle, "DrawManager: object was already in DrawManager")
     end
 
-    table.insert(self.objects, circle)
-
+    table.insert(self.objects, {circle = _circle, paramText = _paramText})
 end
 
 --[[
@@ -1590,15 +1580,13 @@ end
     @param circle | class | _Circle instance
 ]]
 function DrawManager:RemoveCircle(circle)
-
     assert(circle, "DrawManager:RemoveCircle(): circle is invalid!")
 
     for index, object in ipairs(self.objects) do
-        if object == circle then
+        if object.circle == circle then
             table.remove(self.objects, index)
         end
     end
-
 end
 
 --[[
@@ -1608,23 +1596,39 @@ end
     @param radius   | float  | Radius of the circle
     @param width    | int    | Width of the circle outline
     @param color    | table  | Color of the circle in a tale format { a, r, g, b }
+	@param paramText| string | Param text of Menu
     @return         | class  | Instance of the newly create Circle class
 ]]
-function DrawManager:CreateCircle(position, radius, width, color)
+function DrawManager:CreateCircle(position, radius, width, color, paramText)
 
     local circle = _Circle(position, radius, width, color)
-    self:AddCircle(circle)
+    self:AddCircle(circle, paramText)
     return circle
 
 end
+
+
+--[[
+	Adds the Circle contols to the menu.
+	@param menu | menu | Instance of script config to add this DrawManager to
+]]
+function DrawManager:AddToMenu(menu)
+	
+	for index, object in ipairs(self.objects) do
+		object.circle:AddToMenu(menu, object.paramText, true, true, true)
+	end
+	
+	AddDrawCallback(function() self:OnDraw() end)
+end
+
 
 --[[
     DO NOT CALL THIS MANUALLY! This will be called automatically.
 ]]
 function DrawManager:OnDraw()
     for _, object in ipairs(self.objects) do
-        if object.enabled then
-            object:Draw()
+        if object.circle.enabled then
+            object.circle:Draw()
         end
     end
 end
@@ -2186,19 +2190,37 @@ end
 function DamageLib:DrawIndicator(enemy)
 
     local damage = self.cachedDamage[enemy.hash] or 0
-    local SPos, EPos = GetEnemyHPBarPos(enemy)
+    local SPos, EPos = GetHPBarPos(enemy)
 
     -- Validate data
     if not SPos then return end
 
     local barwidth = EPos.x - SPos.x
-    local Position = SPos.x + math.max(0, (enemy.health - damage) / enemy.maxHealth) * barwidth
-
-    DrawText("|", 16, math.floor(Position), math.floor(SPos.y + 8), ARGB(255,0,255,0))
-    DrawText("HP: "..math.floor(enemy.health - damage), 13, math.floor(SPos.x), math.floor(SPos.y), (enemy.health - damage) > 0 and ARGB(255, 0, 255, 0) or  ARGB(255, 255, 0, 0))
+    local Position = EPos.x - math.max(0, ((enemy.health - damage) / enemy.maxHealth) * 100)
+	
+    DrawText("|", 16, math.floor(Position), math.floor(SPos.y-23), ARGB(255,0,255,0))
+    DrawText("After HP: "..math.floor(enemy.health - damage), 13, math.floor(SPos.x), math.floor(SPos.y), (enemy.health - damage) > 0 and ARGB(255, 0, 255, 0) or  ARGB(255, 255, 0, 0))
 
 end
 
+function GetHPBarPos(enemy)
+	enemy.barData = {PercentageOffset = {x = -0.05, y = 0}}--GetEnemyBarData()
+	local barPos = GetUnitHPBarPos(enemy)
+	local barPosOffset = GetUnitHPBarOffset(enemy)
+	local barOffset = { x = enemy.barData.PercentageOffset.x, y = enemy.barData.PercentageOffset.y }
+	local barPosPercentageOffset = { x = enemy.barData.PercentageOffset.x, y = enemy.barData.PercentageOffset.y }
+	local BarPosOffsetX = 171
+	local BarPosOffsetY = 46
+	local CorrectionY = 39
+	local StartHpPos = 31
+
+	barPos.x = math.floor(barPos.x + (barPosOffset.x - 0.5 + barPosPercentageOffset.x) * BarPosOffsetX + StartHpPos)
+	barPos.y = math.floor(barPos.y + (barPosOffset.y - 0.5 + barPosPercentageOffset.y) * BarPosOffsetY + CorrectionY)
+
+	local StartPos = Vector(barPos.x , barPos.y, 0)
+	local EndPos =  Vector(barPos.x + 108 , barPos.y , 0)
+	return Vector(StartPos.x, StartPos.y, 0), Vector(EndPos.x, EndPos.y, 0)
+end
 --[[
 
  .|'''.|  |''||''|  .|'''.|  
@@ -2643,7 +2665,7 @@ function Item:__init(id, range, name)
 	self.name = name or ""
     self.rangeSqr = range and range * range
     self.slot = self:GetSlotItem(id, myHero)
-
+	ItemNames = {}
 end
 
 --[[
@@ -2663,10 +2685,11 @@ end
     @return		| integer | Item slot
 ]]
 function Item:GetSlotItem(id, unit)
-
+	
+	--[[
 	unit 		= unit or myHero
 
-	if (not ItemNames[id]) then
+	if (ItemNames[id] == nil or not ItemNames[id]) then
 		return ___GetInventorySlotItem(id, unit)
 	end
 
@@ -2678,6 +2701,7 @@ function Item:GetSlotItem(id, unit)
 			return slot
 		end
 	end
+	]]
 	return nil
 end
 --[[
@@ -3112,6 +3136,8 @@ function OrbWalkManager:AddToMenu(m)
 		self.Config:addParam("ComboCustomKey", "Combo custom key", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 		self.Config:addParam("Harass", "Harass", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
 		self.Config:addParam("HarassCustomKey", "Harass custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
+		self.Config:addParam("LastHit", "LastHit", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
+		self.Config:addParam("LastHitCustomKey", "LastHit custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("X"))
 		self.Config:addParam("Clear", "Clear", SCRIPT_PARAM_LIST, 1, {"OrbWalkKey", "CustomKey","OFF"})
 		self.Config:addParam("ClearCustomKey", "Clear custom key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("V"))
 		self.Config:addParam("OrbWalk", "Loaded OrbWalk", SCRIPT_PARAM_INFO, self.LoadOrbwalk.." Load")
@@ -3249,22 +3275,28 @@ end
 
 function OrbWalkManager:IsLastHitMode()
 	if not self.orbload then return end
-	if self.SacLoad then
-		if _G.AutoCarry.Keys.LastHit then
-			return true
+	if(self.Config.LastHit == 1) then
+		if self.SacLoad then
+			if _G.AutoCarry.Keys.LastHit then
+				return true
+			end
+		elseif self.SxOLoad then
+			if self.SxO.isLastHit then
+				return true
+			end
+		elseif self.NOLLoad then
+			if self.NOL.Config.k.LastHit then
+				return true
+			end
+		elseif self.MMALoad then
+			if _G.MMA_IsLastHitting() then
+				return true
+			end
 		end
-	elseif self.SxOLoad then
-		if self.SxO.isLastHit then
-			return true
-		end
-	elseif self.NOLLoad then
-		if self.NOL.Config.k.LastHit then
-			return true
-		end
-	elseif self.MMALoad then
-		if _G.MMA_IsLastHitting() then
-			return true
-		end
+	elseif(self.Config.LastHit ==2) then
+		return self.Config.LastHitCustomKey;
+	else
+		return false
 	end
     return false
 end
