@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 1.0
+_G.srcLib.version = 1.1
 local autoUpdate = true
 
 --[[
@@ -1138,17 +1138,6 @@ end
 ]]
 function Spell:Cast(param1, param2)
 	local castPosition, hitChance, position, nTargets = nil, nil, nil, nil
-	if self.skillshotType == nil then
-		if param2 == nil and VectorType(param1) then
-			local pos = Vector(param1)
-			self:__Cast(pos.x, pos.z)
-			return
-		elseif param1 ~= nil and param2 ~= nil then
-			assert(type(param1) == "number" and type(param2) == "number", "Spell:Cast(param1, param2) wrong arguments type")
-			self:__Cast(param1, param2)
-			return
-		end
-	end
     if self.skillshotType ~= nil and param1 ~= nil and param2 == nil then
         -- Don't calculate stuff when target is invalid
         if not ValidTarget(param1) then 
