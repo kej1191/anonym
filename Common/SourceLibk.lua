@@ -57,7 +57,7 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 1.1
+_G.srcLib.version = 1.2
 local autoUpdate = true
 
 --[[
@@ -627,6 +627,16 @@ function Spell:__init(spellId, range)
 	DelayAction(function()
 		if (_G.srcLib.Prediction == nil) then
 			_G.srcLib.Prediction = {}
+			if FileExist(LIB_PATH .. "HPrediction.lua") and _G.srcLib.HP == nil then
+				require("HPrediction")
+				_G.srcLib.HP = HPrediction()
+				table.insert(_G.srcLib.Prediction, "HPrediction")
+			end
+			if FileExist(LIB_PATH .. "KPrediction.lua") and _G.srcLib.KP == nil then
+				require("KPrediction")
+				_G.srcLib.KP = KPrediction()
+				table.insert(_G.srcLib.Prediction, "KPrediction")
+			end
 			if FileExist(LIB_PATH .. "SPrediction.lua") and _G.srcLib.SP == nil then
 				require("SPrediction")
 				_G.srcLib.SP = SPrediction()
@@ -636,11 +646,6 @@ function Spell:__init(spellId, range)
 				require("VPrediction")
 				_G.srcLib.VP = VPrediction()
 				table.insert(_G.srcLib.Prediction, "VPrediction")
-			end
-			if FileExist(LIB_PATH .. "HPrediction.lua") and _G.srcLib.HP == nil then
-				require("HPrediction")
-				_G.srcLib.HP = HPrediction()
-				table.insert(_G.srcLib.Prediction, "HPrediction")
 			end
 			if FileExist(LIB_PATH.."DivinePred.lua") and FileExist(LIB_PATH.."DivinePred.luac") and _G.srcLib.dp == nil then
 				require "DivinePred"
@@ -750,11 +755,58 @@ function Spell:SetSkillshot(skillshotType, width, delay, speed, collision)
 			self.collision = collision or false
 			self:HPSettings()
 			self:DPSettings()
+			self:KPSettings()
 		end
 		if not self.hitChance then self.hitChance = 1.4 end
 		return self
 	else
 		DelayAction(function() self:SetSkillshot(skillshotType, width, delay, speed, collision) end, 1)
+	end
+end
+
+function Spell:KPSettings()
+	if _G.srcLib.KP ~= nil then
+		if self.skillshotType == SKILLSHOT_LINEAR then
+			if self.speed ~= math.huge then 
+				if self.collision then
+					self.KPSS = KPSkillshot({type = "DelayLine", range = self.range, speed = self.speed, width = 2*self.width, delay = self.delay, collision_M = self.collision, collision_H = self.collision})
+				else
+					self.KPSS = KPSkillshot({type = "DelayLine", range = self.range, speed = self.speed, width = 2*self.width, delay = self.delay})
+				end
+			else
+				self.KPSS = KPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay, collision_M = self.collision, collision_H = self.collision })
+			end
+		elseif self.skillshotType == SKILLSHOT_CIRCULAR then
+			if self.delay > 1 then
+				if self.speed ~= math.huge then 
+					self.KPSS = KPSkillshot({type = "DelayCircle", range = self.range, speed = self.speed, radius = self.width, delay = self.delay})
+				else
+					self.KPSS = KPSkillshot({type = "PromptCircle", range = self.range, radius = self.width, delay = self.delay})
+				end
+			else
+				if self.speed ~= math.huge then 
+					self.KPSS = KPSkillshot({type = "DelayCircle", range = self.range, speed = self.speed, radius = self.width, delay = self.delay})
+				else
+					self.KPSS = KPSkillshot({type = "PromptCircle", range = self.range, radius = self.width, delay = self.delay})
+				end
+			end
+		elseif self.skillshotType == SKILLSHOT_CONE then
+			if self.speed ~= math.huge then 
+				if self.collision then
+					self.KPSS = KPSkillshot({type = "DelayLine", range = self.range, speed = self.speed, width = 2*self.width, delay = self.delay, collision_M = self.collision, collision_H = self.collision})
+				else
+					self.KPSS = KPSkillshot({type = "DelayLine", range = self.range, speed = self.speed, width = 2*self.width, delay = self.delay})
+				end
+			else
+				self.KPSS = KPSkillshot({type = "PromptLine", range = self.range, width = 2*self.width, delay = self.delay, collision_M = self.collision, collision_H = self.collision})
+			end
+			-- not yet serport in sourcelib
+			if self.delay == 0 then
+				--self.KPSS = HPSkillshot({type ="PromptArc", collisionH = _collisionH, collisionM = _collisionM, speed = _speed, width = _width, range = _range, delay = _delay})
+			else
+				--self.KPSS = HPSkillshot({type ="DelayArc", collisionH = _collisionH, collisionM = _collisionM, speed = _speed, width = _width, range = _range, delay = _delay})
+			end
+		end
 	end
 end
 
@@ -1035,6 +1087,13 @@ function Spell:GetPrediction(target)
 				return _G.srcLib.HP:GetPredict(self.HPSS, target, self.sourcePosition, true)
 			else
 				return _G.srcLib.HP:GetPredict(self.HPSS, target, self.sourcePosition)
+			end
+		--KPrediction <HTTF>
+		elseif _G.srcLib.Prediction[self.predictionType] == "KPrediction" then
+			if self.useAoe then
+				return _G.srcLib.KP:GetPrediction(self.KPSS, target, self.sourcePosition, true)
+			else
+				return _G.srcLib.KP:GetPrediction(self.KPSS, target, self.sourcePosition)
 			end
 		--DivinePred <Divine> so hard to use that
 		elseif _G.srcLib.Prediction[self.predictionType] == "DivinePred" then
@@ -2184,11 +2243,30 @@ function DamageLib:DrawIndicator(enemy)
     -- Validate data
     if not SPos then return end
 
-    local barwidth = EPos.x - SPos.x
-    local Position = EPos.x - math.max(0, ((enemy.health - damage) / enemy.maxHealth) * 100)
-	
-    DrawText("|", 16, math.floor(Position), math.floor(SPos.y-23), ARGB(255,0,255,0))
-    DrawText("After HP: "..math.floor(enemy.health - damage), 13, math.floor(SPos.x), math.floor(SPos.y), (enemy.health - damage) > 0 and ARGB(255, 0, 255, 0) or  ARGB(255, 255, 0, 0))
+    if damage > 0 then
+        color = damage > enemy.health and ARGB(255, 0, 255, 0) or  ARGB(255, 255, 0, 0)
+
+        pos = SPos;
+        after = math.max(0, enemy.health - damage) / enemy.maxHealth;
+        posY = pos.y - 18;
+        posDamageX = pos.x + 12 + 103 * after;
+        position = pos.x - 5 + 103 * (enemy.health / enemy.maxHealth);
+
+        diff = (position - posDamageX) + 3;
+
+        pos1 = pos.x + 8 + (107 * after);
+        for i = 0, diff do
+            DrawLine(pos1 + i, posY, pos1 + i, posY + 10, 1, color);
+        end
+
+        DrawText( string.format("%s : %s => %s", "After Combo", math.ceil(enemy.health), math.max(0, math.ceil(enemy.health - damage))), 18, pos1, posY - 20, color);
+    end
+
+--    local barwidth = EPos.x - SPos.x
+--    local Position = EPos.x - math.max(0, ((enemy.health - damage) / enemy.maxHealth) * 100)
+
+--    DrawText("|", 16, math.floor(Position), math.floor(SPos.y-23), ARGB(255,0,255,0))
+--    DrawText("After HP: "..math.floor(enemy.health - damage), 13, math.floor(SPos.x), math.floor(SPos.y), (enemy.health - damage) > 0 and ARGB(255, 0, 255, 0) or  ARGB(255, 255, 0, 0))
 
 end
 
