@@ -2,8 +2,8 @@
 
     No Vayne No Gain by Lillgoalie (Condemn based on Vayne's Mighty Assistant by Manciuszz)
 	Fixed by KaoKaoNi (Condemn based on dienofail)
-    Version: 1.04
-	LastUpdate: 20150913
+    Version: 1.09
+	LastUpdate: 20160218
     
     Features:
         - Combo Mode:
@@ -14,14 +14,14 @@
         - Auto Condemn only the target enemy
         - Auto-Level Spells
         - Laneclear using Q with settings
-        - Uses BOTRK
+        - Use BOTRK
 
     
     Instructions on saving the file:
     - Save the file in scripts folder
 --]]
-VERSION = 1.08
-LastUpdate = 20150918
+VERSION = 1.09
+LastUpdate = 20160218
 if myHero.charName ~= "Vayne" then return end
 assert(load(Base64Decode("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"), nil, "bt", _ENV))() ScriptStatus("QDGGDJFFIJF") 
 class("ScriptUpdate")
@@ -322,13 +322,16 @@ local VP = VPrediction()
 local AllClassMenu = 16
 local qOff, wOff, eOff, rOff = 0,0,0,0
 local abilitySequence = {1, 2, 3, 1, 1, 4, 1, 2, 1, 2, 4, 2, 2, 3, 3, 4, 3, 3}
-local MMALoad, orbload, RebornLoad, RevampedLoaded, SxOLoad = nil, false, nil, nil, nil
+local MMALoad, orbload, RebornLoad, RevampedLoaded, NOWLoad = nil, false, nil, nil, false
 local ForceTarget = nil
 local SSpell = {flash = nil}
 local attacked = false
 local block_aa = false
 local r_IsCasting = false
 local Elixir = false
+local windUpTime = 0.23663234710693
+local setWUT = false;
+local LBClicked = false;
 
 ScriptName = "NoVayneNoGain"
 local function _print(msg)
@@ -392,11 +395,11 @@ function OnOrbLoad()
 	elseif _G.Reborn_Loaded then
 		SacLoad = true
 		DelayAction(OnOrbLoad, 1)
-	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
-		_print("SxOrbWalk Load")
-		require 'SxOrbWalk'
-		SxO = SxOrbWalk()
-		SxOLoad = true
+	elseif FileExist(LIB_PATH .. "Nebelwolfi's Orb Walker.lua") then
+		_print("Nebelwolfi's Orb Walker Load")
+		require ("Nebelwolfi's Orb Walker")
+        NOW = NebelwolfisOrbWalkerClass(Menu.SOWorb)
+		NOWLoad = true
 		orbload = true
 	end
 end
@@ -407,16 +410,16 @@ function BlockAA(bool)
 			_G.MMA_StopAttacks(false)
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:AttacksEnabled(true)
-		elseif SxOLoad then
-			SxO:EnableAttacks()
+		elseif NOWLoad then
+			NOW:SetAA(true)
 		end
 	elseif bool and orbload then
 		if MMALoad then
 			_G.MMA_StopAttacks(true)
 		elseif SacLoad then
 			_G.AutoCarry.MyHero:AttacksEnabled(false)
-		elseif SxOLoad then
-			SxO:DisableAttacks()
+		elseif NOWLoad then
+			NOW:SetAA(false)
 		end
 	end
 end
@@ -446,14 +449,15 @@ function OnLoad()
 	ToUpdate.CallbackNewVersion = function(NewVersion) print("<font color=\"#33CCCC\"><b>NoVayneNoGain </b></font> <font color=\"#fff8e7\">New Version found ("..NewVersion.."). Please wait until its downloaded</b></font>") end
 	ToUpdate.CallbackError = function(NewVersion) print("<font color=\"#33CCCC\"><b>NoVayneNoGain </b></font> <font color=\"#fff8e7\">Error while Downloading. Please try again.</b></font>") end
 	ScriptUpdate(VERSION, true, ToUpdate.Host, ToUpdate.VersionPath, ToUpdate.ScriptPath, ToUpdate.SavePath, ToUpdate.CallbackUpdate,ToUpdate.CallbackNoUpdate, ToUpdate.CallbackNewVersion,ToUpdate.CallbackError)
-	OnOrbLoad()
+	
     ts = TargetSelector(TARGET_NEAR_MOUSE,1000)
 
     Menu = scriptConfig("No Vayne No Gain", "VayneBL")
 
     Menu:addSubMenu("["..myHero.charName.." - Orbwalker]", "SOWorb")
-    if SxOLoad then
-		SxO:LoadToMenu(Menu.SOWorb)
+    OnOrbLoad()
+    if NOLLoad then
+		Menu.SOWorb:addParam("", "NOL loaded", SCRIPT_PARAM_INFO, "")
 	elseif SacLoad then
 		Menu.SOWorb:addParam("", "SAC Detected", SCRIPT_PARAM_INFO, "")
 	elseif MMALoad then
@@ -538,6 +542,7 @@ function OnLoad()
 	Menu.Misc.Rlow:addParam("HPper", "Use R hp >= ", SCRIPT_PARAM_SLICE, 10, 0, 100, 0)
 	Menu.Misc.Rlow:addParam("NearEnemy", "Use R near enemy >=", SCRIPT_PARAM_SLICE, 2, 0, 5)
 	Menu.Misc.Rlow:addParam("attacked", "Use R only attacked", SCRIPT_PARAM_ONOFF, true)
+    Menu.Misc.Rlow:addParam("DoAttack", "Again Attack when mouse right click", SCRIPT_PARAM_ONOFF, true);
 	Menu.Misc.Rlow:addParam("QafterR", "Cast Q after r", SCRIPT_PARAM_ONOFF, true)
 	
 	Menu.Misc.Shad:addParam("useDelay", "Use Delay", SCRIPT_PARAM_LIST, 1, {"Always", "Depanding on health", "OFF"})
@@ -563,7 +568,7 @@ function OnLoad()
 
     PrintChat("<font color = \"#33CCCC\">No Vayne No Gain by</font> <font color = \"#fff8e7\">Lillgoalie</font> <font color = \"#33CCCC\"> Fixed by </font> <font color = \"#fff8e7\"> KaoKaoNi </font>")
 	
-	SSpell.flash= FindSummonerSlot("flash")
+	SSpell.flash= nil --FindSummonerSlot("flash")
 	
 	AddProcessSpellCallback(function(unit, spell) OnProcessSpell(unit, spell) end)
 	AddApplyBuffCallback(function(source, unit, buff) OnApplyBuff(source, unit, buff) end)
@@ -573,10 +578,18 @@ function OnLoad()
 		AddProcessAttackCallback(function(unit, spell) OnProcessAttack(unit, spell) end)
 	end
 end
-
+function OnWndMsg(msg, wParam)
+	if msg == 513 then
+		-- print("Mouse Left Click")
+		LBClicked = true
+	elseif msg == 514 then
+		-- print("Mouse Left Release")
+		LBClicked = false
+	end
+end
 function OnApplyBuff(source, unit, buff)
 	if unit and unit.isMe and buff.name == "vaynetumblefade" then
-		if Menu.Misc.Shad.useDelay == 1 or (Menu.Misc.Shad.useDelay == 2 and myHero.health < (myHero.maxHealth*(Menu.Misc.Shad.HPper*0.01))) then
+		if Menu.Misc.Shad.useDelay == 1 or (Menu.Misc.Shad.useDelay == 2 and (myHero.health / myHero.maxHealth * 100) < Menu.Misc.Shad.HPper ) then --myHero.health < (myHero.maxHealth*(Menu.Misc.Shad.HPper*0.01)
 			if not IsTowerNear() then
 				BlockAA(true)
 				block_aa = true
@@ -597,10 +610,8 @@ function IsTowerNear()
 	for i = 1, objManager.iCount, 1 do
         local unit = objManager:getObject(i)
         if unit ~= nil then
-			for j, health in ipairs(tHealth) do
-				if unit.type == "obj_AI_Turret" and unit.team ~= unit.team and not string.find(unit.name, "TurretShrine") and GetDistance(unit) < 950 then
-					return true
-				end
+			if unit.type == "obj_AI_Turret" and unit.team ~= unit.team and not string.find(unit.name, "TurretShrine") and GetDistance(unit) < 950 then
+				return true
 			end
 		end
 	end
@@ -641,6 +652,13 @@ function OnTick()
             end
         end
     end
+
+    if Menu.Misc.Rlow.DoAttack and block_aa and r_IsCasting and LBClicked then
+        block_aa = false;
+        BlockAA(false)
+    end
+    
+
 	UseBotrk()
 	UseYoumuus()
 	UsePotion()
@@ -691,6 +709,7 @@ function OnTick()
 	
 	if not myHero:CanUseSpell(_R) == READY then
 		BlockAA(false)
+        block_aa = false;
 	end
 end
 
@@ -709,6 +728,26 @@ function MidWall()
     else
       myHero:MoveTo(7204, 8770)
       CastSpell(_Q, 6818, 8510)
+    end
+end
+
+_G.LevelSpell = function(id)
+        if (string.find(GetGameVersion(), 'Releases/6.3') ~= nil) then
+        local offsets = { 
+            [_Q] = 0x8A,
+            [_W] = 0xE1,
+            [_E] = 0x23,
+            [_R] = 0x14,
+        }
+        local p = CLoLPacket(0x00E7)
+        p.vTable = 0xF9C650
+        p:EncodeF(myHero.networkID)
+        p:Encode1(0x9B)
+        p:Encode1(offsets[id])
+        for i = 1, 4 do p:Encode1(0x2D) end
+        for i = 1, 4 do p:Encode1(0x6A) end
+        for i = 1, 4 do p:Encode1(0x0F) end
+        SendPacket(p)
     end
 end
 
@@ -999,6 +1038,15 @@ function OnProcessSpell(unit, spell)
     end
 end
 
+function OnAnimation(unit, anim)
+    if unit.isMe and anim:lower():find("attack") and Menu.VayneCombo.combo and Menu.VayneCombo.comboQ then
+        DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, windUpTime - GetLatency() / 2000)
+    end
+    if unit.isMe and anim:lower():find("attack") and Menu.Harass.harass and Menu.Harass.comboQ then
+        DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, windUpTime - GetLatency() / 2000)
+    end
+end
+
 function OnProcessAttack(unit, spell)
 	if unit.isMe and spell.name:lower():find("attack") then
 		if Menu.Misc.Rlow.Enable then
@@ -1009,20 +1057,24 @@ function OnProcessAttack(unit, spell)
 			end
 		end
 	end
+    if unit.isMe and spell.name:lower():find("attack") and not setWUT then
+        --print(spell.windUpTime)
+        windUpTime = spell.windUpTime+0.1;
+    end
 
-	if unit.isMe and spell.name:lower():find("attack") and Menu.VayneCombo.combo and Menu.VayneCombo.comboQ then
-        SpellTarget = spell.target
-        if SpellTarget.type == myHero.type then
-            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
-        end
-    end
-	
-	if unit.isMe and spell.name:lower():find("attack") and Menu.Harass.harass and Menu.Harass.comboQ then
-        SpellTarget = spell.target
-        if SpellTarget.type == myHero.type then
-            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
-        end
-    end
+--	if unit.isMe and spell.name:lower():find("attack") and Menu.VayneCombo.combo and Menu.VayneCombo.comboQ then
+--        SpellTarget = spell.target
+--        if SpellTarget.type == myHero.type then
+--            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
+--        end
+--    end
+
+--	if unit.isMe and spell.name:lower():find("attack") and Menu.Harass.harass and Menu.Harass.comboQ then
+--        SpellTarget = spell.target
+--        if SpellTarget.type == myHero.type then
+--            DelayAction(function() CastSpell(_Q, mousePos.x, mousePos.z) end, spell.windUpTime - GetLatency() / 2000)
+--        end
+--    end
 
     if unit.isMe and spell.name:lower():find("attack") and Menu.LaneC.clearQ and Menu.LaneC.laneclr and myHero.mana >= (myHero.maxMana*(Menu.LaneC.laneclearMana*0.01)) and getDmg("AD", unit , myHero) < unit.health then
         SpellTarget = spell.target
