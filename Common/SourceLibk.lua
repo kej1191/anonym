@@ -57,9 +57,17 @@
 
 _G.srcLib = {}
 _G.srcLib.Menu = scriptConfig("[SourceLib]", "SourceLib")
-_G.srcLib.version = 1.2
+_G.srcLib.version = 1.3
 local autoUpdate = true
 
+local Colors = { 
+    -- O R G B
+    Green   =  ARGB(255, 0, 180, 0), 
+    Yellow  =  ARGB(255, 255, 215, 00),
+    Red     =  ARGB(255, 255, 0, 0),
+    White   =  ARGB(255, 255, 255, 255),
+    Blue    =  ARGB(255, 0, 0, 255),
+}
 --[[
 
 '||''|.                              ||                  
@@ -2722,17 +2730,16 @@ class "Item"
     @param range | float   | (optional) Range of the item
 	@param name  | string  | (optional) Name of the item
 ]]
-function Item:__init(id, range, name)
+function Item:__init(id, range)
 
     assert(id and type(id) == "number", "Item: id is invalid!")
     assert(not range or range and type(range) == "number", "Item: range is invalid!")
 
     self.id = id
     self.range = range
-	self.name = name or ""
     self.rangeSqr = range and range * range
-    self.slot = self:GetSlotItem(id, myHero)
-	ItemNames = {}
+    self.slot = GetInventorySlotItem(id)
+
 end
 
 --[[
@@ -2745,31 +2752,10 @@ function Item:GetId()
 end
 
 --[[
-    Return Item slot with item name
-	
-	@param id	| int     | Item id
-	@param unit | Cunit   | (optional) Searching target
-    @return		| integer | Item slot
+    Updates the item slot to the current one (if changed)
 ]]
-function Item:GetSlotItem(id, unit)
-	
-	--[[
-	unit 		= unit or myHero
-
-	if (ItemNames[id] == nil or not ItemNames[id]) then
-		return ___GetInventorySlotItem(id, unit)
-	end
-
-	local name	= self.name
-
-	for slot = ITEM_1, ITEM_7 do
-		local item = unit:GetSpellData(slot).name
-		if ((#item > 0) and (item:lower() == name:lower())) then
-			return slot
-		end
-	end
-	]]
-	return nil
+function Item:UpdateSlot()
+    self.slot = GetInventorySlotItem(self.id)
 end
 --[[
     Returns the range of the item, only working when the item was defined with a range.
@@ -3129,8 +3115,7 @@ function OrbWalkManager:__init(ScriptName)
 	self.MMALoad = false
 	self.SacLoad = false
 	self.orbload = false
-	self.SxOLoad = false
-	self.NOLLoad = false
+	self.SOWLoad = false
 	self.RebornLoad = false
 	self.RevampedLoaded = false
 	
@@ -3170,7 +3155,7 @@ function OrbWalkManager:__init(ScriptName)
     }
 	
 	self.LoadOrbwalk = "Not Detected"
-	self.SxO = nil
+	self.SOW = nil
 	
 	self:OnOrbLoad()
 	
@@ -3234,21 +3219,19 @@ function OrbWalkManager:OnOrbLoad()
 		self.SacLoad = true
 		self.LoadOrbwalk = "SAC"
 		DelayAction(function() self:OnOrbLoad() end, 1)
-	elseif FileExist(LIB_PATH.."Nebelwolfi's Orb Walker.lua") then
-		self:print("Nebelwolfi's OrbWalker Load")
-		require("Nebelwolfi's Orb Walker")
-		self.LoadOrbwalk = "NOW"
-		self.NOL = NebelwolfisOrbWalkerClass(self.Config)
-		self.NOLLoad = true
-		self.orbload = true
-	elseif FileExist(LIB_PATH .. "SxOrbWalk.lua") then
-		self:print("SxOrbWalk Load")
-		require 'SxOrbWalk'
-		self.SxO = SxOrbWalk()
-		self.LoadOrbwalk = "SxO"
-		self.SxO:LoadToMenu(self.Config) 
-		self.SxOLoad = true
-		self.orbload = true
+	else
+        --self.VP = nil
+        if _G.srcLib.VP then
+            --self.VP = _G.srcLib.VP
+        else
+            require('VPrediction')
+            _G.srcLib.VP = VPrediction()
+        end
+        self.SOWLoad = true
+        self.SOW = SOW(_G.srcLib.VP)
+        self.SOW:AddToMenu()
+        self.LoadOrbwalk = "SOW"
+        self.orbload = true
 	end
 end
 
@@ -3263,12 +3246,8 @@ function OrbWalkManager:IsComboMode()
 			if _G.AutoCarry.Keys.AutoCarry then
 				return true
 			end
-		elseif self.SxOLoad then
-			if self.SxO.isFight then
-				return true
-			end
-		elseif self.NOLLoad then
-			if self.NOL.Config.k.Combo then
+		elseif self.SOWLoad then
+			if self.SOW:GetActiveMode() == "Combo" then
 				return true
 			end
 		elseif self.MMALoad then
@@ -3291,14 +3270,10 @@ function OrbWalkManager:IsHarassMode()
 			if _G.AutoCarry.Keys.MixedMode then
 				return true
 			end
-		elseif self.SxOLoad then
-			if self.SxO.isHarass then
-				return true
-			end
-		elseif self.NOLLoad then
-			if self.NOL.Config.k.Harass then
-				return true
-			end
+		elseif self.SOWLoad then
+            if self.SOW:GetActiveMode() == "Harass" then
+                return true
+            end
 		elseif self.MMALoad then
 			if _G.MMA_IsDualCarrying() then
 				return true
@@ -3319,12 +3294,8 @@ function OrbWalkManager:IsClearMode()
 			if _G.AutoCarry.Keys.LaneClear then
 				return true
 			end
-		elseif self.SxOLoad then
-			if self.SxO.isLaneClear then
-				return true
-			end
-		elseif self.NOLLoad then
-			if self.NOL.Config.k.LaneClear then
+		elseif self.SOWLoad then
+			if self.SOW:GetActiveMode() == "Clear" then
 				return true
 			end
 		elseif self.MMALoad then
@@ -3347,12 +3318,8 @@ function OrbWalkManager:IsLastHitMode()
 			if _G.AutoCarry.Keys.LastHit then
 				return true
 			end
-		elseif self.SxOLoad then
-			if self.SxO.isLastHit then
-				return true
-			end
-		elseif self.NOLLoad then
-			if self.NOL.Config.k.LastHit then
+		elseif self.SOWLoad then
+			if self.SOW:GetActiveMode() == "LastHit" then
 				return true
 			end
 		elseif self.MMALoad then
@@ -3368,15 +3335,55 @@ function OrbWalkManager:IsLastHitMode()
     return false
 end
 
+function OrbWalkManager:SetMove(bool)
+    if not self.orbload then return end
+    if bool then
+        if self.MMALoad then
+		    _G.MMA_AvoidMovement(false)
+	    elseif self.SacLoad then
+		    _G.AutoCarry.MyHero:MovementEnabled(true)
+	    elseif self.SOWLoad then
+            self.SOW.Move = true
+	    end
+    else
+        if self.MMALoad then
+		    _G.MMA_AvoidMovement(true)
+	    elseif self.SacLoad then
+		    _G.AutoCarry.MyHero:MovementEnabled(false)
+	    elseif self.SOWLoad then
+            self.SOW.Move = false
+	    end
+    end
+end
+
+function OrbWalkManager:SetAttack(bool)
+    if not self.orbload then return end
+    if bool then
+        if self.MMALoad then
+		_G.MMA_StopAttacks(false)
+	    elseif self.SacLoad then
+		    G.AutoCarry.MyHero:AttacksEnabled(true)
+	    elseif self.SOWLoad then
+            self.SOW:EnableAttacks()
+	    end
+    else
+        if self.MMALoad then
+		    _G.MMA_StopAttacks(true)
+	    elseif self.SacLoad then
+		     _G.AutoCarry.MyHero:AttacksEnabled(false)
+	    elseif self.SOWLoad then
+            self.SOW:DisableAttacks()
+	    end
+    end
+end
+
 function OrbWalkManager:ResetAA()
 	if not self.orbload then return end
 	self.AA.LastTime = self:GetTime() + self:Latency() - self:AnimationTime()
     if self.SacLoad then
         _G.AutoCarry.Orbwalker:ResetAttackTimer()
-    elseif self.SxOLoad then
-        self.SxO:ResetAA()
-	elseif self.NOLLoad then
-		self.NOL.orbTable.lastAA = os.clock() - GetLatency() / 2000 - self.NOL.orbTable.animation
+    elseif self.SOWLoad then
+        self.SOW:ResetAA()
     elseif self.MMALoad then
         _G.MMA_ResetAutoAttack()
     end
@@ -3386,10 +3393,8 @@ function OrbWalkManager:CanAttack()
 	if not self.orbload then return end
     if self.SacLoad  then
         return _G.AutoCarry.Orbwalker:CanShoot()
-    elseif self.SxOLoad then
-        return self.SxO:CanAttack()
-    elseif self.MMALoad then
-        return _G.MMA_CanAttack()
+    elseif self.SOWLoad then
+        self.SOW:CanAttack()
     elseif self.NOLLoad then
         return self.NOLTimeToAttack()
     end
@@ -3782,6 +3787,861 @@ function CallBackManager:CastSpell(func)
 	assert(func and type(func) == "function", "CallBackManager() : CastSpell(func) : function is invalid (not function)" )
 	AddCastSpellCallback(func)
 end
+
+--[[
+
+|''||''|  ||          '||      '||'       ||              ||    .                   
+   ||    ...    ....   ||  ..   ||       ...  .. .. ..   ...  .||.    ....  ... ..  
+   ||     ||  .|   ''  || .'    ||        ||   || || ||   ||   ||   .|...||  ||' '' 
+   ||     ||  ||       ||'|.    ||        ||   || || ||   ||   ||   ||       ||     
+  .||.   .||.  '|...' .||. ||. .||.....| .||. .|| || ||. .||.  '|.'  '|...' .||.    
+
+    TickLimiter - Because potato computers also use SourceLib
+
+    Functions:
+        TickLimiter(func, frequency)
+
+]]
+class 'TickLimiter'
+
+--[[
+    Starts TickLimiter instance
+
+    @param func       | function | The function to be called
+    @param frequency  | integer  | The times the function will called per second.
+]]
+function TickLimiter:__init(func, frequency)
+
+    assert(frequency and frequency > 0, "TickLimiter: frecuency is invalid!")
+    assert(func and type(func) == "function", "TickLimiter: func is invalid!")
+
+    self.lasttick = 0
+    self.interval = 1 / frequency
+
+    self.func = func
+    AddTickCallback(function() self:OnTick() end)
+
+end
+
+--[[
+    Internal callback
+]]
+function TickLimiter:OnTick()
+
+    if os.clock() - self.lasttick >= self.interval then
+        self.func()
+        self.lasttick = os.clock()
+    end
+
+end
+
+class "SOW"
+function SOW:__init(VP)
+	_G.SOWLoaded = true
+    self.projectilespeeds = {["Velkoz"]= 2000,["TeemoMushroom"] = math.huge,["TestCubeRender"] = math.huge ,["Xerath"] = 2000.0000 ,["Kassadin"] = math.huge ,["Rengar"] = math.huge ,["Thresh"] = 1000.0000 ,["Ziggs"] = 1500.0000 ,["ZyraPassive"] = 1500.0000 ,["ZyraThornPlant"] = 1500.0000 ,["KogMaw"] = 1800.0000 ,["HeimerTBlue"] = 1599.3999 ,["EliseSpider"] = 500.0000 ,["Skarner"] = 500.0000 ,["ChaosNexus"] = 500.0000 ,["Katarina"] = 467.0000 ,["Riven"] = 347.79999 ,["SightWard"] = 347.79999 ,["HeimerTYellow"] = 1599.3999 ,["Ashe"] = 2000.0000 ,["VisionWard"] = 2000.0000 ,["TT_NGolem2"] = math.huge ,["ThreshLantern"] = math.huge ,["TT_Spiderboss"] = math.huge ,["OrderNexus"] = math.huge ,["Soraka"] = 1000.0000 ,["Jinx"] = 2750.0000 ,["TestCubeRenderwCollision"] = 2750.0000 ,["Red_Minion_Wizard"] = 650.0000 ,["JarvanIV"] = 20.0000 ,["Blue_Minion_Wizard"] = 650.0000 ,["TT_ChaosTurret2"] = 1200.0000 ,["TT_ChaosTurret3"] = 1200.0000 ,["TT_ChaosTurret1"] = 1200.0000 ,["ChaosTurretGiant"] = 1200.0000 ,["Dragon"] = 1200.0000 ,["LuluSnowman"] = 1200.0000 ,["Worm"] = 1200.0000 ,["ChaosTurretWorm"] = 1200.0000 ,["TT_ChaosInhibitor"] = 1200.0000 ,["ChaosTurretNormal"] = 1200.0000 ,["AncientGolem"] = 500.0000 ,["ZyraGraspingPlant"] = 500.0000 ,["HA_AP_OrderTurret3"] = 1200.0000 ,["HA_AP_OrderTurret2"] = 1200.0000 ,["Tryndamere"] = 347.79999 ,["OrderTurretNormal2"] = 1200.0000 ,["Singed"] = 700.0000 ,["OrderInhibitor"] = 700.0000 ,["Diana"] = 347.79999 ,["HA_FB_HealthRelic"] = 347.79999 ,["TT_OrderInhibitor"] = 347.79999 ,["GreatWraith"] = 750.0000 ,["Yasuo"] = 347.79999 ,["OrderTurretDragon"] = 1200.0000 ,["OrderTurretNormal"] = 1200.0000 ,["LizardElder"] = 500.0000 ,["HA_AP_ChaosTurret"] = 1200.0000 ,["Ahri"] = 1750.0000 ,["Lulu"] = 1450.0000 ,["ChaosInhibitor"] = 1450.0000 ,["HA_AP_ChaosTurret3"] = 1200.0000 ,["HA_AP_ChaosTurret2"] = 1200.0000 ,["ChaosTurretWorm2"] = 1200.0000 ,["TT_OrderTurret1"] = 1200.0000 ,["TT_OrderTurret2"] = 1200.0000 ,["TT_OrderTurret3"] = 1200.0000 ,["LuluFaerie"] = 1200.0000 ,["HA_AP_OrderTurret"] = 1200.0000 ,["OrderTurretAngel"] = 1200.0000 ,["YellowTrinketUpgrade"] = 1200.0000 ,["MasterYi"] = math.huge ,["Lissandra"] = 2000.0000 ,["ARAMOrderTurretNexus"] = 1200.0000 ,["Draven"] = 1700.0000 ,["FiddleSticks"] = 1750.0000 ,["SmallGolem"] = math.huge ,["ARAMOrderTurretFront"] = 1200.0000 ,["ChaosTurretTutorial"] = 1200.0000 ,["NasusUlt"] = 1200.0000 ,["Maokai"] = math.huge ,["Wraith"] = 750.0000 ,["Wolf"] = math.huge ,["Sivir"] = 1750.0000 ,["Corki"] = 2000.0000 ,["Janna"] = 1200.0000 ,["Nasus"] = math.huge ,["Golem"] = math.huge ,["ARAMChaosTurretFront"] = 1200.0000 ,["ARAMOrderTurretInhib"] = 1200.0000 ,["LeeSin"] = math.huge ,["HA_AP_ChaosTurretTutorial"] = 1200.0000 ,["GiantWolf"] = math.huge ,["HA_AP_OrderTurretTutorial"] = 1200.0000 ,["YoungLizard"] = 750.0000 ,["Jax"] = 400.0000 ,["LesserWraith"] = math.huge ,["Blitzcrank"] = math.huge ,["ARAMChaosTurretInhib"] = 1200.0000 ,["Shen"] = 400.0000 ,["Nocturne"] = math.huge ,["Sona"] = 1500.0000 ,["ARAMChaosTurretNexus"] = 1200.0000 ,["YellowTrinket"] = 1200.0000 ,["OrderTurretTutorial"] = 1200.0000 ,["Caitlyn"] = 2500.0000 ,["Trundle"] = 347.79999 ,["Malphite"] = 1000.0000 ,["Mordekaiser"] = math.huge ,["ZyraSeed"] = math.huge ,["Vi"] = 1000.0000 ,["Tutorial_Red_Minion_Wizard"] = 650.0000 ,["Renekton"] = math.huge ,["Anivia"] = 1400.0000 ,["Fizz"] = math.huge ,["Heimerdinger"] = 1500.0000 ,["Evelynn"] = 467.0000 ,["Rumble"] = 347.79999 ,["Leblanc"] = 1700.0000 ,["Darius"] = math.huge ,["OlafAxe"] = math.huge ,["Viktor"] = 2300.0000 ,["XinZhao"] = 20.0000 ,["Orianna"] = 1450.0000 ,["Vladimir"] = 1400.0000 ,["Nidalee"] = 1750.0000 ,["Tutorial_Red_Minion_Basic"] = math.huge ,["ZedShadow"] = 467.0000 ,["Syndra"] = 1800.0000 ,["Zac"] = 1000.0000 ,["Olaf"] = 347.79999 ,["Veigar"] = 1100.0000 ,["Twitch"] = 2500.0000 ,["Alistar"] = math.huge ,["Akali"] = 467.0000 ,["Urgot"] = 1300.0000 ,["Leona"] = 347.79999 ,["Talon"] = math.huge ,["Karma"] = 1500.0000 ,["Jayce"] = 347.79999 ,["Galio"] = 1000.0000 ,["Shaco"] = math.huge ,["Taric"] = math.huge ,["TwistedFate"] = 1500.0000 ,["Varus"] = 2000.0000 ,["Garen"] = 347.79999 ,["Swain"] = 1600.0000 ,["Vayne"] = 2000.0000 ,["Fiora"] = 467.0000 ,["Quinn"] = 2000.0000 ,["Kayle"] = math.huge ,["Blue_Minion_Basic"] = math.huge ,["Brand"] = 2000.0000 ,["Teemo"] = 1300.0000 ,["Amumu"] = 500.0000 ,["Annie"] = 1200.0000 ,["Odin_Blue_Minion_caster"] = 1200.0000 ,["Elise"] = 1600.0000 ,["Nami"] = 1500.0000 ,["Poppy"] = 500.0000 ,["AniviaEgg"] = 500.0000 ,["Tristana"] = 2250.0000 ,["Graves"] = 3000.0000 ,["Morgana"] = 1600.0000 ,["Gragas"] = math.huge ,["MissFortune"] = 2000.0000 ,["Warwick"] = math.huge ,["Cassiopeia"] = 1200.0000 ,["Tutorial_Blue_Minion_Wizard"] = 650.0000 ,["DrMundo"] = math.huge ,["Volibear"] = 467.0000 ,["Irelia"] = 467.0000 ,["Odin_Red_Minion_Caster"] = 650.0000 ,["Lucian"] = 2800.0000 ,["Yorick"] = math.huge ,["RammusPB"] = math.huge ,["Red_Minion_Basic"] = math.huge ,["Udyr"] = 467.0000 ,["MonkeyKing"] = 20.0000 ,["Tutorial_Blue_Minion_Basic"] = math.huge ,["Kennen"] = 1600.0000 ,["Nunu"] = 500.0000 ,["Ryze"] = 2400.0000 ,["Zed"] = 467.0000 ,["Nautilus"] = 1000.0000 ,["Gangplank"] = 1000.0000 ,["Lux"] = 1600.0000 ,["Sejuani"] = 500.0000 ,["Ezreal"] = 2000.0000 ,["OdinNeutralGuardian"] = 1800.0000 ,["Khazix"] = 500.0000 ,["Sion"] = math.huge ,["Aatrox"] = 347.79999 ,["Hecarim"] = 500.0000 ,["Pantheon"] = 20.0000 ,["Shyvana"] = 467.0000 ,["Zyra"] = 1700.0000 ,["Karthus"] = 1200.0000 ,["Rammus"] = math.huge ,["Zilean"] = 1200.0000 ,["Chogath"] = 500.0000 ,["Malzahar"] = 2000.0000 ,["YorickRavenousGhoul"] = 347.79999 ,["YorickSpectralGhoul"] = 347.79999 ,["JinxMine"] = 347.79999 ,["YorickDecayedGhoul"] = 347.79999 ,["XerathArcaneBarrageLauncher"] = 347.79999 ,["Odin_SOG_Order_Crystal"] = 347.79999 ,["TestCube"] = 347.79999 ,["ShyvanaDragon"] = math.huge ,["FizzBait"] = math.huge ,["Blue_Minion_MechMelee"] = math.huge ,["OdinQuestBuff"] = math.huge ,["TT_Buffplat_L"] = math.huge ,["TT_Buffplat_R"] = math.huge ,["KogMawDead"] = math.huge ,["TempMovableChar"] = math.huge ,["Lizard"] = 500.0000 ,["GolemOdin"] = math.huge ,["OdinOpeningBarrier"] = math.huge ,["TT_ChaosTurret4"] = 500.0000 ,["TT_Flytrap_A"] = 500.0000 ,["TT_NWolf"] = math.huge ,["OdinShieldRelic"] = math.huge ,["LuluSquill"] = math.huge ,["redDragon"] = math.huge ,["MonkeyKingClone"] = math.huge ,["Odin_skeleton"] = math.huge ,["OdinChaosTurretShrine"] = 500.0000 ,["Cassiopeia_Death"] = 500.0000 ,["OdinCenterRelic"] = 500.0000 ,["OdinRedSuperminion"] = math.huge ,["JarvanIVWall"] = math.huge ,["ARAMOrderNexus"] = math.huge ,["Red_Minion_MechCannon"] = 1200.0000 ,["OdinBlueSuperminion"] = math.huge ,["SyndraOrbs"] = math.huge ,["LuluKitty"] = math.huge ,["SwainNoBird"] = math.huge ,["LuluLadybug"] = math.huge ,["CaitlynTrap"] = math.huge ,["TT_Shroom_A"] = math.huge ,["ARAMChaosTurretShrine"] = 500.0000 ,["Odin_Windmill_Propellers"] = 500.0000 ,["TT_NWolf2"] = math.huge ,["OdinMinionGraveyardPortal"] = math.huge ,["SwainBeam"] = math.huge ,["Summoner_Rider_Order"] = math.huge ,["TT_Relic"] = math.huge ,["odin_lifts_crystal"] = math.huge ,["OdinOrderTurretShrine"] = 500.0000 ,["SpellBook1"] = 500.0000 ,["Blue_Minion_MechCannon"] = 1200.0000 ,["TT_ChaosInhibitor_D"] = 1200.0000 ,["Odin_SoG_Chaos"] = 1200.0000 ,["TrundleWall"] = 1200.0000 ,["HA_AP_HealthRelic"] = 1200.0000 ,["OrderTurretShrine"] = 500.0000 ,["OriannaBall"] = 500.0000 ,["ChaosTurretShrine"] = 500.0000 ,["LuluCupcake"] = 500.0000 ,["HA_AP_ChaosTurretShrine"] = 500.0000 ,["TT_NWraith2"] = 750.0000 ,["TT_Tree_A"] = 750.0000 ,["SummonerBeacon"] = 750.0000 ,["Odin_Drill"] = 750.0000 ,["TT_NGolem"] = math.huge ,["AramSpeedShrine"] = math.huge ,["OriannaNoBall"] = math.huge ,["Odin_Minecart"] = math.huge ,["Summoner_Rider_Chaos"] = math.huge ,["OdinSpeedShrine"] = math.huge ,["TT_SpeedShrine"] = math.huge ,["odin_lifts_buckets"] = math.huge ,["OdinRockSaw"] = math.huge ,["OdinMinionSpawnPortal"] = math.huge ,["SyndraSphere"] = math.huge ,["Red_Minion_MechMelee"] = math.huge ,["SwainRaven"] = math.huge ,["crystal_platform"] = math.huge ,["MaokaiSproutling"] = math.huge ,["Urf"] = math.huge ,["TestCubeRender10Vision"] = math.huge ,["MalzaharVoidling"] = 500.0000 ,["GhostWard"] = 500.0000 ,["MonkeyKingFlying"] = 500.0000 ,["LuluPig"] = 500.0000 ,["AniviaIceBlock"] = 500.0000 ,["TT_OrderInhibitor_D"] = 500.0000 ,["Odin_SoG_Order"] = 500.0000 ,["RammusDBC"] = 500.0000 ,["FizzShark"] = 500.0000 ,["LuluDragon"] = 500.0000 ,["OdinTestCubeRender"] = 500.0000 ,["TT_Tree1"] = 500.0000 ,["ARAMOrderTurretShrine"] = 500.0000 ,["Odin_Windmill_Gears"] = 500.0000 ,["ARAMChaosNexus"] = 500.0000 ,["TT_NWraith"] = 750.0000 ,["TT_OrderTurret4"] = 500.0000 ,["Odin_SOG_Chaos_Crystal"] = 500.0000 ,["OdinQuestIndicator"] = 500.0000 ,["JarvanIVStandard"] = 500.0000 ,["TT_DummyPusher"] = 500.0000 ,["OdinClaw"] = 500.0000 ,["EliseSpiderling"] = 2000.0000 ,["QuinnValor"] = math.huge ,["UdyrTigerUlt"] = math.huge ,["UdyrTurtleUlt"] = math.huge ,["UdyrUlt"] = math.huge ,["UdyrPhoenixUlt"] = math.huge ,["ShacoBox"] = 1500.0000 ,["HA_AP_Poro"] = 1500.0000 ,["AnnieTibbers"] = math.huge ,["UdyrPhoenix"] = math.huge ,["UdyrTurtle"] = math.huge ,["UdyrTiger"] = math.huge ,["HA_AP_OrderShrineTurret"] = 500.0000 ,["HA_AP_Chains_Long"] = 500.0000 ,["HA_AP_BridgeLaneStatue"] = 500.0000 ,["HA_AP_ChaosTurretRubble"] = 500.0000 ,["HA_AP_PoroSpawner"] = 500.0000 ,["HA_AP_Cutaway"] = 500.0000 ,["HA_AP_Chains"] = 500.0000 ,["ChaosInhibitor_D"] = 500.0000 ,["ZacRebirthBloblet"] = 500.0000 ,["OrderInhibitor_D"] = 500.0000 ,["Nidalee_Spear"] = 500.0000 ,["Nidalee_Cougar"] = 500.0000 ,["TT_Buffplat_Chain"] = 500.0000 ,["WriggleLantern"] = 500.0000 ,["TwistedLizardElder"] = 500.0000 ,["RabidWolf"] = math.huge ,["HeimerTGreen"] = 1599.3999 ,["HeimerTRed"] = 1599.3999 ,["ViktorFF"] = 1599.3999 ,["TwistedGolem"] = math.huge ,["TwistedSmallWolf"] = math.huge ,["TwistedGiantWolf"] = math.huge ,["TwistedTinyWraith"] = 750.0000 ,["TwistedBlueWraith"] = 750.0000 ,["TwistedYoungLizard"] = 750.0000 ,["Red_Minion_Melee"] = math.huge ,["Blue_Minion_Melee"] = math.huge ,["Blue_Minion_Healer"] = 1000.0000 ,["Ghast"] = 750.0000 ,["blueDragon"] = 800.0000 ,["Red_Minion_MechRange"] = 3000, ["SRU_OrderMinionRanged"] = 650, ["SRU_ChaosMinionRanged"] = 650, ["SRU_OrderMinionSiege"] = 1200, ["SRU_ChaosMinionSiege"] = 1200, ["SRUAP_Turret_Chaos1"]  = 1200, ["SRUAP_Turret_Chaos2"]  = 1200, ["SRUAP_Turret_Chaos3"] = 1200, ["SRUAP_Turret_Order1"]  = 1200, ["SRUAP_Turret_Order2"]  = 1200, ["SRUAP_Turret_Order3"] = 1200, ["SRUAP_Turret_Chaos4"] = 1200, ["SRUAP_Turret_Chaos5"] = 500, ["SRUAP_Turret_Order4"] = 1200, ["SRUAP_Turret_Order5"] = 500 }
+
+	self.ProjectileSpeed = myHero.range > 300 and self:GetProjectileSpeed(myHero) or math.huge
+	self.BaseWindupTime = 3
+	self.BaseAnimationTime = 0.65
+	self.DataUpdated = false
+
+	self.VP = VP
+	
+	--Callbacks
+	self.AfterAttackCallbacks = {}
+	self.OnAttackCallbacks = {}
+	self.BeforeAttackCallbacks = {}
+
+	self.AttackTable =
+		{
+        "caitlynheadshotmissile",
+        "frostarrow",
+        "garenslash2",
+        "kennenmegaproc",
+        "masteryidoublestrike",
+        "quinnwenhanced",
+        "renektonexecute",
+        "renektonsuperexecute",
+        "rengarnewpassivebuffdash",
+        "trundleq",
+        "xenzhaothrust",
+        "xenzhaothrust2",
+        "xenzhaothrust3",
+        "viktorqbuff"
+		}
+
+	self.NoAttackTable =
+		{
+        "volleyattack",
+        "volleyattackwithsound",
+        "jarvanivcataclysmattack",
+        "monkeykingdoubleattack",
+        "shyvanadoubleattack",
+        "shyvanadoubleattackdragon",
+        "zyragraspingplantattack",
+        "zyragraspingplantattack2",
+        "zyragraspingplantattackfire",
+        "zyragraspingplantattack2fire",
+        "viktorpowertransfer",
+        "sivirwattackbounce",
+        "asheqattacknoonhit",
+        "elisespiderlingbasicattack",
+        "heimertyellowbasicattack",
+        "heimertyellowbasicattack2",
+        "heimertbluebasicattack",
+        "annietibbersbasicattack",
+        "annietibbersbasicattack2",
+        "yorickdecayedghoulbasicattack",
+        "yorickravenousghoulbasicattack",
+        "yorickspectralghoulbasicattack",
+        "malzaharvoidlingbasicattack",
+        "malzaharvoidlingbasicattack2",
+        "malzaharvoidlingbasicattack3",
+        "kindredwolfbasicattack"
+		}
+
+	self.AttackResetTable = 
+		{
+        "dariusnoxiantacticsonh",
+        "fioraflurry",
+        "garenq",
+        "gravesmove",
+        "hecarimrapidslash",
+        "jaxempowertwo",
+        "jaycehypercharge",
+        "leonashieldofdaybreak",
+        "luciane",
+        "monkeykingdoubleattack",
+        "mordekaisermaceofspades",
+        "nasusq",
+        "nautiluspiercinggaze",
+        "netherblade",
+        "gangplankqwrapper",
+        "poppypassiveattack",
+        "powerfist",
+        "renektonpreexecute",
+        "rengarq",
+        "shyvanadoubleattack",
+        "sivirw",
+        "takedown",
+        "talonnoxiandiplomacy",
+        "trundletrollsmash",
+        "vaynetumble",
+        "vie",
+        "volibearq",
+        "xenzhaocombotarget",
+        "yorickspectral",
+        "reksaiq",
+        "itemtitanichydracleave",
+        "masochism",
+        "illaoiw",
+        "elisespiderw",
+        "fiorae",
+        "meditate",
+        "sejuaninorthernwinds"
+		}
+
+	self.LastAttack = 0
+	self.EnemyMinions = minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_MAXHEALTH_ASC)
+	self.JungleMinions = minionManager(MINION_JUNGLE, 2000, myHero, MINION_SORT_MAXHEALTH_DEC)
+	self.OtherMinions = minionManager(MINION_OTHER, 2000, myHero, MINION_SORT_HEALTH_ASC)
+	
+	GetSave("SOW").FarmDelay = GetSave("SOW").FarmDelay and GetSave("SOW").FarmDelay or 0
+	GetSave("SOW").ExtraWindUpTime = GetSave("SOW").ExtraWindUpTime and GetSave("SOW").ExtraWindUpTime or 50
+	GetSave("SOW").Mode3 = GetSave("SOW").Mode3 and GetSave("SOW").Mode3 or string.byte("X")
+	GetSave("SOW").Mode2 = GetSave("SOW").Mode2 and GetSave("SOW").Mode2 or string.byte("V")
+	GetSave("SOW").Mode1 = GetSave("SOW").Mode1 and GetSave("SOW").Mode1 or string.byte("C")
+	GetSave("SOW").Mode0 = GetSave("SOW").Mode0 and GetSave("SOW").Mode0 or 32
+
+	self.Attacks = true
+	self.Move = true
+	self.mode = -1
+	self.checkcancel = 0
+    self.HPP = HealthPrediction()
+
+    self.Turrets = {}
+    for i=1, objManager.maxObjects do
+		local obj = objManager:getObject(i)
+		if obj and obj.valid and obj.type == 'obj_AI_Turret' and obj.name:find('Shrine') == nil and not obj.dead then
+			self.Turrets[#self.Turrets+1] = obj
+		end
+	end
+
+	AddProcessSpellCallback(function(unit, spell) self:OnProcessSpell(unit, spell) end)
+    AddProcessAttackCallback(function(unit, spell) self:OnProcessAttack(unit, spell) end)
+    --AddAnimationCallback(function(u, a) self:OnAnimation(u, a) end)
+end
+
+function SOW:GetProjectileSpeed(unit)
+    return self.projectilespeeds[unit.charName] and self.projectilespeeds[unit.charName] or math.huge
+end
+
+function SOW:AddToMenu(m, STS)
+	if not m then
+		self.Menu = scriptConfig("Simple OrbWalker", "SOW")
+	else
+		self.Menu = m
+	end
+
+	if STS then
+		self.STS = STS
+		--self.STS.VP = self.VP
+	end
+
+    self.Menu:addSubMenu("General", "General")
+	
+	self.Menu.General:addParam("Enabled", "Enabled", SCRIPT_PARAM_ONOFF, true)
+	self.Menu.General:addParam("FarmDelay", "Farm Delay", SCRIPT_PARAM_SLICE, -150, 0, 150)
+	self.Menu.General:addParam("ExtraWindUpTime", "Extra WindUp Time", SCRIPT_PARAM_SLICE, -150,  0, 150)
+	
+	self.Menu.General.FarmDelay = GetSave("SOW").FarmDelay
+	self.Menu.General.ExtraWindUpTime = GetSave("SOW").ExtraWindUpTime
+
+	self.Menu.General:addParam("Attack",  "Attack", SCRIPT_PARAM_LIST, 2, { "Only Farming", "Farming + Carry mode"})
+	self.Menu.General:addParam("Mode",  "Orbwalking mode", SCRIPT_PARAM_LIST, 1, { "To mouse", "To target"})
+
+	self.Menu:addSubMenu("HotKeys", "HotKeys")
+
+	self.Menu.HotKeys:addParam("Mode3", "Last hit!", SCRIPT_PARAM_ONKEYDOWN, false, GetSave("SOW").Mode3 and GetSave("SOW").Mode3 or string.byte("X"))
+	self.Mode3ParamID = #self.Menu._param
+	self.Menu.HotKeys:addParam("Mode1", "Mixed Mode!", SCRIPT_PARAM_ONKEYDOWN, false, GetSave("SOW").Mode2 and GetSave("SOW").Mode2 or string.byte("C"))
+	self.Mode1ParamID = #self.Menu._param
+	self.Menu.HotKeys:addParam("Mode2", "Laneclear!", SCRIPT_PARAM_ONKEYDOWN, false, GetSave("SOW").Mode1 and GetSave("SOW").Mode1 or string.byte("V"))
+	self.Mode2ParamID = #self.Menu._param
+	self.Menu.HotKeys:addParam("Mode0", "Carry me!", SCRIPT_PARAM_ONKEYDOWN, false, GetSave("SOW").Mode0 and GetSave("SOW").Mode0 or 32)
+	self.Mode0ParamID = #self.Menu._param
+
+    self.Menu:addSubMenu("Draw", "Draw")
+    self.Menu.Draw:addParam("DrawRange", "Draw AA Range", SCRIPT_PARAM_ONOFF, true)
+    self.Menu.Draw:addParam("DrawEnemyAARange", "Draw Enemy AA Range", SCRIPT_PARAM_ONOFF, true)
+    self.Menu.Draw:addParam("HoldZone", "HoldZone", SCRIPT_PARAM_ONOFF, true);
+
+    self.Menu:addSubMenu("Misc", "Misc")
+    self.Menu.Misc:addParam("HoldPosRadius", "Hold Position Radius", SCRIPT_PARAM_SLICE, 50, 0, 250)
+    self.Menu.Misc:addParam("AttackTurret", "Auto attack turrets", SCRIPT_PARAM_ONOFF, true)
+--    self.Menu.Misc:addParam("PriorizeFarm", "Priorize farm over harass", SCRIPT_PARAM_ONOFF, true)
+--    self.Menu.Misc:addParam("AttackWards", "Auto attack wards", SCRIPT_PARAM_ONOFF, false)
+--    self.Menu.Misc:addParam("AttackPetsnTraps", "Auto attack pets & traps", SCRIPT_PARAM_ONOFF, true)
+--    self.Menu.Misc:addParam("AttackBarrel", "Auto attack gangplank barrel", SCRIPT_PARAM_ONOFF, true)
+
+--	self.Menu._param[self.Mode3ParamID].key = 
+--	self.Menu._param[self.Mode2ParamID].key = 
+--	self.Menu._param[self.Mode1ParamID].key = 
+--	self.Menu._param[self.Mode0ParamID].key = 
+	
+	AddTickCallback(function() self:OnTick() end)
+	AddTickCallback(function() self:CheckConfig() end)
+    AddDrawCallback(function() self:OnDraw() end)
+end
+
+function SOW:OnDraw()
+    if self.Menu.Draw.DrawRange then
+        DrawCircle(myHero.x, myHero.y, myHero.z, myHero.range + myHero.boundingRadius/2, Colors.Yellow)
+    end
+    if self.Menu.Draw.DrawEnemyAARange then
+        for _, enemy in ipairs(GetEnemyHeroes()) do
+            if not enemy.dead then
+                DrawCircle(enemy.x, enemy.y, enemy.z, enemy.range + enemy.boundingRadius/2, Colors.Red)
+            end
+        end
+    end
+    if self.Menu.Draw.HoldZone then
+        DrawCircle(myHero.x, myHero.y, myHero.z, self.Menu.Misc.HoldPosRadius, Colors.Green)
+    end
+end
+
+function SOW:CheckConfig()
+	GetSave("SOW").FarmDelay = self.Menu.General.FarmDelay
+	GetSave("SOW").ExtraWindUpTime = self.Menu.General.ExtraWindUpTime
+
+--	GetSave("SOW").Mode3 = self.Menu._param[self.Mode3ParamID].key
+--	GetSave("SOW").Mode2 = self.Menu._param[self.Mode2ParamID].key
+--	GetSave("SOW").Mode1 = self.Menu._param[self.Mode1ParamID].key
+--	GetSave("SOW").Mode0 = self.Menu._param[self.Mode0ParamID].key
+end
+
+function SOW:DisableAttacks()
+	self.Attacks = false
+end
+
+function SOW:EnableAttacks()
+	self.Attacks = true
+end
+
+function SOW:ForceTarget(target)
+	self.forcetarget = target
+end
+
+function SOW:GetTime()
+	return os.clock()
+end
+
+function SOW:MyRange(target)
+	local myRange = myHero.range + myHero.boundingRadius/2 --self.VP:GetHitBox(target)
+	if target and ValidTarget(target) then
+		myRange = myRange + myHero.boundingRadius/2
+	end
+	return myRange - 20
+end
+
+function SOW:InRange(target)
+	local MyRange = self:MyRange(target)
+	if target and GetDistanceSqr(target.visionPos, myHero.visionPos) <= MyRange * MyRange then
+		return true
+	end
+end
+
+function SOW:ValidTarget(target)
+	if target and target.type and (target.type == "obj_BarracksDampener" or target.type == "obj_HQ")  then
+		return false
+	end
+	return ValidTarget(target) and self:InRange(target)
+end
+
+function SOW:Attack(target)
+	self.LastAttack = self:GetTime() + self:Latency()
+	myHero:Attack(target)
+end
+
+function SOW:WindUpTime(exact)
+	return (1 / (myHero.attackSpeed * self.BaseWindupTime)) + (exact and 0 or GetSave("SOW").ExtraWindUpTime / 1000)
+end
+
+function SOW:AnimationTime()
+	return (1 / (myHero.attackSpeed * self.BaseAnimationTime))
+end
+
+function SOW:Latency()
+	return GetLatency() / 2000
+end
+
+function SOW:CanAttack()
+    if myHero.charName == "Jhin" and HasBuff(myHero, "JhinPassiveReload") then return false end
+	if self.LastAttack <= self:GetTime() then
+		return (self:GetTime() + self:Latency()  > self.LastAttack + self:AnimationTime())
+	end
+	return false
+end
+
+function SOW:CanMove()
+	if self.LastAttack <= self:GetTime() then
+		return ((self:GetTime() + self:Latency() > self.LastAttack + self:WindUpTime()) or self.ParticleCreated) and not IsEvading()
+	end
+end
+
+function SOW:BeforeAttack(target)
+	local result = false
+	for i, cb in ipairs(self.BeforeAttackCallbacks) do
+		local ri = cb(target, self.mode)
+		if ri then
+			result = true
+		end
+	end
+	return result
+end
+
+function SOW:RegisterBeforeAttackCallback(f)
+	table.insert(self.BeforeAttackCallbacks, f)
+end
+
+function SOW:OnAttack(target)
+	for i, cb in ipairs(self.OnAttackCallbacks) do
+		cb(target, self.mode)
+	end
+end
+
+function SOW:RegisterOnAttackCallback(f)
+	table.insert(self.OnAttackCallbacks, f)
+end
+
+function SOW:AfterAttack(target)
+	for i, cb in ipairs(self.AfterAttackCallbacks) do
+		cb(target, self.mode)
+	end
+end
+
+function SOW:RegisterAfterAttackCallback(f)
+	table.insert(self.AfterAttackCallbacks, f)
+end
+
+function SOW:MoveTo(x, y)
+    myHero:MoveTo(x, y)
+end
+function SOW:OrbWalk(target, point)
+	point = point or self.forceorbwalkpos
+	if self.Attacks and self:CanAttack() and self:ValidTarget(target) and not self:BeforeAttack(target) then
+		self:Attack(target)
+	elseif self:CanMove() and self.Move then
+		if not point then
+			local OBTarget = GetTarget() or target
+			if self.Menu.General.Mode == 1 or not OBTarget then
+                if GetDistance(mousePos) < self.Menu.Misc.HoldPosRadius then return end
+                local Mv = mousePos
+				--local Mv = Vector(myHero) + 100 * (Vector(mousePos) - Vector(myHero)):normalized()
+				self:MoveTo(Mv.x, Mv.z)
+			elseif GetDistanceSqr(OBTarget) > 100*100 + math.pow(OBTarget.boundingRadius/2, 2) then
+				local point = self.VP:GetPredictedPos(OBTarget, 0, 2*myHero.ms, myHero, false)
+				if GetDistanceSqr(point) < 100*100 + math.pow(OBTarget.boundingRadius, 2) then
+					point = Vector(Vector(myHero) - point):normalized() * 50
+				end
+				self:MoveTo(point.x, point.z)
+			end
+		else
+			self:MoveTo(point.x, point.z)
+		end
+	end
+end
+
+function SOW:IsAttack(SpellName)
+	return (SpellName:lower():find("attack") or table.contains(self.AttackTable, SpellName:lower())) and not table.contains(self.NoAttackTable, SpellName:lower())
+end
+
+function SOW:IsAAReset(SpellName)
+	local SpellID
+	if SpellName:lower() == myHero:GetSpellData(_Q).name:lower() then
+		SpellID = _Q
+	elseif SpellName:lower() == myHero:GetSpellData(_W).name:lower() then
+		SpellID = _W
+	elseif SpellName:lower() == myHero:GetSpellData(_E).name:lower() then
+		SpellID = _E
+	elseif SpellName:lower() == myHero:GetSpellData(_R).name:lower() then
+		SpellID = _R
+	end
+
+	if SpellID then
+		return table.contains(self.AttackResetTable, SpellID) --self.AttackResetTable[myHero.charName:lower()] == SpellID 
+	end
+	return false
+end
+
+function SOW:OnProcessSpell(unit, spell)
+	if unit.isMe and self:IsAttack(spell.name) then
+		if self.debugdps then
+			DPS = DPS and DPS or 0
+			print("DPS: "..(1000/(self:GetTime()- DPS)).." "..(1000/(self:AnimationTime())))
+			DPS = self:GetTime()
+		end
+		if not self.DataUpdated and not spell.name:lower():find("card") then
+			
+			if self.debug then
+				print("<font color=\"#FF0000\">Basic Attacks data updated: </font>")
+				print("<font color=\"#FF0000\">BaseWindupTime: "..self.BaseWindupTime.."</font>")
+				print("<font color=\"#FF0000\">BaseAnimationTime: "..self.BaseAnimationTime.."</font>")
+				print("<font color=\"#FF0000\">ProjectileSpeed: "..self.ProjectileSpeed.."</font>")
+			end
+			self.DataUpdated = true
+		end
+		self.LastAttack = self:GetTime() - self:Latency()
+		self.checking = true
+		self.LastAttackCancelled = false
+		self:OnAttack(spell.target)
+		self.checkcancel = self:GetTime()
+		DelayAction(function(t) self:AfterAttack(t) end, self:WindUpTime() - self:Latency(), {spell.target})
+
+	elseif unit.isMe and self:IsAAReset(spell.name) then
+		DelayAction(function() self:resetAA() end, 0.25)
+	end
+end
+
+function SOW:OnProcessAttack(unit, spell)
+    if unit.isMe and self:IsAttack(spell.name) then
+        self.BaseAnimationTime = 1 / (spell.animationTime * myHero.attackSpeed)
+		self.BaseWindupTime = 1 / (spell.windUpTime * myHero.attackSpeed)
+    end
+end
+
+function SOW:resetAA()
+	self.LastAttack = 0
+end
+--TODO: Change this.
+function SOW:BonusDamage(minion)
+	local AD = myHero:CalcDamage(minion, myHero.totalDamage)
+	local BONUS = 0
+	if myHero.charName == 'Vayne' then
+		if myHero:GetSpellData(_Q).level > 0 and myHero:CanUseSpell(_Q) == SUPRESSED then
+			BONUS = BONUS + myHero:CalcDamage(minion, ((0.05 * myHero:GetSpellData(_Q).level) + 0.25 ) * myHero.totalDamage)
+		end
+		if not VayneCBAdded then
+			VayneCBAdded = true
+			function VayneParticle(obj)
+				if GetDistance(obj) < 1000 and obj.name:lower():find("vayne_w_ring2.troy") then
+					VayneWParticle = obj
+				end
+			end
+			AddCreateObjCallback(VayneParticle)
+		end
+		if VayneWParticle and VayneWParticle.valid and GetDistance(VayneWParticle, minion) < 10 then
+			BONUS = BONUS + 10 + 10 * myHero:GetSpellData(_W).level + (0.03 + (0.015 * myHero:GetSpellData(_W).level)) * minion.maxHealth
+		end
+	elseif myHero.charName == 'Teemo' and myHero:GetSpellData(_E).level > 0 then
+		BONUS = BONUS + myHero:CalcMagicDamage(minion, (myHero:GetSpellData(_E).level * 10) + (myHero.ap * 0.3) )
+	elseif myHero.charName == 'Corki' then
+		BONUS = BONUS + myHero.totalDamage/10
+	elseif myHero.charName == 'MissFortune' and myHero:GetSpellData(_W).level > 0 then
+		BONUS = BONUS + myHero:CalcMagicDamage(minion, (4 + 2 * myHero:GetSpellData(_W).level) + (myHero.ap/20))
+	elseif myHero.charName == 'Varus' and myHero:GetSpellData(_W).level > 0 then
+		BONUS = BONUS + (6 + (myHero:GetSpellData(_W).level * 4) + (myHero.ap * 0.25))
+	elseif myHero.charName == 'Caitlyn' then
+			if not CallbackCaitlynAdded then
+				function CaitlynParticle(obj)
+					if GetDistance(obj) < 100 and obj.name:lower():find("caitlyn_headshot_rdy") then
+							HeadShotParticle = obj
+					end
+				end
+				AddCreateObjCallback(CaitlynParticle)
+				CallbackCaitlynAdded = true
+			end
+			if HeadShotParticle and HeadShotParticle.valid then
+				BONUS = BONUS + AD * 1.5
+			end
+	elseif myHero.charName == 'Orianna' then
+		BONUS = BONUS + myHero:CalcMagicDamage(minion, 10 + 8 * ((myHero.level - 1) % 3))
+	elseif myHero.charName == 'TwistedFate' then
+			if not TFCallbackAdded then
+				function TFParticle(obj)
+					if GetDistance(obj) < 100 and obj.name:lower():find("cardmaster_stackready.troy") then
+						TFEParticle = obj
+					elseif GetDistance(obj) < 100 and obj.name:lower():find("card_blue.troy") then
+						TFWParticle = obj
+					end
+				end
+				AddCreateObjCallback(TFParticle)
+				TFCallbackAdded = true
+			end
+			if TFEParticle and TFEParticle.valid then
+				BONUS = BONUS + myHero:CalcMagicDamage(minion, myHero:GetSpellData(_E).level * 15 + 40 + 0.5 * myHero.ap)  
+			end
+			if TFWParticle and TFWParticle.valid then
+				BONUS = BONUS + math.max(myHero:CalcMagicDamage(minion, myHero:GetSpellData(_W).level * 20 + 20 + 0.5 * myHero.ap) - 40, 0) 
+			end
+	elseif myHero.charName == 'Draven' then
+			if not CallbackDravenAdded then
+				function DravenParticle(obj)
+					if GetDistance(obj) < 100 and obj.name:lower():find("draven_q_buf") then
+							DravenParticleo = obj
+					end
+				end
+				AddCreateObjCallback(DravenParticle)
+				CallbackDravenAdded = true
+			end
+			if DravenParticleo and DravenParticleo.valid then
+				BONUS = BONUS + AD * (0.3 + (0.10 * myHero:GetSpellData(_Q).level))
+			end
+	elseif myHero.charName == 'Nasus' and VIP_USER then
+		if myHero:GetSpellData(_Q).level > 0 and myHero:CanUseSpell(_Q) == SUPRESSED then
+			local Qdamage = {30, 50, 70, 90, 110}
+--			NasusQStacks = NasusQStacks or 0
+--			BONUS = BONUS + myHero:CalcDamage(minion, 10 + 20 * (myHero:GetSpellData(_Q).level) + NasusQStacks)
+--			if not RecvPacketNasusAdded then
+--				function NasusOnRecvPacket(p)
+--					if p.header == 0xFE and p.size == 0xC then
+--						p.pos = 1
+--						pNetworkID = p:DecodeF()
+--						unk01 = p:Decode2()
+--				 		unk02 = p:Decode1()
+--						stack = p:Decode4()
+--						if pNetworkID == myHero.networkID then
+--							NasusQStacks = stack
+--						end
+--					end
+--				end
+--				RecvPacketNasusAdded = true
+--				AddRecvPacketCallback(NasusOnRecvPacket)
+--			end
+		end
+	elseif myHero.charName == "Ziggs" then
+		if not CallbackZiggsAdded then
+			function ZiggsParticle(obj)
+				if GetDistance(obj) < 100 and obj.name:lower():find("ziggspassive") then
+						ZiggsParticleObj = obj
+				end
+			end
+			AddCreateObjCallback(ZiggsParticle)
+			CallbackZiggsAdded = true
+		end
+		if ZiggsParticleObj and ZiggsParticleObj.valid then
+			local base = {20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 88, 100, 112, 124, 136, 148, 160}
+			BONUS = BONUS + myHero:CalcMagicDamage(minion, base[myHero.level] + (0.25 + 0.05 * (myHero.level % 7)) * myHero.ap)  
+		end
+	end
+
+	return BONUS
+end
+
+function SOW:KillableMinion()
+	local result
+	for i, minion in ipairs(self.EnemyMinions.objects) do
+		local time = self:WindUpTime(true) + GetDistance(minion.visionPos, myHero.visionPos) / self.ProjectileSpeed - 0.07
+		local PredictedHealth = self.VP:GetPredictedHealth(minion, time, GetSave("SOW").FarmDelay / 1000)
+		if self:ValidTarget(minion) and PredictedHealth < self.VP:CalcDamageOfAttack(myHero, minion, {name = "Basic"}, 0) + self:BonusDamage(minion) and PredictedHealth > -40 then
+			result = minion
+			break
+		end
+	end
+	return result
+end
+
+function SOW:ShouldWait()
+	for i, minion in ipairs(self.EnemyMinions.objects) do
+		local time = self:AnimationTime() + GetDistance(minion.visionPos, myHero.visionPos) / self.ProjectileSpeed - 0.07
+		if self:ValidTarget(minion) and self.VP:GetPredictedHealth2(minion, time * 2) < (self.VP:CalcDamageOfAttack(myHero, minion, {name = "Basic"}, 0) + self:BonusDamage(minion)) then
+			return true
+		end
+	end
+end
+
+function SOW:ValidStuff()
+	local result = self:GetTarget()
+
+	if result then 
+		return result
+	end
+
+	for i, minion in ipairs(self.EnemyMinions.objects) do
+		local time = self:AnimationTime() + GetDistance(minion.visionPos, myHero.visionPos) / self.ProjectileSpeed - 0.07
+		local pdamage2 = minion.health - self.VP:GetPredictedHealth(minion, time, GetSave("SOW").FarmDelay / 1000)
+		local pdamage = self.VP:GetPredictedHealth2(minion, time * 2)
+		if self:ValidTarget(minion) and ((pdamage) > 2*self.VP:CalcDamageOfAttack(myHero, minion, {name = "Basic"}, 0) + self:BonusDamage(minion) or pdamage2 == 0) then
+			return minion
+		end
+	end
+
+	for i, minion in ipairs(self.JungleMinions.objects) do
+		if self:ValidTarget(minion) then
+			return minion
+		end
+	end
+
+	for i, minion in ipairs(self.OtherMinions.objects) do
+		if self:ValidTarget(minion) then
+			return minion
+		end
+	end
+end
+
+function SOW:GetTarget(OnlyChampions)
+	local result
+	local healthRatio
+
+	if self:ValidTarget(self.forcetarget) then
+		return self.forcetarget
+	elseif self.forcetarget ~= nil then
+		return nil
+	end
+
+	if (not self.STS or not OnlyChampions) and self:ValidTarget(GetTarget()) and (GetTarget().type == myHero.type or (not OnlyChampions)) then
+		return GetTarget()
+	end
+
+	if self.STS then
+		local oldhitboxmode = self.STS.hitboxmode
+		self.STS.hitboxmode = true
+
+		result = self.STS:GetTarget(myHero.range)
+
+		self.STS.hitboxmode = oldhitboxmode
+		return result
+	end
+
+	for i, champion in ipairs(GetEnemyHeroes()) do
+		local hr = champion.health / myHero:CalcDamage(champion, 200)
+		if self:ValidTarget(champion) and ((healthRatio == nil) or hr < healthRatio) then
+			result = champion
+			healthRatio = hr
+		end
+	end
+
+	return result
+end
+
+function SOW:GetTurret()
+    range = myHero.range + myHero.boundingRadius/2
+    for i, turret in ipairs(self.Turrets) do
+        if turret.dead then
+            table.remove(self.Turrets, i)
+        elseif GetDistance(turret) < range then
+            return turret
+        end
+    end
+    return nil
+end
+
+function SOW:Farm(mode, point)
+	if mode == 1 then
+		self.EnemyMinions:update()
+		local target = self:KillableMinion() or self:GetTarget()
+		self:OrbWalk(target, point)
+		self.mode = 1
+	elseif mode == 2 then
+		self.EnemyMinions:update()
+		self.OtherMinions:update()
+		self.JungleMinions:update()
+
+		local target = self:KillableMinion()
+        local tTurret = self:GetTurret()
+		if target then
+			self:OrbWalk(target, point)
+		elseif not self:ShouldWait() then
+
+			if self:ValidTarget(self.lasttarget) then
+				target = self.lasttarget
+			else
+				target = self:ValidStuff()
+			end
+			self.lasttarget = target
+			
+			self:OrbWalk(target, point)
+        elseif tTurret ~= nil then
+            self:OrbWalk(tTurret, point)
+		else
+			self:OrbWalk(nil, point)
+		end
+		self.mode = 2
+	elseif mode == 3 then
+		self.EnemyMinions:update()
+		local target = self:KillableMinion()
+		self:OrbWalk(target, point)
+		self.mode = 3
+	end
+end
+
+function SOW:OnTick()
+	if not self.Menu.General.Enabled then return end
+	if self.Menu.HotKeys.Mode0 then
+		local target = self:GetTarget(true)
+		if self.Menu.General.Attack == 2 then
+			self:OrbWalk(target)
+		else
+			self:OrbWalk()
+		end
+		self.mode = 0
+	elseif self.Menu.HotKeys.Mode1 then
+		self:Farm(1)
+	elseif self.Menu.HotKeys.Mode2 then
+		self:Farm(2)
+	elseif self.Menu.HotKeys.Mode3 then
+		self:Farm(3)
+	else
+		self.mode = -1
+	end
+end
+
+function SOW:GetActiveMode()
+    if self.Menu.HotKeys.Mode0 then
+        return "Combo"
+    elseif self.Menu.HotKeys.Mode1 then
+        return "Harass"
+    elseif self.Menu.HotKeys.Mode2 then
+        return "Clear"
+    elseif self.Menu.HotKeys.Mode3 then
+        return "LastHit"
+    end
+end
+
+function SOW:DrawAARange(width, color)
+	local p = WorldToScreen(D3DXVECTOR3(myHero.x, myHero.y, myHero.z))
+	if OnScreen(p.x, p.y) then
+		DrawCircle3D(myHero.x, myHero.y, myHero.z, self:MyRange() + 25, width or 1, color or ARGB(255, 255, 0, 0))
+	end
+end
+
+class('HealthPrediction')
+function HealthPrediction:__init()
+    self.ProjectileSpeed = {["SRU_OrderMinionRanged"] = 650, ["SRU_ChaosMinionRanged"] = 650, ["SRU_OrderMinionSiege"] = 1200, ["SRU_ChaosMinionSiege"] = 1200, ["SRUAP_Turret_Chaos1"] = 1200, ["SRUAP_Turret_Chaos2"] = 1200, ["SRUAP_Turret_Order1"] = 1200, ["SRUAP_Turret_Order2"] = 1200}
+    self.PredictionDamage = {}
+    self.EnemyMinions = minionManager(MINION_ENEMY, 2000, myHero, MINION_SORT_HEALTH_ASC)
+    AddTickCallback(function() self:OnTick() end)
+    AddAnimationCallback(function(u, a) self:OnAnimation(u, a) end)
+    AddProcessAttackCallback(function(u, s) self:OnProcessAttack(u, s) end)
+end
+
+function HealthPrediction:OnTick()
+    for i, minion in ipairs(self.EnemyMinions.objects)do
+        local D = true
+        for cTime, damage in pairs(self.PredictionDamage[minions.networkID])do
+            if GetGameTimer()+GetLatency()/2000 < ctime - GetLatency()/200 then
+                D = false
+                break
+            end
+        end
+        if D then
+            self.PredictionDamage[minions.networkID] = nil
+        end
+    end
+end
+
+function HealthPrediction:OnAnimation(unit, animation)
+    if unit == nil then
+        return
+    end
+
+    if unit.team == myHero.team and unit.spell ~= nil and unit.spell.target ~= nil and unit.spell.name:find("BasicAttack") then
+        if unit.spell.target.networkID < 100 and self.PredictionDamage[unit.spell.target.networkID] == nil then
+            self.PredictionDamage[unit.spell.target.networkID] = {}
+        end
+        if self.PredictionDamage[unit.spell.target.networkID] then
+            if unit.type ~= myHero.type and self.ProjectileSpeed[unit.charName] then
+                local ctime = GetGameTimer()+unit.spell.windUpTime+GetDistance(unit.spell.target, unit)/self.ProjectileSpeed[unit.charName]
+                self.PredictionDamage[unit.spell.target.networkID][ctime] = self:GetAADmg(unit.spell.target, unit)
+            else
+                local ctime = GetGameTimer()+unit.spell.windUpTime
+                self.PredictionDamage[unit.spell.target.networkID][ctime] = self:GetAADmg(unit.spell.target, unit)
+            end
+        end
+    end
+end
+
+function HealthPrediction:OnProcessAttack(unit, spell)
+    if unit == nil then
+        return
+    end
+
+    if unit.team == myHero.team and unit.type == myHero.type and spell.target and spell.name:find("BasicAttack") and self.ProjectileSpeed[unit.charName] then
+        if spell.target.networkID < 100 and self.PredictionDamage[spell.target.networkID] == nil then
+            self.PredictionDamage[spell.target.networkID] = {}
+        end
+        if self.PredictionDamage[spell.target.networkID] then
+            local ctime = GetGameTimer()+GetDistance(spell.target, unit)/self.ProjectileSpeed[unit.charName]
+            self.PredictionDamage[spell.target.networkID][ctime] = self:GetAADmg(spell.target, unit)
+        end
+
+    end
+end
+
+function HealthPrediction:GetHealthPrediction(unit, time)
+    local health = unit.health
+    if self.PredictionDamage[unit.networkID] then
+        local Delete = true
+
+        for ctime, damage in pairs(self.PredictionDamage[unit.networkID]) do
+
+            if GetGameTimer()+GetLatency()/2000 < ctime-GetLatency()/2000 then
+                Delete = false
+                break
+            end
+        end
+        if Delete then
+            self.PredictionDamage[unit.networkID] = nil
+        else
+            for ctime, damage in pairs(self.PredictionDamage[unit.networkID]) do
+                if GetGameTimer()+GetLatency()/2000 >= ctime-GetLatency()/2000 then
+                    self.PredictionDamage[unit.networkID][ctime] = nil
+                elseif GetGameTimer()+GetLatency()/2000+time > ctime+0.09-GetLatency()/2000 then --Temp 0.075
+                    health = health-damage
+                end
+            end
+        end
+    end
+    return health
+end
+
+function HealthPrediction:GetAADmg(enemy, ally)
+    local Armor = math.max(0, enemy.armor*ally.armorPenPercent-ally.armorPen)
+    local ArmorPercent = Armor/(100+Armor)
+    local TrueDmg = ally.totalDamage*(1-ArmorPercent)
+    return TrueDmg
+end
+
 
 --[[
 
